@@ -1,7 +1,7 @@
 {
-  "name": "gc-poly-experimental",
+  "name": "gc-poly-vel",
   "status": "experimental",
-  "description": "clock priority + poly capture (record) + poly fan-out (playback). EXPERIMENTAL.",
+  "description": "clock + poly capture (real velocity) + vel stash + fan-out. EXPERIMENTAL.",
   "patches": [
     {
       "addr": "0x8046810",
@@ -15,13 +15,23 @@
     },
     {
       "addr": "0x8047400",
-      "bytes": "2fb55977dbf774ffc0b2022810d862790346db0203ebc01303eb021313444bf23050c1f2000018442946642200f004f8bde82f40def7e0b970b50378082b01d90023037000249c420ad200f1010505eb44052e788e4201d00134f4e76a7009e0082b07d200f1010505eb430529706a7001330370184670bd",
+      "bytes": "2fb55977dbf774ffc0b2022818d862790346db0203ebc01303eb021313444bf23050c1f20000184429464ff60052c1f200020a441278002a00d1642200f004f8bde82f40def7d8b970b50378082b01d90023037000249c420ad200f1010505eb44052e788e4201d00134f4e76a7009e0082b07d200f1010505eb430529706a7001330370184670bd",
       "note": "cave routine"
     },
     {
       "addr": "0x8025814",
       "bytes": "21f0f4bd",
       "note": "armed step store -> cave (store+poly capture)"
+    },
+    {
+      "addr": "0x8047800",
+      "bytes": "01b548790b794ff6005cc1f2000c9c448cf800000b794a79bde80140d7f7e6bc",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x801f1e8",
+      "bytes": "28f00abb",
+      "note": "note-on add -> stash velocity by note"
     },
     {
       "addr": "0x8047600",

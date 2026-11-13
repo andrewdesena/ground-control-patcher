@@ -1,0 +1,23 @@
+{
+  "name": "poly-velhook",
+  "status": "experimental",
+  "description": "Real-velocity capture helper. Hooks the note-on add-to-held-list routine at 0x0801F1E8 (event r1: note=r1+4, velocity=r1+5), stashes body velocity into vel_by_note[note] at CCM 0x1000FD00, then reproduces the two original ldrb and returns to 0x0801F1EC. The capture cave (poly-record) reads vel_by_note[note] so chord notes carry their real velocity (falls back to 100 when unset).",
+  "requires": {
+    "blank": [
+      "0x08047800",
+      "0x08047FFF"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x8047800",
+      "bytes": "01b548790b794ff6005cc1f2000c9c448cf800000b794a79bde80140d7f7e6bc",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x801f1e8",
+      "bytes": "28f00abb",
+      "note": "note-on add -> stash velocity by note"
+    }
+  ]
+}

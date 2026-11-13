@@ -227,11 +227,14 @@ risk for testing the store path.
   emits every note EXCEPT the primary (`sl`) through the self-contained pair `0x8019A92`.
 - `tools/test_fanout.py`: PASS for mono (no extras), C-major triad, 7th chord ch2 step5, and an
   8-note cluster at step 127 (correct note/vel/channel, primary skipped).
-- `gc-poly.hex` = clock + capture + fan-out, 340 bytes / 6 sites, `verify.py` zero collateral,
-  on-disk disassembly verified. **EXPERIMENTAL / UNFLASHED.**
-- v1 caveats: extras' velocity is fixed 100 (capture cave hardcodes vel=100); assumed default
-  melodic channels 1..3 (track=channel-1); extra-note duration fixed at 100 ticks (tune on
-  hardware). Only projects RECORDED on this firmware have poly data; stock projects stay mono.
+- **Real velocity:** `mods/poly-velhook.source.json` hooks the note-on add-to-held-list `0x801F1E8`
+  (event note@+4, vel@+5) and stashes `vel_by_note[note]` at CCM `0x1000FD00`. The capture cave
+  reads it (fallback 100). `tools/test_velhook.py` and `tools/test_polyrecord.py` PASS.
+- `gc-poly-vel.hex` = clock + capture(real vel) + velhook + fan-out, 392 bytes / 8 sites,
+  `verify.py` zero collateral, on-disk disassembly verified. **EXPERIMENTAL / UNFLASHED.**
+- v1 caveats: assumed default melodic channels 1..3 (track=channel-1); extra-note duration fixed at
+  100 ticks (tune on hardware). Only projects RECORDED on this firmware have poly data; stock
+  projects stay mono.
 
 Backlog (Drew's asks, later layers)
 

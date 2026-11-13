@@ -26,6 +26,7 @@ PMGR = 0x2001C0E4
 ACT_GETTER = 0x080232F0
 CONTINUE = 0x080257F8
 POLY = 0x1000B530
+VELTAB = 0x1000FD00
 TSTRIDE = 0x880
 SSTRIDE = 17
 SRAM = 0x20000000; SRAMSZ = 0x20000
@@ -69,6 +70,8 @@ def main():
     uc.mem_write(PMGR + 0x10, bytes([0]))
     # zero the CCM poly area (simulate pre-zero; also test stale-clip separately)
     uc.mem_write(POLY, b'\x00' * 0x3300)
+    uc.mem_write(VELTAB, b'\x00' * 0x80)
+    uc.mem_write(VELTAB + 67, bytes([77]))      # real captured velocity for note 67
 
     note = 67
     step = 3
@@ -103,7 +106,7 @@ def main():
     cnt = uc.mem_read(dst, 1)[0]
     ent = uc.mem_read(dst + 1, 2)
     check("poly count", cnt, 1)
-    check("poly entry (note,vel)", (ent[0], ent[1]), (note, 100))
+    check("poly entry (note,vel)", (ent[0], ent[1]), (note, 77))
 
     # second note same step -> chord (count 2); then a repeat -> velocity update (count stays 2)
     def run_once(n):
@@ -129,6 +132,8 @@ def main():
     uc.reg_write(UC_ARM_REG_R3, PATBASE + 10 * 5)
     run_once(60)
     check("stale count clipped", uc.mem_read(dst2, 1)[0], 1)
+    ent2 = uc.mem_read(dst2 + 1, 2)
+    check("fallback vel when unset (100)", (ent2[0], ent2[1]), (60, 100))
 
     print('PASS' if not fails else f'FAIL ({fails})')
     return 0 if not fails else 1
