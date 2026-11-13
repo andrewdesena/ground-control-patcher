@@ -73,3 +73,13 @@ These are static addresses in v3.26; the patcher must verify the base image hash
 - Browser-authored chord saved to card → module loads and plays all notes.
 - Chord recorded on the module → saves as `steps2` → reloads and plays after power cycle.
 - `verify.py` zero collateral, disassembly of every cave eyeballed, stock image untouched elsewhere.
+
+## Progress
+
+- **Loader sidecar read: implemented and emulator-tested.**
+  `mods/poly-load.source.json` (cave `0x08047C00`, hook `0x0801CD96` after `f_close`) rewrites the
+  path buffer to `poly<letter>`, opens it in the same project/track directory, reads 2,176 bytes into
+  `0x1000B530 + track*0x880`, and skips the drum track.
+  `tools/test_poly_load.py` PASS: track1/A and track3/C destinations, 2,176-byte copy, f_close, and
+  `r3 = 0xFFFFFFFF` for the caller.
+- Remaining: writer sidecar save, entry-append hook, and the editor writing `poly<letter>` files.

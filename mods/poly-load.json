@@ -1,0 +1,23 @@
+{
+  "name": "poly-load-sidecar",
+  "status": "experimental",
+  "description": "After the pattern file is read and closed, load the poly sidecar 'polyA' (A = current pattern letter) from the same project/track working directory straight into the CCM poly array 0x1000B530 + track*0x880. 2176 bytes = 128 steps x [count, note,vel x8]. Skips the drum track (index 3). Hook: 0x0801CD96 (after f_close) -> cave 0x08047C00. Uses f_open 0x0801496C / f_read 0x08014B30 / f_close 0x08014F18. FIL at 0x1000E000, count at 0x1000E300.",
+  "requires": {
+    "blank": [
+      "0x08047C00",
+      "0x08047CFF"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x8047c00",
+      "bytes": "ec462de9f04164466569032d37d094f83f60702084f838006f2084f839006c2084f83a00792084f83b0084f83c60002084f83d004ef20000c1f2000004f138010122ccf793fed0b94bf23051c1f2000140f6800205fb02f001444ef20000c1f2000040f680024ef20033c1f20003ccf75fff4ef20000c1f20000cdf74df94ff0ff33bde8f0417047",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x801cd96",
+      "bytes": "2af033ff",
+      "note": "after f_close -> load poly sidecar"
+    }
+  ]
+}

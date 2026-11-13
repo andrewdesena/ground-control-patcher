@@ -175,22 +175,30 @@
       const noteAt = (s, p) => { const i = noteIndex(s, p); return i >= 0 ? ensureMelodic(state.track)[s].notes[i] : null; };
       const isSel = (s, p) => state.sel.has(keyOf(s, p));
       const velColor = v => { v = Math.max(0, Math.min(127, v | 0)); const l = 28 + 36 * (v / 127); return "hsl(356,72%," + l.toFixed(0) + "%)"; };
+      const cellEl = (s, p) => { const rows = $("rollWrap").querySelectorAll('.row'); const row = rows[127 - p]; return row ? row.querySelectorAll('.cell')[s] : null; };
+      function updateCell(s, p) { const c = cellEl(s, p); if (!c) return; const nv = noteAt(s, p); c.classList.toggle('sel', isSel(s, p)); c.style.background = nv ? velColor(nv[1]) : ''; }
       function selectOrToggle(s, p, ev) {
         const list = ensureMelodic(state.track)[s].notes, i = list.findIndex(x => x[0] === p), k = keyOf(s, p);
+        const oldSel = new Set(state.sel);
         state.pasteStep = s;
         if (i < 0) { list.push([p, +$("vel").value || 100]); state.sel = new Set([k]); }
         else if (ev && ev.shiftKey) { if (state.sel.has(k)) state.sel.delete(k); else state.sel.add(k); }
         else state.sel = new Set([k]);
-        paint();
+        const touched = new Set([...oldSel, ...state.sel]);
+        touched.forEach(x => { const q = x.split(':'); updateCell(+q[0], +q[1]); });
       }
-      function removeNote(s, p) { const list = ensureMelodic(state.track)[s].notes, i = list.findIndex(x => x[0] === p); if (i >= 0) { list.splice(i, 1); state.sel.delete(keyOf(s, p)); paint(); } }
+      function removeNote(s, p) { const list = ensureMelodic(state.track)[s].notes, i = list.findIndex(x => x[0] === p); if (i >= 0) { list.splice(i, 1); state.sel.delete(keyOf(s, p)); updateCell(s, p); } }
       const toggleNote = (s, p) => { const st = ensureMelodic(state.track)[s], i = noteIndex(s, p); if (i >= 0) st.notes.splice(i, 1); else st.notes.push([p, +$("vel").value]); paint(); };
       const setCCval = (s, num, v) => { const st = ensureMelodic(state.track)[s]; v = Math.max(0, Math.min(127, v | 0)); const i = st.cc.findIndex(c => c[0] === num); if (i >= 0) st.cc[i][1] = v; else st.cc.push([num, v]); };
       const delCCval = (s, num) => { const st = ensureMelodic(state.track)[s]; const i = st.cc.findIndex(c => c[0] === num); if (i >= 0) st.cc.splice(i, 1); };
       const setCC = (s, num, val) => { if (val === null) delCCval(s, num); else setCCval(s, num, val); buildCC(); };
 
       function buildMelodic() {
-        const w = $("rollWrap"); w.innerHTML = "";
+        const w = $("rollWrap");
+        const prevVs = w.querySelector('.vscroll');
+        const prevTop = prevVs ? prevVs.scrollTop : null;
+        const prevLeft = prevVs ? prevVs.scrollLeft : null;
+        w.innerHTML = "";
         const vs = document.createElement("div"); vs.className = "vscroll";
         const hdr = document.createElement("div"); hdr.className = "steps-hdr";
         const sp = document.createElement("div"); sp.className = "spacer"; hdr.appendChild(sp);
@@ -214,12 +222,18 @@
         // keep the CC automation lanes horizontally locked to the step columns
         const ch = $("ccHost");
         if (ch) vs.addEventListener("scroll", () => { ch.scrollLeft = vs.scrollLeft; ch.dataset.synced = "1"; });
-        // center on middle C-ish
-        requestAnimationFrame(() => { vs.scrollTop = (127 - 60) * 16 - 120; });
+        // keep the view where the user left it; only center on the first render
+        requestAnimationFrame(() => {
+          const t = (prevTop != null) ? prevTop : ((127 - 60) * 16 - 120);
+          void vs.scrollHeight;                 // force layout so the clamp doesn't eat it
+          vs.scrollTop = t;
+          if (prevLeft != null) vs.scrollLeft = prevLeft;
+          setTimeout(() => { vs.scrollTop = t; if (prevLeft != null) vs.scrollLeft = prevLeft; }, 0);
+        });
         buildCC();
       }
       function buildCC() {
-        const host = $("ccHost"); if (!host) return; host.innerHTML = "";
+        const host = $("ccHost"); if (!host) return; const prevLeft = host.scrollLeft; host.innerHTML = "";
         const mc = ensureMelodic(state.track), W = state.steps * 20, H = 64;
         state.ccLanes.forEach(num => {
           const lane = document.createElement("div"); lane.className = "cclane";
@@ -259,6 +273,7 @@
           lane.appendChild(svg); host.appendChild(lane);
         });
         if (!state.ccLanes.length) { const e = document.createElement("div"); e.className = "hint"; e.textContent = "No CC lanes. Pick a CC# above and Add lane to draw automation."; host.appendChild(e); }
+        host.scrollLeft = prevLeft;
       }
 
       // ---- drum ----
@@ -574,8 +589,7 @@
         if (state.track === "D") return;
         const v = Math.max(1, Math.min(127, +$("vel").value || 100));
         const arr = ensureMelodic(state.track);
-        state.sel.forEach(k => { const [s, p] = k.split(":").map(Number); const x = arr[s].notes.find(q => q[0] === p); if (x) x[1] = v; });
-        paint();
+        state.sel.forEach(k => { const [s, p] = k.split(":").map(Number); const x = arr[s].notes.find(q => q[0] === p); if (x) { x[1] = v; updateCell(s, p); } });
       };
       $("addCC").onclick = () => { const num = Math.max(0, Math.min(127, +$("ccAdd").value || 0)); if (!state.ccLanes.includes(num)) state.ccLanes.push(num); buildCC(); };
       let clip = null;

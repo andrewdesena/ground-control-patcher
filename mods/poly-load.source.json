@@ -1,0 +1,67 @@
+{
+  "name": "poly-load-sidecar",
+  "status": "experimental",
+  "description": "After the pattern file is read and closed, load the poly sidecar 'polyA' (A = current pattern letter) from the same project/track working directory straight into the CCM poly array 0x1000B530 + track*0x880. 2176 bytes = 128 steps x [count, note,vel x8]. Skips the drum track (index 3). Hook: 0x0801CD96 (after f_close) -> cave 0x08047C00. Uses f_open 0x0801496C / f_read 0x08014B30 / f_close 0x08014F18. FIL at 0x1000E000, count at 0x1000E300.",
+  "cave": {
+    "addr": "0x08047C00",
+    "asm": [
+      "mov r12, sp",
+      "push {r4-r8, lr}",
+      "mov r4, r12",
+      "ldr r5, [r4, #0x14]",
+      "cmp r5, #3",
+      "beq 9f",
+      "ldrb r6, [r4, #0x3f]",
+      "movs r0, #0x70",
+      "strb r0, [r4, #0x38]",
+      "movs r0, #0x6f",
+      "strb r0, [r4, #0x39]",
+      "movs r0, #0x6c",
+      "strb r0, [r4, #0x3a]",
+      "movs r0, #0x79",
+      "strb r0, [r4, #0x3b]",
+      "strb r6, [r4, #0x3c]",
+      "movs r0, #0",
+      "strb r0, [r4, #0x3d]",
+      "movw r0, #0xe000",
+      "movt r0, #0x1000",
+      "add r1, r4, #0x38",
+      "movs r2, #1",
+      "bl 0x0801496C",
+      "cbnz r0, 9f",
+      "movw r1, #0xb530",
+      "movt r1, #0x1000",
+      "movw r2, #0x0880",
+      "mul r0, r5, r2",
+      "add r1, r1, r0",
+      "movw r0, #0xe000",
+      "movt r0, #0x1000",
+      "movw r2, #2176",
+      "movw r3, #0xe300",
+      "movt r3, #0x1000",
+      "bl 0x08014B30",
+      "movw r0, #0xe000",
+      "movt r0, #0x1000",
+      "bl 0x08014F18",
+      "9:",
+      "mov.w r3, #0xffffffff",
+      "pop {r4-r8, lr}",
+      "bx lr"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x0801CD96",
+      "asm": [
+        "bl 0x08047C00"
+      ],
+      "note": "after f_close -> load poly sidecar"
+    }
+  ],
+  "requires": {
+    "blank": [
+      "0x08047C00",
+      "0x08047CFF"
+    ]
+  }
+}
