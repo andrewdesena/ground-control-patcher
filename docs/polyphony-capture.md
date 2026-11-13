@@ -67,10 +67,42 @@ corrupt count of 200 (must clamp to 24).
 The `.venv` is created by `python3 -m venv .venv && ./.venv/bin/pip install unicorn pyelftools capstone`.
 It is gitignored.
 
-## Open question for layer 2
+## Step-store site (PINNED)
 
-The exact site that copies a staged note into the step array is not yet pinned from static
-reading. `0x0801FCB8` stages `+0x2f4/f5/f6` and calls the sort, but the byte that lands in the
-step is written elsewhere. Before wiring capture into the commit path, confirm with a 60-second
-MIDI capture (GC as clock master) that the held-note list is populated before commit, or pin the
-store site in the disassembly. Do not guess this site.
+The single-note store into the step array is `0x080257D8`. Register/field map at that site:
+
+```
+r4 = [pc]          ; pattern-manager struct
+r5 = [pc]          ; another global
+r3 = [r4, #0xc]    ; pattern/step base pointer
+r6 = [r5, #0x5c]   ; record-armed flag
+r2 = [r4, #0x10]   ; current step offset
+r0 = [r4, #0x5]    ; track/row index
+stride = 0xa (10)
+r3 = r3 + 10*r0
+if (!armed) strb note, [r3, #0x1c]   ; idle: staging byte
+else        strb note, [r3 + step + 0x1d]   ; armed: committed step note
+```
+
+Entered with `r0` = the note to write. It is installed as a callback by the MIDI handler
+`0x080263B8` (the handler stages the incoming note at `step+0x1c`).
+
+**Why chords collapse:** the step note is a single byte at `+0x1d`. Each note-on in a chord
+re-enters and overwrites that same byte, so only the last note survives. The fix is to
+accumulate every held note for the step instead of overwriting one byte (this is layer 2: the new
+step array).
+
+## Open nuance for wiring (layer 2)
+
+At `0x080257D8` the context does **not** carry the track struct pointer directly (it uses a
+separate pattern-manager global; `r0` on entry is only the note). The held-note list lives at the
+*track* struct `+0x120`. Resolve it like the MIDI handler does:
+
+```
+idx         = active track index  via 0x080232F0   (byte global)
+track_ptr   = *(uint32_t *)(0x20000450 + idx*4)     (track-struct pointer table in RAM)
+```
+
+So a layer-2 patch at the store site can fetch `track_ptr`, call `capture(track_ptr, dest)`, and
+accumulate the whole chord. Confirm the RAM table `0x20000450` holds the same track structs the
+`0x0801F4xx` note helpers operate on before shipping.
