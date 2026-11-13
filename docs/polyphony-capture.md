@@ -121,17 +121,42 @@ accumulate the whole chord. Confirm the RAM table `0x20000450` holds the same tr
 Step layout: `byte 0 = count`, then entries `[note, vel]` at `dst + 1 + 2*i`.
 
 `tools/test_polysteps.py` assembles these and **executes** them in Unicorn: chord C-E-G, velocity
-update, 20-note→16 clamp, remove-middle (swap), remove-absent, count. 10/10 pass.
+update, 20-note→16 clamp, remove-middle (swap), remove-absent, count, plus a **5-CC controller
+bank** (add, sweep-update, release-remove). 14/14 pass. The merge/remove primitives are generic
+(key, value) accumulators, so the exact same code drives a per-step CC bank — no separate routine.
 
 ```
-./.venv/bin/python tools/test_polysteps.py     # PASS (10/10)
+./.venv/bin/python tools/test_polysteps.py     # PASS (14/14)
+```
+
+## Layer 3: steps2 writer / reader (built + tested)
+
+New project key `steps2` (ours): each step is
+`{ "modifier": m, "notes": [[midi,vel],...], "cc": [[ccnum,val],...] }`. Notes are integer MIDI
+numbers; **CC is a list**, so one step stores a whole controller bank (mod bus, breath, cutoffs,
+etc.), capped at 16 each. This is what lets an external controller's CCs be stored per step and
+later passed to MIDI out per track.
+
+`tools/project_format.py` is the reference codec:
+- `project_with_steps2(base, steps)` writes `steps2` **and** the legacy `steps` (single-note,
+  note-name strings) + `ratchets`, so old firmware still loads the project.
+- `decode(project)` prefers `steps2`, falls back to legacy `steps` for old projects.
+
+Legacy schema grounded from firmware strings (`"step_limit"`, `"steps"`, `"ratchets"`,
+`"note"`/`"velocity"`/`"modifier"`, note names as `%s`).
+
+`tools/test_project_format.py`: note-name roundtrip (12..107), steps2 roundtrip, multi-CC
+preservation, empty steps, legacy emit + fallback, steps2 precedence, capacity caps. 20/20 pass.
+
+```
+python3 tools/test_project_format.py    # PASS (20/20)
 ```
 
 ## Backlog (Drew's asks, later layers)
 
-- **CC values per step**: the firmware parses `0xB0` CC live (mod/macro mapping) but stores none per
-  step. A parallel per-step CC array on the same record path would let external controllers' CC pass
-  through to MIDI out per track. Not in the note list; new structure.
+- **CC values per step**: DONE in the `steps2` format + emulator-proven bank. Remaining work is the
+  firmware wiring: capture live `0xB0` into the per-step CC array on the record path, and fan CC out
+  on playback / MIDI out per track.
 - **External CV inputs**: improve response / mapping (separate workstream).
 - **Pattern generators (added in official v3)**: revisit musicality; current output is very
   EDM/wacky. Separate from polyphony.

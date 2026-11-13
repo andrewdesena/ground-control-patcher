@@ -138,6 +138,18 @@ def main():
     # 6. count routine
     check("poly_count", e.call('count', DST, 0, 0), 3)
 
+    # 7. CC bank: many CCs in one step (same generic merge/remove primitives)
+    fresh(uc)
+    cc_msgs = [(1, 64), (2, 10), (11, 100), (74, 20), (71, 90)]  # mod, breath, expr, cutoff, resonance
+    for c, v in cc_msgs:
+        e.call('merge', DST, c, v)
+    check("cc bank count", read_step(uc)[0], 5)
+    check("cc bank values", read_step(uc)[1], cc_msgs)
+    e.call('merge', DST, 74, 55)          # controller sweeps cutoff
+    check("cc update cutoff", read_step(uc)[1], [(1, 64), (2, 10), (11, 100), (74, 55), (71, 90)])
+    e.call('remove', DST, 2)              # controller releases breath
+    check("cc remove breath", sorted(read_step(uc)[1]), [(1, 64), (11, 100), (71, 90), (74, 55)])
+
     print('PASS' if not fails else f'FAIL ({fails})')
     return 0 if not fails else 1
 
