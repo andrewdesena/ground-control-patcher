@@ -62,7 +62,9 @@
   .fld{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:2px 0}
   .fld span{color:var(--muted);font-size:11px}.fld input,.fld select{width:120px}
   .arr4{display:flex;gap:3px}.arr4 input{width:32px!important}
-  .drawerTab.active{color:var(--accent);border-color:var(--accent)}`;
+  .drawerTab.active{color:var(--accent);border-color:var(--accent)}
+  .grp select{background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:4px 6px;font:inherit;max-width:180px}
+  #sdstat{color:var(--muted);font-size:10px;max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}`;
 
   const TPL = `
   <header>
@@ -74,6 +76,12 @@
       <button id="clear">Clear track</button>
       <button id="importBtn">Import</button><input id="importFile" type="file" accept=".json" hidden>
       <button id="exportBtn" class="primary">Export project</button>
+    </div>
+    <div class="grp" style="margin-left:8px">
+      <button id="connectSD">Connect SD</button>
+      <select id="sdfiles" hidden></select>
+      <button id="saveSD" disabled>Save to SD</button>
+      <span id="sdstat"></span>
     </div>
   </header>
   <div id="app">
@@ -275,6 +283,44 @@
         if (doc.drum && doc.drum.steps) { const dm = ensureDrum(); for (const st of doc.drum.steps) { if (st.index >= 128) continue; const tgt = { pads: {}, ratchet: st.ratchet || 0, modifier: st.modifier || 0 }; for (const trg of (st.triggers || [])) tgt.pads[trg.pad] = trg.velocity; dm[st.index] = tgt; } }
         paint(); if ($("drawer").classList.contains("open")) buildDrawer();
       }
+
+      // ---- SD card (File System Access) ----
+      let sdDir = window.__gcSD || null, lastProjectName = 'gc-project.json';
+      const sdstat = $("sdstat");
+      async function refreshSD() {
+        if (!sdDir) return;
+        const sel = $("sdfiles"); sel.innerHTML = "";
+        const names = [];
+        try { for await (const e of sdDir.values()) if (e.kind === 'file' && /\.json$/i.test(e.name)) names.push(e.name); }
+        catch (e) { sdstat.textContent = 'list err: ' + e.message; return; }
+        names.sort();
+        const o0 = document.createElement('option'); o0.value = ''; o0.textContent = names.length ? 'Open…' : '(no .json on card)'; sel.appendChild(o0);
+        for (const n of names) { const o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o); }
+        sel.hidden = false;
+      }
+      $("connectSD").onclick = async () => {
+        if (!window.showDirectoryPicker) { sdstat.textContent = 'needs Chrome/Edge over https'; return; }
+        try {
+          sdDir = window.__gcSD || await window.showDirectoryPicker({ mode: 'readwrite' });
+          window.__gcSD = sdDir;
+          sdstat.textContent = 'SD: ' + sdDir.name;
+          $("saveSD").disabled = false;
+          await refreshSD();
+        } catch (e) { if (!e || e.name !== 'AbortError') sdstat.textContent = 'err: ' + e.message; }
+      };
+      $("sdfiles").onchange = async (ev) => {
+        const name = ev.target.value; if (!name || !sdDir) return;
+        try { const fh = await sdDir.getFileHandle(name); doImport(await (await fh.getFile()).text()); lastProjectName = name; sdstat.textContent = 'opened ' + name; }
+        catch (e) { sdstat.textContent = 'open err: ' + e.message; }
+      };
+      $("saveSD").onclick = async () => {
+        if (!sdDir) { sdstat.textContent = 'connect SD first'; return; }
+        let name = prompt('Save project on SD as', lastProjectName || 'gc-project.json'); if (!name) return;
+        if (!/\.json$/i.test(name)) name += '.json';
+        try { const fh = await sdDir.getFileHandle(name, { create: true }); const w = await fh.createWritable(); await w.write(exportJSON()); await w.close(); lastProjectName = name; sdstat.textContent = 'saved ' + name; await refreshSD(); }
+        catch (e) { sdstat.textContent = 'save err: ' + e.message; }
+      };
+      if (sdDir) { $("saveSD").disabled = false; sdstat.textContent = 'SD: ' + sdDir.name; refreshSD(); }
 
       // ---- wire ----
       $("stepsNum").onchange = e => { state.steps = Math.max(1, Math.min(128, +e.target.value || 1)); e.target.value = state.steps; paint(); };
