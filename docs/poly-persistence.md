@@ -82,4 +82,12 @@ These are static addresses in v3.26; the patcher must verify the base image hash
   `0x1000B530 + track*0x880`, and skips the drum track.
   `tools/test_poly_load.py` PASS: track1/A and track3/C destinations, 2,176-byte copy, f_close, and
   `r3 = 0xFFFFFFFF` for the caller.
-- Remaining: writer sidecar save, entry-append hook, and the editor writing `poly<letter>` files.
+- **Writer sidecar save: implemented and emulator-tested.**
+  `mods/poly-save.source.json` (cave `0x08047E00`, hook `0x0801C542`) opens `poly<letter>` with mode
+  `0x0A`, writes 2,176 bytes from `0x1000B530 + track*0x880`, closes it, then closes the pattern FIL.
+  `tools/test_poly_save.py` PASS (polyA/polyC, destination, 2,176 bytes, drum skip, close counts).
+- **Combined bundle:** `mods/v1-poly-full.json` = v1 + load + save (12 sites), `verify.py` zero
+  collateral; embedded in `index.html` as the patcher's v1.1 bundle.
+- **Editor sidecar:** `poly<letter>` encode/decode (2,176 bytes) written on Save to SD and read on
+  open; verified chord round-trip.
+- Remaining: entry-append hook (hardware step-entry/edit polyphony) and hardware validation.
