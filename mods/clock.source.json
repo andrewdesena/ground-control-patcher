@@ -1,0 +1,47 @@
+{
+  "name": "clock-priority",
+  "status": "experimental",
+  "description": "Real-time bytes (0xF8 clock, 0xFA start, 0xFC stop) are written to the front of the port queue instead of the back, so the clock no longer waits behind queued note bytes. Note-off/note-on order is untouched because inserting ahead of the queue cannot reorder anything behind it.",
+  "cave": {
+    "addr": "0x08046810",
+    "asm": [
+      "push {r0, r1, r2, r3, lr}",
+      "uxtb r1, r0",
+      "cmp r1, #0xF8",
+      "beq 1f",
+      "cmp r1, #0xFA",
+      "beq 1f",
+      "cmp r1, #0xFC",
+      "beq 1f",
+      "cmp r1, #0xFB",
+      "beq 1f",
+      "b 2f",
+      "1:",
+      "pop {r0, r1, r2, r3, lr}",
+      "ldr.w r7, [r5, #0xa00]",
+      "subs r7, #1",
+      "and r7, r7, #0x7f",
+      "ldr.w r12, [r5, #0xa04]",
+      "cmp r7, r12",
+      "beq 3f",
+      "mla r6, sb, r7, r5",
+      "stm r6!, {r0, r1, r2, r3}",
+      "str.w sl, [r6]",
+      "str.w r7, [r5, #0xa00]",
+      "mov r0, sl",
+      "b.w 0x08019912",
+      "2:",
+      "pop {r0, r1, r2, r3, lr}",
+      "b 3f",
+      "3:",
+      "ldr.w r7, [r5, #0xa04]",
+      "ldr.w fp, [r5, #0xa00]",
+      "mla r6, sb, r7, r5",
+      "b.w 0x08019890"
+    ]
+  },
+  "patches": [
+    { "addr": "0x08019884", "asm": ["bl 0x08046810", "nop", "nop", "nop", "nop"], "note": "queue index select -> cave" }
+  ],
+  "requires": { "blank": ["0x08046810", "0x080EFFFF"] }
+}

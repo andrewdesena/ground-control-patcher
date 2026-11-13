@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.DS_Store
+# generated patched firmware — rebuild with: python3 tools/apply.py mods/clock.json gc-clock-patched.hex
+# (kept in-tree here so the experimental image is backed up; uncomment to ignore)
+# gc-clock-patched.hex

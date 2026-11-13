@@ -1,0 +1,19 @@
+{
+  "name": "toolchain-example",
+  "status": "example",
+  "description": "Not a mod. Exercises the assembler + verifier: one cave routine, one in-place site.",
+  "cave": {
+    "addr": "0x08046810",
+    "asm": [
+      "push {r4, lr}",
+      "ldr r0, =0x40004C04",
+      "movs r1, #0xF8",
+      "str r1, [r0]",
+      "pop {r4, pc}"
+    ]
+  },
+  "patches": [
+    { "addr": "0x08019620", "asm": ["bl 0x08046810"], "note": "example hop to cave" }
+  ],
+  "requires": { "blank": ["0x08046810", "0x080EFFFF"] }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "clock-priority",
+  "status": "experimental",
+  "description": "Real-time bytes (0xF8 clock, 0xFA start, 0xFC stop) are written to the front of the port queue instead of the back, so the clock no longer waits behind queued note bytes. Note-off/note-on order is untouched because inserting ahead of the queue cannot reorder anything behind it.",
+  "requires": {
+    "blank": [
+      "0x08046810",
+      "0x080EFFFF"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x8046810",
+      "bytes": "0fb5c1b2f82906d0fa2904d0fc2902d0fb2900d014e0bde80f40d5f8007a013f07f07f07d5f804ca67450cd009fb07560fc6c6f800a0c5f8007a5046d3f761b8bde80f40ffe7d5f8047ad5f800ba09fb0756d3f715b8",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8019884",
+      "bytes": "2cf0c4ff00bf00bf00bf00bf",
+      "note": "queue index select -> cave"
+    }
+  ]
+}
