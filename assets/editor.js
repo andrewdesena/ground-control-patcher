@@ -284,7 +284,7 @@
         const t = $("side"); t.innerHTML = "";
         [["1", "Track 1"], ["2", "Track 2"], ["3", "Track 3"], ["D", "Track D"]].forEach(([v, label]) => {
           const b = document.createElement("button"); b.className = "ttab" + (state.track === v ? " active" : "") + (v === "D" ? " d" : "");
-          b.textContent = label; b.onclick = () => { state.track = v; state.sel = new Set(); paint(); }; t.appendChild(b);
+          b.textContent = label; b.onclick = () => { state.track = v; state.sel = new Set(); if (native.len[v]) state.steps = native.len[v]; const sn = $("stepsNum"); if (sn) sn.value = state.steps; paint(); }; t.appendChild(b);
         });
         const g = document.createElement("div"); g.style.cssText = "margin-top:auto;color:#8b93a1;font-size:10px;padding:6px 2px"; g.textContent = "128 steps · MIDI 0–127"; t.appendChild(g);
       }
@@ -389,7 +389,7 @@
 
       // ---- SD card: whole-card native project / pattern browser ----
       let sdDir = window.__gcSD || null;
-      const native = { global: null, project: null, projectName: null, tracks: {}, patterns: {}, pattern: 'A', letters: ['A'] };
+      const native = { global: null, project: null, projectName: null, tracks: {}, patterns: {}, pattern: 'A', letters: ['A'], len: {} };
       const sdstat = $("sdstat");
       const NOTE_RE = /^([A-G])(-?\d)(#?)$/;
       function parseNativeNote(s) { const m = NOTE_RE.exec(String(s == null ? '' : s).trim()); if (!m) return null; return (parseInt(m[2], 10) + 1) * 12 + NAME.indexOf(m[1]) + (m[3] ? 1 : 0); }
@@ -449,13 +449,13 @@
         if (t === 'D') {
           const dm = []; for (let i = 0; i < 128; i++) dm.push({ pads: {}, ratchet: 0, modifier: 0 });
           const rows = pat.steps || []; const limit = (pat.count | 0) || 16;
-          state.steps = Math.max(1, Math.min(128, Math.max(state.steps, limit || 16)));
+          native.len[t] = Math.max(1, Math.min(128, limit || 16));
           for (let pad = 0; pad < 8; pad++) { const row = rows[pad] || []; for (let s = 0; s < row.length && s < 128; s++) { const v = row[s]; if (v !== undefined && v !== 128 && v > 0) dm[s].pads[pad + 1] = v; } }
           const rr = pat.ratchets || []; for (let pad = 0; pad < 8; pad++) { const row = rr[pad] || []; for (let s = 0; s < row.length && s < 128; s++) if (row[s]) dm[s].ratchet = row[s]; }
           state.drum = dm;
         } else {
           const arr = ensureMelodic(t);
-          state.steps = Math.max(1, Math.min(128, Math.max(state.steps, (pat.step_limit | 0) || 16)));
+          native.len[t] = Math.max(1, Math.min(128, (pat.step_limit | 0) || 16));
           for (let i = 0; i < 128; i++) arr[i] = { modifier: 0, ratchet: 0, notes: [], cc: [] };
           if (Array.isArray(pat.steps2)) {
             pat.steps2.forEach((st, i) => { if (i >= 128) return; arr[i] = { modifier: st.modifier || 0, ratchet: st.ratchet || 0, notes: (st.notes || []).map(p => [p[0], p[1]]), cc: (st.cc || []).map(c => [c[0], c[1]]) }; });
@@ -467,7 +467,7 @@
       async function loadProject(name, pattern) {
         native.projectName = name;
         native.project = await rdJSON(sdDir, [name, 'ProjectSettings.txt']).catch(() => null);
-        state.steps = 16; native.tracks = {}; native.patterns = {};
+        state.steps = 16; native.tracks = {}; native.patterns = {}; native.len = {};
         let usedL = null;
         for (const t of ['1', '2', '3', 'D']) {
           let ts = null; try { ts = await rdJSON(sdDir, [name, 'track' + t, 'TrackSettings.txt']); } catch (e) {}
@@ -478,6 +478,8 @@
           native.patterns[t] = pat; applyPattern(t, pat);
         }
         if (native.project && typeof native.project.BPM === 'number') state.global.BPM = native.project.BPM;
+        state.steps = native.len[state.track] || native.len['1'] || 16;
+        { const sn = $("stepsNum"); if (sn) sn.value = state.steps; }
         await refreshPatterns(name, usedL || pattern || native.pattern);
         state.sel = new Set(); paint();
         if ($("drawer").classList.contains("open")) buildDrawer();
@@ -549,7 +551,10 @@
           window.__gcSD = sdDir; $("sdbar").hidden = false;
           try { native.global = await rdJSON(sdDir, ['GlobalSettings.txt']); } catch (e) { native.global = null; }
           const names = await refreshProjects();
-          if (names.length) await loadProject(names.includes('projectA') ? 'projectA' : names[0]);
+          const last = String((native.global && native.global.LastLoadedProject) || '').toUpperCase();
+          let pref = last ? 'project' + last : '';
+          let chosen = names.find(n => n.toLowerCase() === pref.toLowerCase()) || names.find(n => n.toLowerCase() === 'projecta') || names[0];
+          if (chosen) await loadProject(chosen);
           sdstat.textContent = 'SD: ' + sdDir.name + ' · ' + names.length + ' project(s)';
           if ($("drawer").classList.contains('open')) buildDrawer();
         } catch (e) { if (!e || e.name !== 'AbortError') sdstat.textContent = 'err: ' + e.message; }
