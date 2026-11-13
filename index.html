@@ -487,7 +487,7 @@
   $('install').addEventListener('click', installFirmware);
   $('dl').addEventListener('click', downloadFirmware);
 
-  window.GCModder = { HexFile: HexFile, identify: identify, applyBundle: applyBundle, loadHex: loadHex, takeFile: takeFile, ready: true };
+  window.GCModder = { HexFile: HexFile, identify: identify, applyBundle: applyBundle, loadHex: loadHex, takeFile: takeFile, getOutput: function () { return lastOutput; }, ready: true };
 })();
 </script>
 </body>
