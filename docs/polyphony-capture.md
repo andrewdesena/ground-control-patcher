@@ -221,6 +221,21 @@ risk for testing the store path.
 
 Backlog (Drew's asks, later layers)
 
+### B RESULT — the step cursor is FOUND (dynamically confirmed)
+
+The melodic player `0x8021A14(voice_obj, note)` **reads the step note from the pattern itself**:
+- `step = 0x80216C8(voice_obj+0xc)` — and `0x80216C8` reads a position counter at
+  `RAM 0x2000B594 + channel + 0xa` and returns `counter MOD patternLength` (length from a vtable
+  call). Dynamically confirmed: counter 0/5/21/32 -> step 0/5/5/0 with length 16.
+- It stores `step` at `[voice_obj+0x3c]`, then `[voice_obj+0x38] = pattern + 0x3c + 3*step`
+  (pointer to that step's note byte), and reads `note = *[voice_obj+0x38]`.
+- `pattern` = `[voice_obj+8]`; channel = `[[voice_obj+8]+0x1f]`; voice idx = `[[voice_obj+8]+0x2e]`.
+
+**Fan-out hook (now unblocked):** at `0x8021A66` (just after `[obj+0x38]` is set, `r0`=step),
+we have `track`/`channel` from `[obj+8]` and `step` in hand. Read `poly[track][step]` and, for each
+extra note, emit through the pair `0x8019A92` (note is in **r3**, velocity r0) — reusing the exact
+player path so gate/note-off/channel stay correct. This is the final piece to build.
+
 ### Dynamic trace harness — BUILT & PROVEN (tools/fw_sandbox.py)
 
 - `tools/fw_sandbox.py`: Unicorn sandbox that loads the full image, maps FLASH/SRAM/CCM/wide
