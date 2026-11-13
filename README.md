@@ -5,7 +5,7 @@ your browser**. Firmware is never uploaded. This repo contains only the static s
 definitions, emulator/test tooling, and docs — **not** the vendor firmware; you bring your own stock
 `gc-*.hex`.
 
-Open the patcher: _(GitHub Pages URL once live, e.g. `https://<user>.github.io/gc-modder/`)_.
+Open the patcher: **https://andrewdesena.github.io/ground-control-patcher/**
 Requires **Chrome or Edge over https** (the SD-card step uses the File System Access API).
 
 ## Use

@@ -5,3 +5,7 @@ __pycache__/
 # (kept in-tree here so the experimental image is backed up; uncomment to ignore)
 # gc-clock-patched.hex
 .venv/
+
+# firmware is NOT distributed — bring your own stock gc-*.hex (see testdata/README.md)
+*.hex
+secrets.md
