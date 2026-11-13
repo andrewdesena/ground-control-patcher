@@ -152,7 +152,33 @@ preservation, empty steps, legacy emit + fallback, steps2 precedence, capacity c
 python3 tools/test_project_format.py    # PASS (20/20)
 ```
 
-## Backlog (Drew's asks, later layers)
+## Record-path wiring (built + tested, experimental)
+
+`mods/poly-record.source.json` hooks the record site **additively**. It replaces the 4 bytes at
+`0x08025814` (`strb r1,[r3,#0x1d]` + `b 0x80257f8`) with `b.w 0x08047400`; the cave:
+
+1. does the **original** step store verbatim (playback data unchanged → device-safe), then
+2. computes `dst = 0x1000B530 + track*0x880 + step*17` (track from `0x080232F0`, step from
+   `[r4+5]` — confirmed by the writer at `0x08026760` that uses stride 10), and
+3. calls an embedded `poly_merge(dst, note, 100)` (CAP 8; clips a stale count>8 to 0, so no boot
+   init is needed).
+
+Layout: `byte0 = count (<=8)`, entries `[note,vel]` at `+1+2*i`, per-track stride `0x880` (128*17),
+3 melodic tracks from `0x1000B530`.
+
+`tools/test_polyrecord.py` loads the **whole firmware** into Unicorn, seeds the pattern-manager +
+active-track globals, and calls the hook at the exact register state: **9/9 pass** (original store,
+r4/r5 preserved, return to continuation, capture, chord, dedupe, stale-count clip).
+
+Combined image `gc-modded-exp.hex` = clock patch + poly-record hook (222 bytes changed,
+zero collateral): `python3 tools/apply.py mods/combined-exp.json gc-modded-exp.hex`.
+
+**Not yet wired (next layers):** playback fan-out (so chords actually sound), `steps2` serializer
+on SD save, per-step CC capture, and real velocity (currently stored as 100). Until playback is
+wired the captured poly data is inert — the hook changes nothing you can hear, so flashing is low
+risk for testing the store path.
+
+Backlog (Drew's asks, later layers)
 
 - **CC values per step**: DONE in the `steps2` format + emulator-proven bank. Remaining work is the
   firmware wiring: capture live `0xB0` into the per-step CC array on the record path, and fan CC out

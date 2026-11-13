@@ -1,0 +1,33 @@
+{
+  "name": "gc-modded-exp",
+  "status": "experimental",
+  "description": "Combined: clock-priority front-of-queue realtime + polyphonic note capture into CCM (additive; playback unchanged).",
+  "requires": {
+    "blank": [
+      "0x08046810",
+      "0x080EFFFF"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x8046810",
+      "bytes": "0fb5c1b2f82906d0fa2904d0fc2902d0fb2900d014e0bde80f40d5f8007a013f07f07f07d5f804ca67450cd009fb07560fc6c6f800a0c5f8007a5046d3f761b8bde80f40ffe7d5f8047ad5f800ba09fb0756d3f715b8",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8019884",
+      "bytes": "2cf0c4ff00bf00bf00bf00bf",
+      "note": "queue index select -> cave"
+    },
+    {
+      "addr": "0x8047400",
+      "bytes": "2fb55977dbf774ffc0b2022810d862790346db0203ebc01303eb021313444bf23050c1f2000018442946642200f004f8bde82f40def7e0b970b50378082b01d90023037000249c420ad200f1010505eb44052e788e4201d00134f4e76a7009e0082b07d200f1010505eb430529706a7001330370184670bd",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8025814",
+      "bytes": "21f0f4bd",
+      "note": "armed step store -> cave (store+poly capture)"
+    }
+  ]
+}
