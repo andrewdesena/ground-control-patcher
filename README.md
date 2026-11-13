@@ -4,10 +4,15 @@ Browser tool that takes a stock Endorphin.es **Ground Control** firmware `.hex`,
 hands back a flashable `.hex`. Static site, no server, no upload: the file never leaves the tab.
 
 Status: **build toolchain fixed; clock-priority patch builds, verifies, and emits a flashable
-`.hex` — but it is EXPERIMENTAL and UNFLASHED.** Toolchain note: `tools/thumbfix.py` now encodes
-far branches as `addend - instr_off` (gas emits `target-base-4`); `tools/test_thumbfix.py` is the
-regression. `tools/verify.py` proves zero collateral, and `tools/apply.py` writes the new-flash cave
-records the stock file omits, then re-checks content identity.
+`.hex` — but it is EXPERIMENTAL and UNFLASHED.** A manually-tested **Unicorn emulator harness**
+(`tools/fw_sandbox.py`) loads the full image and runs real firmware functions, including the
+audio player's FPU/VFP path. Polyphony: the **playback step cursor is solved** (see
+`docs/polyphony-capture.md`) and note capture is wired into the shipped experimental firmware;
+the final piece is the chord fan-out splice, which needs the emulator to drive a real track object.
+Toolchain note: `tools/thumbfix.py` encodes far branches as `addend - instr_off` (gas emits
+`target-base-4`); `tools/test_thumbfix.py` is the regression. `tools/verify.py` proves zero
+collateral, and `tools/apply.py` writes the new-flash cave records the stock file omits, then
+re-checks content identity.
 
 ```
 index.html          THE TOOL. Single self-contained file: double-click it, it works. UI + engine inside.
@@ -74,6 +79,30 @@ Rules the applier enforces:
 The polyphony mod is the one that decides the project's shape: it is a real feature port, not a patch,
 so the bundle needs a code-cave routine that is big enough to have its own tests. Design sketch lives
 in `../GC_RE_v3.26_findings.md` §2.
+
+## Dynamic analysis tooling (emulator)
+
+No hardware needed to run firmware functions. All tools use `.venv/bin/python` (Unicorn + capstone).
+
+```
+tools/fw_sandbox.py   reusable Unicorn sandbox: loads the full image, maps FLASH/SRAM/CCM/wide
+                      peripherals, calls any function with set registers/memory, steps + traces.
+tools/trace_emit.py   runs the note-on / note-off / pair primitives, captures the real MIDI bytes.
+tools/boot_trace.py   boots from reset with a small RCC model; reports init progress + stalls.
+```
+
+Run: `.venv/bin/python tools/trace_emit.py` (prints captured messages, e.g. `90 3C 64`).
+
+**Critical gotcha (do not remove):** the sandbox sets a **Cortex-M7/M4 CPU model before mapping any
+memory** and enables CPACR. The audio player uses hardware FPU/VFP instructions; on Unicorn's default
+core they fail to decode (`UC_ERR_INSN_INVALID`) and the player cannot run at all. Setting the model
+after `mem_map` does not work. This is the key that makes emulator-testing the playback path possible.
+
+**Pick up here:** the playback step cursor is solved (`docs/polyphony-capture.md`). To finish the
+chord fan-out, construct a real track/voice object in the sandbox and drive `0x8021A14` to observe
+its per-step emits (`0x8021748` -> `0x8019A92`), then splice the fan-out cave and prove it with
+`verify.py` before flashing. Boots past reset still need an RCC/PLL peripheral model (clock init
+returns error -> fatal loop `0x0801245A`); a full boot is optional if the track object can be faked.
 
 ## Open risk
 
