@@ -320,3 +320,19 @@ rejects Cortex-M4/M7 here).
 - **External CV inputs**: improve response / mapping (separate workstream).
 - **Pattern generators (added in official v3)**: revisit musicality; current output is very
   EDM/wacky. Separate from polyphony.
+
+## Open firmware work: hardware step entry and polyphony
+
+Playback is patched, but **programming chords on the module itself** is not yet poly-capable:
+
+1. **Step-entry mode (clock off)** advances one step each time a note or rest button is pressed and
+   commits that single note. A chord cannot be entered because each press commits and moves the
+   cursor.
+2. **Direct step-edit mode** (clock running or not) edits a step in place, but the commit path still
+   stores one note per step (the single-note choke point at `0x0801F32C`).
+
+Both need the same change: make the step commit **append** notes into the CCM poly array
+(`0x1000B530`, `track*0x880 + step*17`) instead of replacing the single-note slot, and advance the
+cursor only on an explicit "next step" action. Playback fan-out and velocity capture already read
+that array, so hardware-entered chords will play once entry writes it. Browser-authored patterns
+saved to the card already carry multiple notes and are unaffected.

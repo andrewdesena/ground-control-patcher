@@ -11,7 +11,10 @@ Requires **Chrome or Edge over https** (the SD-card step uses the File System Ac
 The **Pattern Editor** is built into the same page — switch to the **Editor** tab: full MIDI 0–127
 piano roll, left track bar for Tracks 1/2/3/D, polyphonic note entry, **per-note velocity with
 multi-select and velocity-shaded notes**, **stacked CC automation lanes** (draggable points), and
-**copy/paste** of note patterns, plus project import/export and SD read/write.
+**copy/paste** of note patterns. It also **opens the whole SD card**: browse/create/delete `projectA/B/…`
+folders, switch **patterns A/B/C/…** within a project, edit **`GlobalSettings.txt`** and the native
+project/track files, and **save back in the GC's own format** (originals are backed up as `.bak`).
+Our own JSON export/import remains available too.
 
 Printable docs: [reference guide (Letter)](docs/reference/guide-letter.pdf) ·
 [reference guide (A4)](docs/reference/guide-a4.pdf) ·

@@ -73,7 +73,11 @@
   .ccsvg{flex:1;min-width:0;display:block;cursor:crosshair}
   .ccsvg circle{fill:var(--accent2);stroke:#04342c;stroke-width:1;cursor:ns-resize}
   .ccsvg polyline{fill:none;stroke:var(--accent2);stroke-width:1.5;opacity:.8}
-  .ccsvg .cgrid{stroke:#1c2230;stroke-width:1}`;
+  .ccsvg .cgrid{stroke:#1c2230;stroke-width:1}
+  #sdbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:6px 0 8px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  #sdbar select{max-width:150px}
+  #sdbar .sep{width:1px;height:18px;background:var(--line)}
+  #sdbar[hidden]{display:none}`;
 
   const TPL = `
   <header>
@@ -87,15 +91,21 @@
       <button id="exportBtn" class="primary">Export project</button>
     </div>
     <div class="grp" style="margin-left:8px">
-      <button id="connectSD">Connect SD</button>
-      <select id="sdfiles" hidden></select>
-      <button id="saveSD" disabled>Save to SD</button>
+      <button id="connectSD">Open SD card</button>
       <span id="sdstat"></span>
     </div>
   </header>
   <div id="app">
     <div id="side"></div>
-    <div id="main"><div class="hint" id="hint"></div><div id="rollWrap"></div>
+    <div id="main">
+      <div id="sdbar" hidden>
+        <div class="grp"><label>Project</label><select id="projSel"></select>
+          <button id="openProj">Open</button><button id="newProj">New</button><button id="delProj">Delete</button></div>
+        <span class="sep"></span>
+        <div class="grp"><label>Pattern</label><select id="patSel"></select><button id="loadPat">Load</button>
+          <button id="saveAll" class="primary">Save to SD</button></div>
+      </div>
+      <div class="hint" id="hint"></div><div id="rollWrap"></div>
       <div id="ccSection"><div class="grp" id="ccCtl"><label>CC lane</label>
         <input id="ccAdd" type="number" min="0" max="127" value="74" style="width:60px">
         <button id="addCC">Add lane</button>
@@ -306,13 +316,40 @@
         }
         return frag;
       }
+      function renderObj(obj, onChange) {
+        const frag = document.createDocumentFragment();
+        for (const k of Object.keys(obj)) {
+          const v = obj[k]; const row = document.createElement("div"); row.className = "fld";
+          const lbl = document.createElement("span"); lbl.textContent = k; row.appendChild(lbl);
+          if (Array.isArray(v)) {
+            const wrap = document.createElement("div"); wrap.className = "arr4";
+            v.forEach((val, i) => { const inp = document.createElement("input"); inp.style.width = "44px"; if (typeof val === "number") { inp.type = "number"; inp.value = val; inp.onchange = () => { v[i] = +inp.value; onChange && onChange(); }; } else { inp.type = "text"; inp.value = val; inp.onchange = () => { v[i] = inp.value; onChange && onChange(); }; } wrap.appendChild(inp); });
+            row.appendChild(wrap);
+          } else if (v && typeof v === "object") {
+            const ta = document.createElement("textarea"); ta.value = JSON.stringify(v); ta.style.cssText = "width:150px;height:44px;background:#0b0d10;color:#e7e9ec;border:1px solid var(--line);border-radius:4px;font:11px ui-monospace";
+            ta.onchange = () => { try { obj[k] = JSON.parse(ta.value); onChange && onChange(); } catch (e) {} }; row.appendChild(ta);
+          } else if (typeof v === "number") {
+            const inp = document.createElement("input"); inp.type = "number"; inp.value = v; inp.onchange = () => { obj[k] = +inp.value; onChange && onChange(); }; row.appendChild(inp);
+          } else {
+            const inp = document.createElement("input"); inp.type = "text"; inp.value = v; inp.onchange = () => { obj[k] = inp.value; onChange && onChange(); }; row.appendChild(inp);
+          }
+          frag.appendChild(row);
+        }
+        return frag;
+      }
       function buildDrawer() {
         const tabs = $("drawerTabs"); tabs.innerHTML = "";
-        ["Global", "Track", "CV"].forEach(name => { const b = document.createElement("button"); b.className = "drawerTab" + (state.drawerTab === name ? " active" : ""); b.textContent = name; b.onclick = () => { state.drawerTab = name; buildDrawer(); }; tabs.appendChild(b); });
+        const names = ["Global", "Track", "CV"]; if (native.global || native.project) names.push("Card");
+        names.forEach(name => { const b = document.createElement("button"); b.className = "drawerTab" + (state.drawerTab === name ? " active" : ""); b.textContent = name; b.onclick = () => { state.drawerTab = name; buildDrawer(); }; tabs.appendChild(b); });
         const body = $("drawerBody"); body.innerHTML = "";
         if (state.drawerTab === "Global") { const sec = document.createElement("div"); sec.className = "sec"; sec.innerHTML = "<h3>Project / Global</h3>"; sec.appendChild(renderFields(GLOBAL_FIELDS, state.global)); body.appendChild(sec); }
         else if (state.drawerTab === "Track") { const which = state.track === "D" ? "D" : state.track; const sec = document.createElement("div"); sec.className = "sec"; sec.innerHTML = "<h3>" + (state.track === "D" ? "Drum Track" : "Track " + which) + " settings</h3>"; sec.appendChild(renderFields(TRACK_FIELDS, state.tset[which])); body.appendChild(sec); }
-        else { for (let c = 1; c <= 4; c++) { const sec = document.createElement("div"); sec.className = "sec"; sec.innerHTML = "<h3>Ext CV " + c + "</h3>"; sec.appendChild(renderFields(CV_FIELDS, state.cv[c])); body.appendChild(sec); } }
+        else if (state.drawerTab === "CV") { for (let c = 1; c <= 4; c++) { const sec = document.createElement("div"); sec.className = "sec"; sec.innerHTML = "<h3>Ext CV " + c + "</h3>"; sec.appendChild(renderFields(CV_FIELDS, state.cv[c])); body.appendChild(sec); } }
+        else {
+          if (!native.global && !native.project) { const e = document.createElement("div"); e.className = "hint"; e.textContent = "Open the SD card to edit native settings."; body.appendChild(e); return; }
+          if (native.global) { const sec = document.createElement("div"); sec.className = "sec"; sec.innerHTML = "<h3>GlobalSettings.txt (card root)</h3>"; sec.appendChild(renderObj(native.global)); body.appendChild(sec); }
+          if (native.project) { const sec = document.createElement("div"); sec.className = "sec"; sec.innerHTML = "<h3>ProjectSettings.txt (" + (native.projectName || "project") + ")</h3>"; sec.appendChild(renderObj(native.project)); body.appendChild(sec); }
+        }
       }
 
       // ---- export / import ----
@@ -349,43 +386,167 @@
         paint(); if ($("drawer").classList.contains("open")) buildDrawer();
       }
 
-      // ---- SD card (File System Access) ----
-      let sdDir = window.__gcSD || null, lastProjectName = 'gc-project.json';
+      // ---- SD card: whole-card native project / pattern browser ----
+      let sdDir = window.__gcSD || null;
+      const native = { global: null, project: null, projectName: null, tracks: {}, patterns: {}, pattern: 'A', letters: ['A'] };
       const sdstat = $("sdstat");
-      async function refreshSD() {
-        if (!sdDir) return;
-        const sel = $("sdfiles"); sel.innerHTML = "";
-        const names = [];
-        try { for await (const e of sdDir.values()) if (e.kind === 'file' && /\.json$/i.test(e.name)) names.push(e.name); }
-        catch (e) { sdstat.textContent = 'list err: ' + e.message; return; }
-        names.sort();
-        const o0 = document.createElement('option'); o0.value = ''; o0.textContent = names.length ? 'Open…' : '(no .json on card)'; sel.appendChild(o0);
-        for (const n of names) { const o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o); }
-        sel.hidden = false;
+      const NOTE_RE = /^([A-G])(-?\d)(#?)$/;
+      function parseNativeNote(s) { const m = NOTE_RE.exec(String(s == null ? '' : s).trim()); if (!m) return null; return (parseInt(m[2], 10) + 1) * 12 + NAME.indexOf(m[1]) + (m[3] ? 1 : 0); }
+      function nativeNote(midi) { if (midi == null || midi < 0 || midi > 127) return ""; const n = NAME[midi % 12], oct = Math.floor(midi / 12) - 1; return n.endsWith('#') ? n[0] + oct + '#' : n + oct; }
+      async function rd(dir, parts) { let d = dir; for (let i = 0; i < parts.length - 1; i++) d = await d.getDirectoryHandle(parts[i]); const fh = await d.getFileHandle(parts[parts.length - 1]); return await (await fh.getFile()).text(); }
+      function lenientJSON(txt) {
+        let t = String(txt).replace(/^\uFEFF/, '');
+        t = t.replace(/,\s*([}\]])/g, '$1');          // trailing commas
+        t = t.replace(/([}\]"])\s*\n\s*"/g, '$1,\n"'); // missing comma before a new key
+        t = t.replace(/(\d)\s*\n\s*"/g, '$1,\n"');      // number value then new key
+        return JSON.parse(t);
+      }
+      async function rdJSON(dir, parts) { return lenientJSON(await rd(dir, parts)); }
+      async function wr(dir, parts, text) { let d = dir; for (let i = 0; i < parts.length - 1; i++) d = await d.getDirectoryHandle(parts[i], { create: true }); const fh = await d.getFileHandle(parts[parts.length - 1], { create: true }); const w = await fh.createWritable(); await w.write(text); await w.close(); }
+      async function wrJSON(dir, parts, obj) { await wr(dir, parts, JSON.stringify(obj, null, 1) + "\n"); }
+      async function existsFile(dir, parts) { try { await rd(dir, parts); return true; } catch (e) { return false; } }
+      async function backup(dir, parts) { try { if (await existsFile(dir, parts)) await wr(dir, parts.slice(0, -1).concat(parts[parts.length - 1] + '.bak'), await rd(dir, parts)); } catch (e) {} }
+      async function listDirs(root) { const out = []; for await (const e of root.values()) if (e.kind === 'directory') out.push(e.name); return out; }
+      async function listFiles(dir) { const out = []; for await (const e of dir.values()) if (e.kind === 'file') out.push(e.name); return out; }
+      async function projectNames() { return (await listDirs(sdDir)).filter(n => /^project/i.test(n)).sort(); }
+      async function patternLetters(project) {
+        const set = new Set();
+        for (const t of ['1', '2', '3', 'D']) {
+          try { const td = await (await sdDir.getDirectoryHandle(project)).getDirectoryHandle('track' + t); (await listFiles(td)).forEach(f => { const m = /^pattern([A-Z])\.txt$/i.exec(f); if (m) set.add(m[1].toUpperCase()); }); } catch (e) {}
+        }
+        return [...set].sort();
+      }
+      async function refreshProjects(keep) {
+        const names = await projectNames();
+        const sel = $("projSel"); const cur = keep || native.projectName || sel.value; sel.innerHTML = "";
+        names.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o); });
+        if (cur && names.includes(cur)) sel.value = cur;
+        $("openProj").disabled = !names.length; $("delProj").disabled = !names.length; $("newProj").disabled = !sdDir;
+        if (sdDir) sdstat.textContent = sdDir.name + ' · ' + names.length + ' project(s)';
+        return names;
+      }
+      async function refreshPatterns(project, keep) {
+        const letters = await patternLetters(project); native.letters = letters.length ? letters : ['A'];
+        const sel = $("patSel"); const cur = keep || native.pattern || 'A'; sel.innerHTML = "";
+        native.letters.forEach(L => { const o = document.createElement('option'); o.value = L; o.textContent = 'Pattern ' + L; sel.appendChild(o); });
+        sel.value = native.letters.includes(cur) ? cur : native.letters[0];
+      }
+      function applyTrackSettings(t, ts) {
+        const s = state.tset[t] || (state.tset[t] = {});
+        const first = v => Array.isArray(v) ? v[0] : v;
+        ['direction', 'slide', 'shuffle'].forEach(k => { if (ts[k] !== undefined) s[k] = ts[k]; });
+        if (ts.humanize !== undefined) s.humanize = first(ts.humanize);
+        if (ts.ratchet !== undefined) s.ratchet = first(ts.ratchet);
+        if (ts.ArpEngaged !== undefined) s.ArpEngaged = ts.ArpEngaged;
+        if (ts.gatelength !== undefined) s.gatelength = ts.gatelength;
+        if (ts.triggerlength !== undefined) s.gatelength = first(ts.triggerlength);
+      }
+      function applyPattern(t, pat) {
+        if (!pat) return;
+        if (t === 'D') {
+          const dm = []; for (let i = 0; i < 128; i++) dm.push({ pads: {}, ratchet: 0, modifier: 0 });
+          const rows = pat.steps || []; const limit = (pat.count | 0) || 16;
+          state.steps = Math.max(1, Math.min(128, Math.max(state.steps, limit || 16)));
+          for (let pad = 0; pad < 8; pad++) { const row = rows[pad] || []; for (let s = 0; s < row.length && s < 128; s++) { const v = row[s]; if (v !== undefined && v !== 128 && v > 0) dm[s].pads[pad + 1] = v; } }
+          const rr = pat.ratchets || []; for (let pad = 0; pad < 8; pad++) { const row = rr[pad] || []; for (let s = 0; s < row.length && s < 128; s++) if (row[s]) dm[s].ratchet = row[s]; }
+          state.drum = dm;
+        } else {
+          const arr = ensureMelodic(t);
+          state.steps = Math.max(1, Math.min(128, Math.max(state.steps, (pat.step_limit | 0) || 16)));
+          for (let i = 0; i < 128; i++) arr[i] = { modifier: 0, ratchet: 0, notes: [], cc: [] };
+          (pat.steps || []).forEach((st, i) => { if (i >= 128) return; const midi = parseNativeNote(st.note); const v = st.velocity | 0; arr[i] = { modifier: st.modifier || 0, ratchet: st.ratchet || 0, notes: (midi != null && v > 0) ? [[midi, v]] : [], cc: [] }; });
+        }
+      }
+      async function loadProject(name, pattern) {
+        native.projectName = name;
+        native.project = await rdJSON(sdDir, [name, 'ProjectSettings.txt']).catch(() => null);
+        state.steps = 16; native.tracks = {}; native.patterns = {};
+        let usedL = null;
+        for (const t of ['1', '2', '3', 'D']) {
+          let ts = null; try { ts = await rdJSON(sdDir, [name, 'track' + t, 'TrackSettings.txt']); } catch (e) {}
+          native.tracks[t] = ts || {}; applyTrackSettings(t, ts || {});
+          const L = pattern || (ts && ts.patternChain && ts.patternChain[0]) || 'A';
+          if (!usedL) usedL = L;
+          let pat = null; try { pat = await rdJSON(sdDir, [name, 'track' + t, 'pattern' + L + '.txt']); } catch (e) { try { pat = await rdJSON(sdDir, [name, 'track' + t, 'patternA.txt']); } catch (e2) {} }
+          native.patterns[t] = pat; applyPattern(t, pat);
+        }
+        if (native.project && typeof native.project.BPM === 'number') state.global.BPM = native.project.BPM;
+        await refreshPatterns(name, usedL || pattern || native.pattern);
+        state.sel = new Set(); paint();
+        if ($("drawer").classList.contains("open")) buildDrawer();
+        sdstat.textContent = name + ' loaded · pattern ' + ($("patSel").value || 'A');
+      }
+      function serializePattern(t) {
+        const N = state.steps, base = native.patterns[t] || {};
+        if (t === 'D') {
+          const dm = ensureDrum(), steps = [], rats = [];
+          for (let pad = 0; pad < 8; pad++) { const row = [], rrow = []; for (let s = 0; s < N; s++) { const v = dm[s] && dm[s].pads[pad + 1]; row.push(v ? v : 128); rrow.push((dm[s] && dm[s].ratchet) || 0); } steps.push(row); rats.push(rrow); }
+          const lim = Array.isArray(base.step_limit) ? base.step_limit : [N, 16, 16, 16, 16, 16, 16, 16, 16];
+          return Object.assign({}, base, { step_limit: lim, count: N, steps: steps, ratchets: rats });
+        }
+        const arr = ensureMelodic(t), steps = [];
+        for (let s = 0; s < N; s++) { const st = arr[s]; const n = st.notes && st.notes.length ? st.notes[0] : null; steps.push({ note: n ? nativeNote(n[0]) : "", velocity: n ? n[1] : 0, modifier: st.modifier || 0, ratchet: st.ratchet || 0 }); }
+        return Object.assign({}, base, { step_limit: N, count: N, steps: steps });
+      }
+      async function saveAll() {
+        if (!sdDir || !native.projectName) { sdstat.textContent = 'open a project first'; return; }
+        const name = native.projectName, L = $("patSel").value || 'A';
+        try {
+          if (native.global) { await backup(sdDir, ['GlobalSettings.txt']); await wrJSON(sdDir, ['GlobalSettings.txt'], native.global); }
+          if (native.project) { native.project.BPM = state.global.BPM; await backup(sdDir, [name, 'ProjectSettings.txt']); await wrJSON(sdDir, [name, 'ProjectSettings.txt'], native.project); }
+          for (const t of ['1', '2', '3', 'D']) {
+            const ts = native.tracks[t] || {}, s = state.tset[t] || {};
+            ['direction', 'slide', 'shuffle'].forEach(k => { if (s[k] !== undefined) ts[k] = s[k]; });
+            if (ts.gatelength !== undefined) ts.gatelength = s.gatelength;
+            if (ts.triggerlength !== undefined && s.gatelength !== undefined) ts.triggerlength = ts.triggerlength.map((x, i) => i === ts.triggerlength.length - 1 ? s.gatelength : x);
+            await backup(sdDir, [name, 'track' + t, 'TrackSettings.txt']); await wrJSON(sdDir, [name, 'track' + t, 'TrackSettings.txt'], ts);
+            await backup(sdDir, [name, 'track' + t, 'pattern' + L + '.txt']); await wrJSON(sdDir, [name, 'track' + t, 'pattern' + L + '.txt'], serializePattern(t));
+          }
+          sdstat.textContent = 'saved ' + name + ' · pattern ' + L + ' (.bak kept)';
+        } catch (e) { sdstat.textContent = 'save err: ' + e.message; }
+      }
+      async function newProject() {
+        const names = await projectNames(); let def = 'project' + String.fromCharCode(65 + (names.length % 26));
+        let name = prompt('New project folder name', def); if (!name) return; if (!/^project/i.test(name)) name = 'project' + name;
+        try {
+          await sdDir.getDirectoryHandle(name, { create: true });
+          const scales = {}; [1, 2, 3].forEach(n => { scales['Track' + n + 'Scale'] = { Scale: 0, Root: 0, Custom: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] }; });
+          await wrJSON(sdDir, [name, 'ProjectSettings.txt'], Object.assign({ BPM: 120, Muted: Array(12).fill("1"), QuantizedMute: Array(12).fill("0"), modulationTrack: 1, modulationSubtrack: 1, modulationPolarity: "Unipolar", modulationSource: "Velocity", modulationSlideMode: "Instant", DrumMap: ["C1", "C1#", "D1", "D1#", "E1", "F1", "F1#", "G1"], Cv0: { Type: 0, Param: 0 }, Cv1: { Type: 0, Param: 0 }, Cv2: { Type: 0, Param: 0 }, Cv3: { Type: 0, Param: 0 } }, scales));
+          for (const t of ['1', '2', '3']) {
+            await wrJSON(sdDir, [name, 'track' + t, 'TrackSettings.txt'], { direction: 0, slide: 50, shuffle: 50, humanize: 0, ratchet: 0, ArpEngaged: 0, gatelength: 50, patternChain: ["A"] });
+            const steps = []; for (let i = 0; i < 32; i++) steps.push({ note: "", velocity: 0, modifier: 0, ratchet: 0 });
+            await wrJSON(sdDir, [name, 'track' + t, 'patternA.txt'], { step_limit: 32, count: 32, duration: 2, Polyrhythm: { From: 4, To: 4 }, steps: steps });
+          }
+          await wrJSON(sdDir, [name, 'trackD', 'TrackSettings.txt'], { direction: 0, slide: 50, shuffle: 50, humanize: [0, 0, 0, 0, 0, 0, 0, 0, 0], ratchet: [0, 0, 0, 0, 0, 0, 0, 0, 0], ArpEngaged: 0, triggerlength: [10, 10, 10, 10, 10, 10, 10, 10, 50], patternChain: ["A"] });
+          const dsteps = [], drats = []; for (let p = 0; p < 8; p++) { dsteps.push(Array(32).fill(128)); drats.push(Array(32).fill(0)); }
+          await wrJSON(sdDir, [name, 'trackD', 'patternA.txt'], { step_limit: [128, 32, 32, 32, 32, 32, 32, 32, 32], count: 32, duration: 2, Polyrhythm: { From: 4, To: 4 }, modulations: Array(128).fill(128), steps: dsteps, ratchets: drats });
+          await refreshProjects(name); $("projSel").value = name; await loadProject(name, 'A'); sdstat.textContent = 'created ' + name;
+        } catch (e) { sdstat.textContent = 'new err: ' + e.message; }
+      }
+      async function delProject() {
+        const name = $("projSel").value; if (!name) return;
+        if (!confirm('Delete ' + name + ' from the SD card? This removes the whole project folder.')) return;
+        try { await sdDir.removeEntry(name, { recursive: true }); native.projectName = null; await refreshProjects(); sdstat.textContent = 'deleted ' + name; }
+        catch (e) { sdstat.textContent = 'del err: ' + e.message; }
       }
       $("connectSD").onclick = async () => {
-        if (!window.showDirectoryPicker) { sdstat.textContent = 'needs Chrome/Edge over https'; return; }
+        if (!window.showDirectoryPicker && !window.__gcSD) { sdstat.textContent = 'needs Chrome/Edge over https'; return; }
         try {
           sdDir = window.__gcSD || await window.showDirectoryPicker({ mode: 'readwrite' });
-          window.__gcSD = sdDir;
-          sdstat.textContent = 'SD: ' + sdDir.name;
-          $("saveSD").disabled = false;
-          await refreshSD();
+          window.__gcSD = sdDir; $("sdbar").hidden = false;
+          try { native.global = await rdJSON(sdDir, ['GlobalSettings.txt']); } catch (e) { native.global = null; }
+          const names = await refreshProjects();
+          if (names.length) await loadProject(names.includes('projectA') ? 'projectA' : names[0]);
+          sdstat.textContent = 'SD: ' + sdDir.name + ' · ' + names.length + ' project(s)';
+          if ($("drawer").classList.contains('open')) buildDrawer();
         } catch (e) { if (!e || e.name !== 'AbortError') sdstat.textContent = 'err: ' + e.message; }
       };
-      $("sdfiles").onchange = async (ev) => {
-        const name = ev.target.value; if (!name || !sdDir) return;
-        try { const fh = await sdDir.getFileHandle(name); doImport(await (await fh.getFile()).text()); lastProjectName = name; sdstat.textContent = 'opened ' + name; }
-        catch (e) { sdstat.textContent = 'open err: ' + e.message; }
-      };
-      $("saveSD").onclick = async () => {
-        if (!sdDir) { sdstat.textContent = 'connect SD first'; return; }
-        let name = prompt('Save project on SD as', lastProjectName || 'gc-project.json'); if (!name) return;
-        if (!/\.json$/i.test(name)) name += '.json';
-        try { const fh = await sdDir.getFileHandle(name, { create: true }); const w = await fh.createWritable(); await w.write(exportJSON()); await w.close(); lastProjectName = name; sdstat.textContent = 'saved ' + name; await refreshSD(); }
-        catch (e) { sdstat.textContent = 'save err: ' + e.message; }
-      };
-      if (sdDir) { $("saveSD").disabled = false; sdstat.textContent = 'SD: ' + sdDir.name; refreshSD(); }
+      $("openProj").onclick = async () => { const n = $("projSel").value; if (n) await loadProject(n, $("patSel").value || 'A'); };
+      $("newProj").onclick = newProject;
+      $("delProj").onclick = delProject;
+      $("loadPat").onclick = async () => { if (native.projectName) await loadProject(native.projectName, $("patSel").value); };
+      $("saveAll").onclick = saveAll;
+      if (sdDir) { $("sdbar").hidden = false; sdstat.textContent = 'SD: ' + (sdDir.name || 'connected'); refreshProjects().catch(() => {}); }
 
       // ---- wire ----
       $("applyVel").onclick = () => {
@@ -423,7 +584,7 @@
 
       for (const t of MELODIC) ensureMelodic(t); ensureDrum(); paint();
       // tiny API for tests
-      this._api = { state, exportJSON, toggleNote, toggleDrum, setCC, setCCval, delCCval, selectOrToggle, removeNote, paint, buildCC, noteName, nameToMidi };
+      this._api = { state, exportJSON, toggleNote, toggleDrum, setCC, setCCval, delCCval, selectOrToggle, removeNote, paint, buildCC, noteName, nameToMidi, native, loadProject, saveAll, refreshProjects, projectNames, parseNativeNote, nativeNote, serializePattern, refreshPatterns };
     }
   }
   if (!customElements.get("gc-editor")) customElements.define("gc-editor", GCEditor);
