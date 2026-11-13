@@ -90,4 +90,11 @@ These are static addresses in v3.26; the patcher must verify the base image hash
   collateral; embedded in `index.html` as the patcher's v1.1 bundle.
 - **Editor sidecar:** `poly<letter>` encode/decode (2,176 bytes) written on Save to SD and read on
   open; verified chord round-trip.
-- Remaining: entry-append hook (hardware step-entry/edit polyphony) and hardware validation.
+- **Hardware entry append: implemented and emulator-tested.**
+  `mods/poly-entry.source.json` (cave `0x08048000`, hook `0x0801FD52`) merges each note-on into
+  `0x1000B530 + track*0x880 + step*17` using `track+0x2E1` (track index) and `track+0x2DF` (edit
+  step); dedupes by note, caps at 8. `tools/test_poly_entry.py` PASS (add, velocity update, chord,
+  cap, track offset, r6 restore).
+- **Combined bundle:** 14 sites (`v1-poly-full.json`), `verify.py` zero collateral, embedded in the
+  patcher as v1.1.
+- Remaining: hardware validation (flash, play browser chords, record+save chords, reload).

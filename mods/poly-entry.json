@@ -1,0 +1,23 @@
+{
+  "name": "poly-entry-append",
+  "status": "experimental",
+  "description": "Hardware step entry: on a note-on event in FUN_0801FD30, merge (note,velocity) into the CCM poly array at 0x1000B530 + trackIndex*0x880 + step*17, where trackIndex = *(byte*)(track+0x2E1) and step = *(byte*)(track+0x2DF). Dedupes by note (updates velocity), caps at 8 notes per step. Hook: 0x0801FD52 (reproduces ldrb.w r6,[r4,#0x120]) -> cave 0x08048000. This makes direct step-edit accept chords; note-off does not remove (a step keeps its notes).",
+  "requires": {
+    "blank": [
+      "0x08048000",
+      "0x080480FF"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x8048000",
+      "bytes": "95f8040095f8051094f8e12294f8df324bf2305cc1f2000cd60206ebc2161a011a441644664432780023934209d206f1010c0ceb430c9cf800c084450ed00133f3e7082a10d206f1010c0ceb420c8cf800008cf801100132327005e006f1010c0ceb430c8cf8011094f820617047",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x801fd52",
+      "bytes": "28f055f9",
+      "note": "note-on -> append chord note to step poly"
+    }
+  ]
+}
