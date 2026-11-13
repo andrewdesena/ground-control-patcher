@@ -272,6 +272,24 @@
   };
   var mods = [V1];
 
+  // Known-good base images (canonical image SHA-256 -> version). Patcher warns if the input
+  // doesn't match, and shows the output hash so a build can be verified.
+  var KNOWN_BASE = {
+    'e1db4815f8cf2983f832493aa8b2085586cb5ea10446e133774bdfc91bca9f52': 'Ground Control v3.26'
+  };
+  async function canonicalHash(hf) {
+    if (!crypto || !crypto.subtle) return null;
+    var keys = Array.from(hf.index.keys()).sort(function (a, b) { return a - b; });
+    var buf = new Uint8Array(keys.length * 5);
+    for (var i = 0; i < keys.length; i++) {
+      var a = keys[i], o = i * 5;
+      buf[o] = a & 255; buf[o + 1] = (a >>> 8) & 255; buf[o + 2] = (a >>> 16) & 255; buf[o + 3] = (a >>> 24) & 255;
+      buf[o + 4] = hf.readByte(a);
+    }
+    var h = await crypto.subtle.digest('SHA-256', buf);
+    return Array.from(new Uint8Array(h)).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+  }
+
   function showBanner(msg) { banner.style.display = 'block'; banner.textContent = msg; }
   function hexs(n) { return '0x' + n.toString(16).toUpperCase().padStart(8, '0'); }
   function fmt(n) { return n.toLocaleString('en-US'); }
@@ -311,6 +329,18 @@
       $('modsSection').hidden = false;
       $('actions').hidden = false;
       renderMods();
+      // base-image verification (SHA-256)
+      var tb = $('infoTable');
+      var tr = document.createElement('tr'), th = document.createElement('th'), td = document.createElement('td');
+      th.textContent = 'base image'; td.className = 'mono'; td.textContent = 'verifying…';
+      tr.appendChild(th); tr.appendChild(td); tb.appendChild(tr);
+      canonicalHash(hex).then(function (hh) {
+        if (!hh) { td.textContent = '(SHA-256 unavailable here)'; return; }
+        var k = KNOWN_BASE[hh];
+        td.textContent = hh + (k ? '   \u2713 ' + k : '   (unrecognized base \u2014 patch at your own risk)');
+        td.className = 'mono ' + (k ? 'ok' : 'err');
+        if (!k) showBanner('This file does not match a known stock base (Ground Control v3.26). Building may produce a broken image \u2014 continue only if you know it is compatible.');
+      }).catch(function (e) { td.textContent = 'hash error: ' + e.message; });
     } catch (e) {
       $('info').hidden = true; $('modsSection').hidden = true; $('actions').hidden = true;
       log.hidden = false; log.textContent = '';
@@ -371,6 +401,7 @@
     lastOutput = { text: out, name: (fileName || 'gc-firmware.hex') };  // KEEP the stock name — updater says don't rename
     $('install').disabled = !fsDir;
     $('dl').disabled = false;
+    canonicalHash(new HexFile(out)).then(function (hh) { if (hh) say('output SHA-256: ' + hh, 'ok'); }).catch(function () {});
     say('ready: ' + lastOutput.name + ' (' + fmt(out.length) + ' chars). ' +
         (fsDir ? 'Click "Install to GC" to write it to the SD card.' : 'Connect the SD card to install, or Download .hex.'), 'ok');
     if (!fsDir) showBanner('Firmware built. Connect the GC SD card (hold PROJ 5s on the module) to install it, or use Download .hex as a fallback.');

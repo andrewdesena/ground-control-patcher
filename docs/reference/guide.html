@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Ground Control — Polyphony v1 reference</title>
+<style>
+  @page { margin: 16mm; }
+  :root{--ink:#141414;--sub:#555;--line:#d8d8d8;--accent:#b23a2f;}
+  *{box-sizing:border-box}
+  body{font:11pt/1.45 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--ink);max-width:190mm;margin:0 auto;padding:0}
+  header{border-bottom:2px solid var(--accent);padding-bottom:8px;margin-bottom:14px}
+  h1{font-size:20pt;margin:0 0 2px}
+  .sub{color:var(--sub);font-size:10pt}
+  .tag{display:inline-block;border:1px solid var(--accent);color:var(--accent);border-radius:4px;padding:1px 6px;font-size:8.5pt;margin-left:6px;vertical-align:middle}
+  h2{font-size:12.5pt;margin:16px 0 6px;border-bottom:1px solid var(--line);padding-bottom:3px}
+  p{margin:6px 0}
+  ol,ul{margin:6px 0 6px 18px;padding:0}
+  li{margin:4px 0}
+  code,.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:9.5pt}
+  .box{background:#f6f4f2;border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin:8px 0}
+  .warn{background:#fbf1ef;border-color:#e6c4bd}
+  .kv{width:100%;border-collapse:collapse;margin:6px 0}
+  .kv td{padding:3px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+  .kv td:first-child{width:34%;color:var(--sub)}
+  footer{margin-top:18px;border-top:1px solid var(--line);padding-top:8px;color:var(--sub);font-size:8.5pt}
+  .cols{column-count:2;column-gap:12mm}
+</style></head><body>
+<header>
+  <h1>Ground Control — Polyphony <span class="tag">v3.26 + p1</span></h1>
+  <div class="sub">Unofficial firmware customization · reference &amp; install guide</div>
+</header>
+
+<h2>What this is</h2>
+<p>A browser patcher that applies <strong>Polyphony v1</strong> to official Endorphin.es Ground Control
+firmware v3.26. You supply the official <code>gc-*.hex</code>; the patcher changes only the intended
+bytes and writes a single <code>gc-*.hex</code> back to your card. Firmware is never uploaded.</p>
+
+<h2>What Polyphony v1 changes</h2>
+<div class="cols">
+<ul>
+  <li><strong>Clock priority.</strong> Real-time bytes <code>0xF8</code>/<code>0xFA</code>/<code>0xFB</code>/<code>0xFC</code> move to the front of the MIDI event queue instead of waiting behind notes, so clock stays steady under load.</li>
+  <li><strong>Polyphonic capture (tracks 1–3).</strong> Every held note is stored per step, with its <strong>real velocity</strong>, instead of only the last note.</li>
+  <li><strong>Stock-gate chord playback.</strong> On playback each saved chord note is replayed through the real note emitter with the <strong>same timing and gate as the primary note</strong> — chords hold exactly like stock, and note-offs always pair (no stuck notes).</li>
+</ul>
+</div>
+
+<h2>Install</h2>
+<ol>
+  <li><strong>Back up your entire microSD card</strong> (projects, settings).</li>
+  <li>Download the official firmware <code>gc-*.hex</code> (v3.26) from endorphin.es.</li>
+  <li>Open <span class="mono">https://andrewdesena.github.io/ground-control-patcher/</span> in Chrome/Edge (https). Select the <code>.hex</code>, tick <strong>Polyphony v1</strong>, click <strong>Build modded firmware</strong>. Confirm the base image shows <span class="mono">✓ Ground Control v3.26</span>.</li>
+  <li>On the module hold <strong>PROJ ~5 s</strong> to mount the SD over USB. In the tool click <strong>Connect GC SD card</strong> and pick the card, then <strong>Install to GC</strong>.</li>
+  <li>The tool writes the patched file to the <strong>card ROOT</strong> under the <strong>same <code>gc-*.hex</code> name</strong>. <em>Do not rename it, and keep only one firmware <code>.hex</code> at the root.</em></li>
+  <li>Press <strong>PROJ ~5 s</strong> again: the module reboots and flashes. Power-cycle when done.</li>
+</ol>
+<div class="box warn"><strong>The patcher creates a file; it does not flash the module.</strong> The module's own bootloader flashes a <code>gc-*.hex</code> found at the card root. Keep the v2.x SD-recovery procedure handy for the first modded image.</div>
+
+<h2>Recording &amp; playing chords</h2>
+<p>Chords exist only for notes <strong>recorded on this firmware</strong> (they populate the per-step chord store). Record two or three notes on track 1 at one step, then play back — you should hear the chord. Projects recorded on stock firmware load as mono (their chord store is empty; a safe no-op).</p>
+
+<h2>Verify</h2>
+<table class="kv">
+  <tr><td>Supported base</td><td class="mono">v3.26 · canonical image SHA-256<br>e1db4815f8cf2983f832493aa8b2085586cb5ea10446e133774bdfc91bca9f52</td></tr>
+  <tr><td>Build check</td><td>The tool re-parses its output and prints the <strong>output SHA-256</strong>; <code>tools/verify.py</code> proves a bundle moves <strong>0</strong> untouched bytes.</td></tr>
+</table>
+
+<h2>Limits (v1)</h2>
+<ul>
+  <li>Melodic tracks 1–3 only; assumes the default channels 1/2/3.</li>
+  <li>Captured velocity falls back to 100 if a note-on velocity wasn't seen.</li>
+  <li>Clock/polyphony behavior is experimental until hardware-verified.</li>
+</ul>
+
+<h2>Return to stock</h2>
+<p>Put the original vendor <code>gc-*.hex</code> back at the card root and press <strong>PROJ ~5 s</strong>. The module flashes the original image.</p>
+
+<footer>Unofficial, not affiliated with or endorsed by Endorphin.es. “Ground Control” is a product of Endorphin.es. No vendor firmware is included in this project. MIT-licensed tooling.</footer>
+</body></html>

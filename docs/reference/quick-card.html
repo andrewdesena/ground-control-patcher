@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Ground Control — Polyphony v1 quick card</title>
+<style>
+  @page { margin: 14mm; }
+  :root{--ink:#141414;--sub:#555;--line:#d8d8d8;--accent:#b23a2f;}
+  *{box-sizing:border-box}
+  body{font:11pt/1.4 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--ink);max-width:190mm;margin:0 auto}
+  header{border-bottom:2px solid var(--accent);padding-bottom:8px;margin-bottom:14px}
+  h1{font-size:19pt;margin:0}
+  .sub{color:var(--sub);font-size:10pt}
+  .tag{display:inline-block;border:1px solid var(--accent);color:var(--accent);border-radius:4px;padding:1px 6px;font-size:8.5pt;margin-left:6px;vertical-align:middle}
+  ol{counter-reset:s;list-style:none;margin:10px 0;padding:0}
+  li{counter-increment:s;position:relative;padding:12px 12px 12px 54px;border:1px solid var(--line);border-radius:8px;margin:8px 0}
+  li::before{content:counter(s);position:absolute;left:12px;top:11px;width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center}
+  li b{display:block;margin-bottom:2px}
+  code,.mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+  .warn{background:#fbf1ef;border:1px solid #e6c4bd;border-radius:8px;padding:10px 12px;margin:12px 0;font-size:10pt}
+  footer{margin-top:14px;border-top:1px solid var(--line);padding-top:8px;color:var(--sub);font-size:8.5pt}
+</style></head><body>
+<header>
+  <h1>Polyphony v1 — quick install <span class="tag">v3.26 + p1</span></h1>
+  <div class="sub">andrewdesena.github.io/ground-control-patcher · unofficial</div>
+</header>
+<ol>
+  <li><b>Back up the microSD card.</b> Copy the whole card somewhere safe first.</li>
+  <li><b>Get the stock firmware.</b> Download the official <code>gc-*.hex</code> (v3.26) from endorphin.es.</li>
+  <li><b>Build in the browser.</b> Open the patcher (Chrome/Edge, https), select the <code>.hex</code>, tick <b>Polyphony v1</b>, click <b>Build</b>. Confirm <span class="mono">✓ v3.26</span>.</li>
+  <li><b>Mount the card.</b> Hold <b>PROJ ~5 s</b> on the module. In the tool: <b>Connect GC SD card</b> → pick it → <b>Install to GC</b>.</li>
+  <li><b>One file, root, same name.</b> The patched <code>gc-*.hex</code> goes to the <b>card ROOT</b>, unchanged name, and must be the <b>only</b> firmware <code>.hex</code> there.</li>
+  <li><b>Flash.</b> Press <b>PROJ ~5 s</b> again — the module reboots and flashes. Power-cycle when done.</li>
+</ol>
+<div class="warn"><b>The patcher makes a file; it does not flash the module.</b> The module's bootloader flashes a <code>gc-*.hex</code> at the card root. Keep the v2.x SD-recovery method handy for the first modded image.</div>
+<footer>Unofficial, not affiliated with Endorphin.es. Record chords on this firmware to get poly data (stock projects load as mono). Return to stock: original <code>gc-*.hex</code> at root, PROJ ~5 s.</footer>
+</body></html>

@@ -8,6 +8,11 @@ definitions, emulator/test tooling, and docs — **not** the vendor firmware; yo
 Open the patcher: **https://andrewdesena.github.io/ground-control-patcher/**
 Requires **Chrome or Edge over https** (the SD-card step uses the File System Access API).
 
+Printable docs: [reference guide (Letter)](docs/reference/guide-letter.pdf) ·
+[reference guide (A4)](docs/reference/guide-a4.pdf) ·
+[quick card (Letter)](docs/reference/quick-card-letter.pdf) ·
+[quick card (A4)](docs/reference/quick-card-a4.pdf)
+
 ## Use
 
 1. **Back up your whole microSD card.**
