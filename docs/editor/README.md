@@ -20,14 +20,20 @@ python3 -m http.server 8931 --bind 127.0.0.1
 Repo settings -> Pages -> Source: "Deploy from a branch" -> branch `main`, folder `/docs`.
 The editor is then at `https://<user>.github.io/gc-modder/editor/`.
 
-## Features (v1)
+## Features (v2)
 
-- 3 tracks, 16-128 steps, scrollable piano roll with octave shift.
-- Click to place/remove a note at the current velocity; each step holds a full chord.
-- CC lane: pick a CC number + value, click a step to set it (right-click clears). A step holds many
-  distinct CC numbers.
-- Export JSON: `{steps2:[{modifier,notes:[[midi,vel]],cc:[[num,val]]}...], steps:[legacy]}`.
-- Import: reads `steps2` or legacy `steps`.
+- **4 tracks**: 1-3 melodic (piano roll) + **Track D = 8 drum lanes** (X0X triggers).
+- **Steps 1-128** (device supports up to 128 since v3.14).
+- Piano roll: click to place/remove notes at current velocity; each step holds a full chord.
+- CC lane per melodic track: pick CC# + value, click a step (right-click clears). Many CCs per step.
+- **Settings drawer**: Global/project (BPM, clock src/div, reset mode, LEDs, MIDI routing incl.
+  4-channel TX/RX/omni, forwarding, snap algo, buzzer), per-track (scale/root, direction, shuffle,
+  humanize, ratchet, gate, slide, arp, modulation, polyrhythm), and Ext CV 1-4 (type/param).
+- Export a **complete project JSON**: global + cv[4] + tracks (scale/settings/arp/polyrhythm +
+  `steps2` + legacy `steps` + ratchets) + drum (8 lanes/map/triggers).
+- Import reads `steps2` or legacy `steps`.
+
+Schema source: `docs/project-schema.md` (reconstructed from firmware JSON strings + v3 manual).
 
 ## Roadmap
 
