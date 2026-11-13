@@ -219,6 +219,20 @@ risk for testing the store path.
   registers / track-object field drive each step's note. That pins the cursor without guessing.
   Hardware MIDI capture is the other route.
 
+### Fan-out cave — BUILT & EMULATOR-TESTED (mods/poly-fanout.source.json)
+
+- Hook `0x08021A6E` (inside player `0x8021A14`, r0=step, r4=obj, r8=parent) -> cave `0x08047600`.
+- Cave reproduces the original `strb.w r0,[r4,#0x3c]`, then reads `poly[track][step]` from CCM
+  `0x1000B530` (track=channel-1; `track*0x880 + step*17`; byte0=count, then `[note,vel]`), and
+  emits every note EXCEPT the primary (`sl`) through the self-contained pair `0x8019A92`.
+- `tools/test_fanout.py`: PASS for mono (no extras), C-major triad, 7th chord ch2 step5, and an
+  8-note cluster at step 127 (correct note/vel/channel, primary skipped).
+- `gc-poly.hex` = clock + capture + fan-out, 340 bytes / 6 sites, `verify.py` zero collateral,
+  on-disk disassembly verified. **EXPERIMENTAL / UNFLASHED.**
+- v1 caveats: extras' velocity is fixed 100 (capture cave hardcodes vel=100); assumed default
+  melodic channels 1..3 (track=channel-1); extra-note duration fixed at 100 ticks (tune on
+  hardware). Only projects RECORDED on this firmware have poly data; stock projects stay mono.
+
 Backlog (Drew's asks, later layers)
 
 ### B RESULT — the step cursor is FOUND (dynamically confirmed)
