@@ -181,14 +181,14 @@
         const list = ensureMelodic(state.track)[s].notes, i = list.findIndex(x => x[0] === p), k = keyOf(s, p);
         const oldSel = new Set(state.sel);
         state.pasteStep = s;
-        if (i < 0) { list.push([p, +$("vel").value || 100]); state.sel = new Set([k]); }
+        if (i < 0) { if (list.length >= 8) return; list.push([p, +$("vel").value || 100]); state.sel = new Set([k]); }
         else if (ev && ev.shiftKey) { if (state.sel.has(k)) state.sel.delete(k); else state.sel.add(k); }
         else state.sel = new Set([k]);
         const touched = new Set([...oldSel, ...state.sel]);
         touched.forEach(x => { const q = x.split(':'); updateCell(+q[0], +q[1]); });
       }
       function removeNote(s, p) { const list = ensureMelodic(state.track)[s].notes, i = list.findIndex(x => x[0] === p); if (i >= 0) { list.splice(i, 1); state.sel.delete(keyOf(s, p)); updateCell(s, p); } }
-      const toggleNote = (s, p) => { const st = ensureMelodic(state.track)[s], i = noteIndex(s, p); if (i >= 0) st.notes.splice(i, 1); else st.notes.push([p, +$("vel").value]); paint(); };
+      const toggleNote = (s, p) => { const st = ensureMelodic(state.track)[s], i = noteIndex(s, p); if (i >= 0) st.notes.splice(i, 1); else if (st.notes.length < 8) st.notes.push([p, +$("vel").value]); paint(); };
       const setCCval = (s, num, v) => { const st = ensureMelodic(state.track)[s]; v = Math.max(0, Math.min(127, v | 0)); const i = st.cc.findIndex(c => c[0] === num); if (i >= 0) st.cc[i][1] = v; else st.cc.push([num, v]); };
       const delCCval = (s, num) => { const st = ensureMelodic(state.track)[s]; const i = st.cc.findIndex(c => c[0] === num); if (i >= 0) st.cc.splice(i, 1); };
       const setCC = (s, num, val) => { if (val === null) delCCval(s, num); else setCCval(s, num, val); buildCC(); };
@@ -552,7 +552,7 @@
             await backup(sdDir, [name, 'track' + t, 'pattern' + L + '.txt']); await wrJSON(sdDir, [name, 'track' + t, 'pattern' + L + '.txt'], serializePattern(t));
             if (t !== 'D') await wrBytes(sdDir, [name, 'track' + t, 'poly' + L], encodePoly(t));
           }
-          sdstat.textContent = 'saved ' + name + ' · pattern ' + L + ' (.bak kept)';
+          sdstat.textContent = 'saved ' + name + ' · pattern ' + L + ' (.bak + poly' + L + ')';
         } catch (e) { sdstat.textContent = 'save err: ' + e.message; }
       }
       async function newProject() {
@@ -626,7 +626,7 @@
         } else if ((ev.ctrlKey || ev.metaKey) && (ev.key === "v" || ev.key === "V")) {
           if (!clip || !clip.length) return;
           const arr = ensureMelodic(state.track), dest = state.pasteStep || 0;
-          clip.forEach(([ds, p, v]) => { const s = dest + ds; if (s >= 0 && s < state.steps) { if (!arr[s].notes.find(q => q[0] === p)) arr[s].notes.push([p, v]); } });
+          clip.forEach(([ds, p, v]) => { const s = dest + ds; if (s >= 0 && s < state.steps) { if (!arr[s].notes.find(q => q[0] === p) && arr[s].notes.length < 8) arr[s].notes.push([p, v]); } });
           paint(); ev.preventDefault();
         }
       });
