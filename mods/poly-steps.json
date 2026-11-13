@@ -1,0 +1,18 @@
+{
+  "name": "poly-steps",
+  "status": "experimental",
+  "description": "Layer 2 of polyphony: the per-step note array. Each step stores up to CAP=16 (note,velocity) pairs instead of one byte. Layout: byte0=count, then entries [note,vel] at dst+1+2*i. poly_merge(dst,note,vel) adds or velocity-updates a note (used per note-on); poly_remove(dst,note) removes on note-off; poly_count(dst) returns count. All position-independent.",
+  "requires": {
+    "blank": [
+      "0x08047100",
+      "0x08047FFF"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x8047100",
+      "bytes": "70b5037800249c420ad200f1010505eb44052e788e4201d00134f4e76a7009e0102b07d200f1010505eb430529706a7001330370184670bd",
+      "note": "cave routine"
+    }
+  ]
+}

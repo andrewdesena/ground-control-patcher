@@ -106,3 +106,32 @@ track_ptr   = *(uint32_t *)(0x20000450 + idx*4)     (track-struct pointer table 
 So a layer-2 patch at the store site can fetch `track_ptr`, call `capture(track_ptr, dest)`, and
 accumulate the whole chord. Confirm the RAM table `0x20000450` holds the same track structs the
 `0x0801F4xx` note helpers operate on before shipping.
+
+## Layer 2: per-step note array (built + tested)
+
+`mods/poly-steps.source.json` holds the step-array primitives (all position-independent, capped at
+**CAP = 16** notes per step):
+
+| routine | contract |
+|---------|----------|
+| `poly_merge(dst, note, vel)` | add note, or update its velocity if already present (dedupe by note); drops silently at cap. Used per note-on. |
+| `poly_remove(dst, note)` | remove a note on note-off (swap-with-last, decrement). |
+| `poly_count(dst)` | return current count. |
+
+Step layout: `byte 0 = count`, then entries `[note, vel]` at `dst + 1 + 2*i`.
+
+`tools/test_polysteps.py` assembles these and **executes** them in Unicorn: chord C-E-G, velocity
+update, 20-note→16 clamp, remove-middle (swap), remove-absent, count. 10/10 pass.
+
+```
+./.venv/bin/python tools/test_polysteps.py     # PASS (10/10)
+```
+
+## Backlog (Drew's asks, later layers)
+
+- **CC values per step**: the firmware parses `0xB0` CC live (mod/macro mapping) but stores none per
+  step. A parallel per-step CC array on the same record path would let external controllers' CC pass
+  through to MIDI out per track. Not in the note list; new structure.
+- **External CV inputs**: improve response / mapping (separate workstream).
+- **Pattern generators (added in official v3)**: revisit musicality; current output is very
+  EDM/wacky. Separate from polyphony.
