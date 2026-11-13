@@ -236,6 +236,22 @@ we have `track`/`channel` from `[obj+8]` and `step` in hand. Read `poly[track][s
 extra note, emit through the pair `0x8019A92` (note is in **r3**, velocity r0) — reusing the exact
 player path so gate/note-off/channel stay correct. This is the final piece to build.
 
+### Emitter contract (learned the hard way — matters for the splice)
+
+The per-note emitter `0x8021748(obj, time, ?, vel)` is the **arp/voice handler**, not a plain note
+sender. Primitives put **channel, note, velocity, and time on the STACK**, not in plain registers:
+- note-on `0x8019A2A`: note=`r2`, vel=`r0`, channel via stack/port.
+- pair `0x8019A92`: `r1`=time, `r2`=duration, note/vel/channel from stack (`[sp]`,`[sp+4]`,`[sp+8]`).
+- note-off `0x8019A5E`: `r1`=time, note from stack, channel `[sp+4]`.
+- channel per track = `[[obj+8]+0x1f]`; gate is scaled (`udiv`) from track params `[..+0x2a]`.
+It is a **single monophonic voice per track** (one active-note slot). So emitting extra notes by
+calling the emitter N times will fight that one slot -> stuck notes or voice-steal. A correct
+chord fan-out must either (a) emit raw note-ons at step start + matched note-offs at the track's
+gate-off time (needs the gate-timer hook + per-track pending list), or (b) add real multi-voice
+allocation. Both require **executing** the player to validate time/channel/gate — which the current
+Unicorn build cannot (it fails to decode the player's VFP/FPU instructions; `ctl_set_cpu_model`
+rejects Cortex-M4/M7 here).
+
 ### Dynamic trace harness — BUILT & PROVEN (tools/fw_sandbox.py)
 
 - `tools/fw_sandbox.py`: Unicorn sandbox that loads the full image, maps FLASH/SRAM/CCM/wide
