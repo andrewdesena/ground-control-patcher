@@ -25,8 +25,9 @@
   #app{display:flex;border:1px solid var(--line);border-top:0;border-radius:0 0 8px 8px;overflow:hidden;background:var(--bg)}
   #side{flex:0 0 76px;display:flex;flex-direction:column;gap:6px;padding:8px 6px;border-right:1px solid var(--line);background:var(--panel)}
   #side .ttab{text-align:left;padding:8px 7px;font-size:11px;line-height:1.1}
-  #side .ttab.active{border-color:var(--accent2);color:var(--accent2)}
-  #side .ttab.d.active{border-color:var(--drum);color:var(--drum)}
+  #side .ttab.active{border-color:var(--accent2);color:var(--accent2);background:#16262b}
+  #side .ttab.d.active{border-color:var(--drum);color:var(--drum);background:#2a2118}
+  #trackLabel{color:var(--accent2);font-size:12px;font-weight:700;margin:0 0 6px;letter-spacing:.02em}
   #main{flex:1;min-width:0;padding:10px;display:flex;flex-direction:column}
   .hint{color:var(--muted);font-size:11px;margin:0 0 8px}
   .vscroll{overflow:auto;border:1px solid var(--line);border-radius:6px;max-height:64vh;background:#0b0d10}
@@ -103,6 +104,7 @@
         <div class="grp"><label>Pattern</label><select id="patSel" disabled></select><button id="loadPat" disabled>Load</button>
           <button id="saveAll" disabled>Save to SD</button></div>
       </div>
+      <div id="trackLabel"></div>
       <div class="hint" id="hint"></div><div id="rollWrap"></div>
       <div id="ccSection"><div class="grp" id="ccCtl"><label>CC lane</label>
         <input id="ccAdd" type="number" min="0" max="127" value="74" style="width:60px">
@@ -292,6 +294,8 @@
         buildTrackbar();
         const isD = state.track === "D";
         $("hint").textContent = isD ? "Track D (drums): click a lane cell to place a trigger." : "Click to add/select · shift-click multi-select · right-click deletes · drag CC points to draw automation · Ctrl/Cmd C/V copies notes.";
+        const tl = $("trackLabel");
+        if (tl) tl.textContent = (isD ? "Showing Track D (drums)" : "Showing Track " + state.track) + " · " + state.steps + " steps" + (native.projectName ? " · " + native.projectName : "");
         const cs = $("ccSection"); if (cs) cs.style.display = isD ? "none" : "";
         if (isD) buildDrum(); else buildMelodic();
       }
@@ -472,12 +476,13 @@
         for (const t of ['1', '2', '3', 'D']) {
           let ts = null; try { ts = await rdJSON(sdDir, [name, 'track' + t, 'TrackSettings.txt']); } catch (e) {}
           native.tracks[t] = ts || {}; applyTrackSettings(t, ts || {});
-          const L = pattern || (ts && ts.patternChain && ts.patternChain[0]) || 'A';
+          const L = pattern || 'A';
           if (!usedL) usedL = L;
           let pat = null; try { pat = await rdJSON(sdDir, [name, 'track' + t, 'pattern' + L + '.txt']); } catch (e) { try { pat = await rdJSON(sdDir, [name, 'track' + t, 'patternA.txt']); } catch (e2) {} }
           native.patterns[t] = pat; applyPattern(t, pat);
         }
         if (native.project && typeof native.project.BPM === 'number') state.global.BPM = native.project.BPM;
+        state.track = '1';
         state.steps = native.len[state.track] || native.len['1'] || 16;
         { const sn = $("stepsNum"); if (sn) sn.value = state.steps; }
         await refreshPatterns(name, usedL || pattern || native.pattern);
@@ -551,10 +556,8 @@
           window.__gcSD = sdDir; $("sdbar").hidden = false;
           try { native.global = await rdJSON(sdDir, ['GlobalSettings.txt']); } catch (e) { native.global = null; }
           const names = await refreshProjects();
-          const last = String((native.global && native.global.LastLoadedProject) || '').toUpperCase();
-          let pref = last ? 'project' + last : '';
-          let chosen = names.find(n => n.toLowerCase() === pref.toLowerCase()) || names.find(n => n.toLowerCase() === 'projecta') || names[0];
-          if (chosen) await loadProject(chosen);
+          let chosen = names.find(n => n.toLowerCase() === 'projecta') || names[0];   // always default to Project A
+          if (chosen) await loadProject(chosen, 'A');                                  // and Pattern A
           sdstat.textContent = 'SD: ' + sdDir.name + ' · ' + names.length + ' project(s)';
           if ($("drawer").classList.contains('open')) buildDrawer();
         } catch (e) { if (!e || e.name !== 'AbortError') sdstat.textContent = 'err: ' + e.message; }
