@@ -8,6 +8,9 @@ definitions, emulator/test tooling, and docs — **not** the vendor firmware; yo
 Open the patcher: **https://andrewdesena.github.io/ground-control-patcher/**
 Requires **Chrome or Edge over https** (the SD-card step uses the File System Access API).
 
+The **Pattern Editor** is built into the same page — switch to the **Editor** tab (full MIDI 0–127
+piano roll, left track bar for Tracks 1/2/3/D, polyphonic note entry, CC lane, project export).
+
 Printable docs: [reference guide (Letter)](docs/reference/guide-letter.pdf) ·
 [reference guide (A4)](docs/reference/guide-a4.pdf) ·
 [quick card (Letter)](docs/reference/quick-card-letter.pdf) ·

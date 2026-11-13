@@ -32,6 +32,9 @@
   pre { background: #131318; border: 1px solid #1e1e24; border-radius: 9px; padding: 12px; overflow: auto; font-size: 12px; max-height: 260px; }
   textarea { width: 100%; min-height: 240px; background: #131318; color: #e8e6e3; border: 1px solid #1e1e24; border-radius: 9px; padding: 12px; font: 12px/1.5 ui-monospace, Menlo, monospace; box-sizing: border-box; }
   #projList a { color: #d8bd6a; text-decoration: none; }
+  #views { display: flex; gap: 6px; margin: 6px 0 16px; }
+  .vtab { background: #15181d; color: #9fb4c9; border: 1px solid #2a2f38; border-radius: 8px; padding: 8px 18px; font-weight: 600; cursor: pointer; font: inherit; }
+  .vtab.active { background: #c2554a; color: #fff; border-color: #c2554a; }
   .err { color: #e07a6a; } .ok { color: #6fce9a; }
   #banner { display: none; margin: 14px 0 0; padding: 12px 14px; border-radius: 9px; background: #2a1512; border: 1px solid #c2554a; color: #f0c6bf; font-size: 13px; }
 </style>
@@ -40,10 +43,14 @@
 <header>
   <h1>Ground Control firmware modder</h1>
   <div class="sub">Drop the Endorphin.es <b>.hex</b> file below. Everything happens inside this page, on your computer. Nothing is uploaded anywhere.</div>
-  <div class="sub" style="margin-top:10px"><a href="docs/editor/index.html" style="color:#c2554a;text-decoration:none;font-weight:600">→ Open the Pattern Editor</a> &nbsp;·&nbsp; author polyphonic patterns and export project JSON</div>
+  <div class="sub" style="margin-top:10px"><a href="#" onclick="window.__gcShowView&&window.__gcShowView('editor');return false" style="color:#c2554a;text-decoration:none;font-weight:600">→ Open the Pattern Editor</a> &nbsp;·&nbsp; author polyphonic patterns and export project JSON</div>
   <div id="banner"></div>
 </header>
-<main>
+<nav id="views">
+  <button class="vtab active" data-v="patcher">Patcher</button>
+  <button class="vtab" data-v="editor">Editor</button>
+</nav>
+<section id="viewPatcher"><main>
   <div id="drop">
     <b>Click here to choose a file, or drag one in</b>
     <small>gc-v3.xx_latest_release_YYYYMMDD.hex</small>
@@ -77,7 +84,8 @@
       </div>
     </div>
   </section>
-</main>
+</main></section>
+<section id="viewEditor" hidden><gc-editor></gc-editor></section>
 
   <footer style="margin-top:28px;padding-top:14px;border-top:1px solid #1e1e24;color:#8a8a92;font-size:13px">
     Unofficial · not affiliated with Endorphin.es · MIT ·
@@ -527,6 +535,20 @@
   $('dl').addEventListener('click', downloadFirmware);
 
   window.GCModder = { HexFile: HexFile, identify: identify, applyBundle: applyBundle, loadHex: loadHex, takeFile: takeFile, getOutput: function () { return lastOutput; }, ready: true };
+})();
+</script>
+<script src="assets/editor.js"></script>
+<script>
+(function () {
+  function showView(v) {
+    var p = document.getElementById('viewPatcher'), e = document.getElementById('viewEditor');
+    if (!p || !e) return;
+    p.hidden = v !== 'patcher'; e.hidden = v !== 'editor';
+    document.querySelectorAll('#views .vtab').forEach(function (b) { b.classList.toggle('active', b.dataset.v === v); });
+    if (v === 'editor') window.scrollTo(0, 0);
+  }
+  window.__gcShowView = showView;
+  document.querySelectorAll('#views .vtab').forEach(function (b) { b.onclick = function () { showView(b.dataset.v); }; });
 })();
 </script>
 </body>
