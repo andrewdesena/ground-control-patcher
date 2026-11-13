@@ -5,9 +5,10 @@ your browser**. Firmware is never uploaded. This repo contains only the static s
 definitions, emulator/test tooling, and docs — **not** the vendor firmware; you bring your own stock
 `gc-*.hex`.
 
-> **Status: do not flash for the polyphony MVP yet.** The current v1 image gives the clock fix and
-> live chord capture/playback in RAM, but it does **not** read or write polyphonic data on the SD
-> card. See [`docs/poly-persistence.md`](docs/poly-persistence.md) for the remaining firmware work.
+> **Status: v1.1 is emulator-proven; hardware validation pending.** v1.1 = clock fix + live chord
+> capture with real velocity + stock-gate playback + **hardware chord entry** + **poly sidecar
+> load/save** (`trackN/poly<letter>`). Every layer passes Unicorn tests and `verify.py` shows zero
+> collateral. See [`docs/poly-persistence.md`](docs/poly-persistence.md).
 
 Open the patcher: **https://andrewdesena.github.io/ground-control-patcher/**
 Requires **Chrome or Edge over https** (the SD-card step uses the File System Access API).
@@ -39,20 +40,35 @@ Printable docs: [reference guide (Letter)](docs/reference/guide-letter.pdf) ·
 The patcher **creates a file; it does not flash the module itself** — the module's own bootloader
 flashes a `gc-*.hex` found at the card root.
 
-## What Polyphony v1 changes
+## What Polyphony v1.1 changes
 
 - **Clock priority** — `0xF8`/`0xFA`/`0xFB`/`0xFC` go to the front of the MIDI event queue instead of
   waiting behind notes.
 - **Polyphonic note capture** for melodic tracks 1–3 — every held note is stored per step with its
   **real velocity** (not just the last note).
-- **Stock-gate chord playback** — each saved chord note replays through the real note emitter with the
+- **Stock-gate chord playback** — each chord note replays through the real note emitter with the
   **same timing and gate as the primary note**, so chords hold exactly like stock.
+- **Hardware chord entry** — a note-on while editing a step appends to that step's poly record
+  (deduped, max 8 notes), so step-edit mode accepts chords instead of overwriting one note.
+- **SD persistence** — each save also writes `trackN/poly<letter>` (2,176 bytes = 128 × [count,
+  note/vel pairs]); loading a pattern reads it straight into the poly array. Chords survive power
+  cycles, and browser-authored chords play on the module.
 
-## Limits (v1)
+## Limits (v1.1)
 
 - Melodic tracks 1–3 only; assumes default channels 1/2/3.
-- Chords exist only for notes **recorded on this firmware**; stock-recorded projects load as mono.
+- Stock projects still load as mono until a chord is recorded or authored and saved by v1.1/editor.
 - Captured velocity falls back to 100 if a note-on velocity wasn't seen.
+- Up to 8 notes per step.
+
+## Hardware validation checklist (v1.1)
+
+1. Flash the `-poly1.hex` from the card root (PROJ ~5 s → `BURN` → 10–15 s → reboot).
+2. Play a stock project: tracks and clock behave as before.
+3. In the editor, save a chord pattern to the card; load it on the module and play — all chord notes sound.
+4. Enter a chord in step-edit mode on the module and play.
+5. Save the pattern on the module, power-cycle, reload — the chord persists.
+6. If anything fails: return to stock (original `gc-*.hex` at root, PROJ ~5 s) and keep the pattern/SD state for diagnosis.
 
 ## Verify / return to stock
 
@@ -66,8 +82,9 @@ flashes a `gc-*.hex` found at the card root.
 
 # Technical / development
 
-Status: **Polyphony v1 builds and is emulator-verified (capture w/ real velocity, stock-gate chord
-playback, clock fix); EXPERIMENTAL / UNFLASHED.** The **Unicorn emulator harness**
+Status: **Polyphony v1.1 builds and is emulator-verified** (clock fix, capture w/ real velocity,
+stock-gate chord playback, hardware entry append, poly sidecar load/save); **EXPERIMENTAL /
+PENDING HARDWARE VALIDATION.** The **Unicorn emulator harness**
 (`tools/fw_sandbox.py`) runs real firmware functions including the player's **FPU/VFP** path
 (set a Cortex-M7/M4 core *before* mapping memory, or VFP won't decode). Playback step cursor is
 solved (`docs/polyphony-capture.md`). Toolchain: `tools/thumbfix.py` encodes far branches as
