@@ -1,0 +1,23 @@
+{
+  "name": "poly-save-sidecar",
+  "status": "experimental",
+  "description": "When a melodic pattern is saved, also write the poly sidecar 'polyA' (A = current pattern letter) in the same project/track working directory from the CCM poly array 0x1000B530 + track*0x880. 2176 bytes = 128 steps x [count, note,vel x8]. Hook: 0x0801C542 (writer's f_close prep) -> cave 0x08047E00. Opens mode 0x0A (write/create-always) and uses f_open 0x0801496C / f_write 0x08014C92 / f_close 0x08014F18. Skips the drum track (r7 == 3). FIL at 0x1000E000, count at 0x1000E300. The cave performs the original f_close on the pattern FIL at sp+0x18 before returning.",
+  "requires": {
+    "blank": [
+      "0x08047E00",
+      "0x08047EFF"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x8047e00",
+      "bytes": "ec462de9f0416446032f30d0e67b702020726f2060726c20a0727920e0722673002060734ef20000c1f2000004f108010a22ccf79bfdd0b94bf23051c1f2000140f6800207fb02f001444ef20000c1f2000040f680024ef20033c1f20003ccf718ff4ef20000c1f20000cdf755f804f11800cdf751f8bde8f0417047",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x801c542",
+      "bytes": "2bf05dfc",
+      "note": "writer f_close prep -> save poly sidecar"
+    }
+  ]
+}

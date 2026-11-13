@@ -1,0 +1,67 @@
+{
+  "name": "poly-save-sidecar",
+  "status": "experimental",
+  "description": "When a melodic pattern is saved, also write the poly sidecar 'polyA' (A = current pattern letter) in the same project/track working directory from the CCM poly array 0x1000B530 + track*0x880. 2176 bytes = 128 steps x [count, note,vel x8]. Hook: 0x0801C542 (writer's f_close prep) -> cave 0x08047E00. Opens mode 0x0A (write/create-always) and uses f_open 0x0801496C / f_write 0x08014C92 / f_close 0x08014F18. Skips the drum track (r7 == 3). FIL at 0x1000E000, count at 0x1000E300. The cave performs the original f_close on the pattern FIL at sp+0x18 before returning.",
+  "cave": {
+    "addr": "0x08047E00",
+    "asm": [
+      "mov r12, sp",
+      "push {r4-r8, lr}",
+      "mov r4, r12",
+      "cmp r7, #3",
+      "beq 8f",
+      "ldrb r6, [r4, #0xf]",
+      "movs r0, #0x70",
+      "strb r0, [r4, #8]",
+      "movs r0, #0x6f",
+      "strb r0, [r4, #9]",
+      "movs r0, #0x6c",
+      "strb r0, [r4, #0xa]",
+      "movs r0, #0x79",
+      "strb r0, [r4, #0xb]",
+      "strb r6, [r4, #0xc]",
+      "movs r0, #0",
+      "strb r0, [r4, #0xd]",
+      "movw r0, #0xe000",
+      "movt r0, #0x1000",
+      "add r1, r4, #8",
+      "movs r2, #0x0a",
+      "bl 0x0801496C",
+      "cbnz r0, 8f",
+      "movw r1, #0xb530",
+      "movt r1, #0x1000",
+      "movw r2, #0x0880",
+      "mul r0, r7, r2",
+      "add r1, r1, r0",
+      "movw r0, #0xe000",
+      "movt r0, #0x1000",
+      "movw r2, #2176",
+      "movw r3, #0xe300",
+      "movt r3, #0x1000",
+      "bl 0x08014C92",
+      "movw r0, #0xe000",
+      "movt r0, #0x1000",
+      "bl 0x08014F18",
+      "8:",
+      "add r0, r4, #0x18",
+      "bl 0x08014F18",
+      "pop {r4-r8, lr}",
+      "bx lr"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x0801C542",
+      "asm": [
+        "bl 0x08047E00"
+      ],
+      "note": "writer f_close prep -> save poly sidecar"
+    }
+  ],
+  "requires": {
+    "blank": [
+      "0x08047E00",
+      "0x08047EFF"
+    ]
+  }
+}

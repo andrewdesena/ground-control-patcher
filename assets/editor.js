@@ -424,6 +424,8 @@
       async function rdJSON(dir, parts) { return lenientJSON(await rd(dir, parts)); }
       async function wr(dir, parts, text) { let d = dir; for (let i = 0; i < parts.length - 1; i++) d = await d.getDirectoryHandle(parts[i], { create: true }); const fh = await d.getFileHandle(parts[parts.length - 1], { create: true }); const w = await fh.createWritable(); await w.write(text); await w.close(); }
       async function wrJSON(dir, parts, obj) { await wr(dir, parts, JSON.stringify(obj, null, 1) + "\n"); }
+      async function rdBytes(dir, parts) { let d = dir; for (let i = 0; i < parts.length - 1; i++) d = await d.getDirectoryHandle(parts[i]); const fh = await d.getFileHandle(parts[parts.length - 1]); return new Uint8Array(await (await fh.getFile()).arrayBuffer()); }
+      async function wrBytes(dir, parts, u8) { let d = dir; for (let i = 0; i < parts.length - 1; i++) d = await d.getDirectoryHandle(parts[i], { create: true }); const fh = await d.getFileHandle(parts[parts.length - 1], { create: true }); const w = await fh.createWritable(); await w.write(u8); await w.close(); }
       async function existsFile(dir, parts) { try { await rd(dir, parts); return true; } catch (e) { return false; } }
       async function backup(dir, parts) { try { if (await existsFile(dir, parts)) await wr(dir, parts.slice(0, -1).concat(parts[parts.length - 1] + '.bak'), await rd(dir, parts)); } catch (e) {} }
       async function listDirs(root) { const out = []; for await (const e of root.values()) if (e.kind === 'directory') out.push(e.name); return out; }
@@ -495,6 +497,7 @@
           if (!usedL) usedL = L;
           let pat = null; try { pat = await rdJSON(sdDir, [name, 'track' + t, 'pattern' + L + '.txt']); } catch (e) { try { pat = await rdJSON(sdDir, [name, 'track' + t, 'patternA.txt']); } catch (e2) {} }
           native.patterns[t] = pat; applyPattern(t, pat);
+          if (t !== 'D') { try { const pb = await rdBytes(sdDir, [name, 'track' + t, 'poly' + L]); if (pb.length >= 2176) decodePoly(t, pb); } catch (e) {} }
         }
         if (native.project && typeof native.project.BPM === 'number') state.global.BPM = native.project.BPM;
         state.track = '1';
@@ -506,7 +509,7 @@
         sdstat.textContent = name + ' loaded · pattern ' + ($("patSel").value || 'A');
       }
       function serializePattern(t) {
-        const N = state.steps, base = native.patterns[t] || {};
+        const N = Math.max(1, Math.min(128, native.len[t] || state.steps)), base = native.patterns[t] || {};
         if (t === 'D') {
           const dm = ensureDrum(), steps = [], rats = [];
           for (let pad = 0; pad < 8; pad++) { const row = [], rrow = []; for (let s = 0; s < N; s++) { const v = dm[s] && dm[s].pads[pad + 1]; row.push(v ? v : 128); rrow.push((dm[s] && dm[s].ratchet) || 0); } steps.push(row); rats.push(rrow); }
@@ -516,6 +519,23 @@
         const arr = ensureMelodic(t), steps = [], poly = [];
         for (let s = 0; s < N; s++) { const st = arr[s]; const n = st.notes && st.notes.length ? st.notes[0] : null; steps.push({ note: n ? nativeNote(n[0]) : "", velocity: n ? n[1] : 0, modifier: st.modifier || 0, ratchet: st.ratchet || 0 }); poly.push({ modifier: st.modifier || 0, ratchet: st.ratchet || 0, notes: (st.notes || []).map(x => [x[0], x[1]]), cc: (st.cc || []).map(c => [c[0], c[1]]) }); }
         return Object.assign({}, base, { step_limit: N, count: N, steps: steps, steps2: poly });
+      }
+      function encodePoly(t) {
+        const arr = ensureMelodic(t), out = new Uint8Array(2176);
+        for (let s = 0; s < 128; s++) {
+          const ns = (arr[s].notes || []).slice(0, 8);
+          out[s * 17] = ns.length;
+          for (let k = 0; k < ns.length; k++) { out[s * 17 + 1 + k * 2] = ns[k][0] & 0x7f; out[s * 17 + 2 + k * 2] = ns[k][1] & 0x7f; }
+        }
+        return out;
+      }
+      function decodePoly(t, u8) {
+        const arr = ensureMelodic(t);
+        for (let s = 0; s < 128; s++) {
+          const c = Math.min(8, u8[s * 17] | 0), notes = [];
+          for (let k = 0; k < c; k++) notes.push([u8[s * 17 + 1 + k * 2], u8[s * 17 + 2 + k * 2]]);
+          arr[s].notes = notes;
+        }
       }
       async function saveAll() {
         if (!sdDir || !native.projectName) { sdstat.textContent = 'open a project first'; return; }
@@ -530,6 +550,7 @@
             if (ts.triggerlength !== undefined && s.gatelength !== undefined) ts.triggerlength = ts.triggerlength.map((x, i) => i === ts.triggerlength.length - 1 ? s.gatelength : x);
             await backup(sdDir, [name, 'track' + t, 'TrackSettings.txt']); await wrJSON(sdDir, [name, 'track' + t, 'TrackSettings.txt'], ts);
             await backup(sdDir, [name, 'track' + t, 'pattern' + L + '.txt']); await wrJSON(sdDir, [name, 'track' + t, 'pattern' + L + '.txt'], serializePattern(t));
+            if (t !== 'D') await wrBytes(sdDir, [name, 'track' + t, 'poly' + L], encodePoly(t));
           }
           sdstat.textContent = 'saved ' + name + ' · pattern ' + L + ' (.bak kept)';
         } catch (e) { sdstat.textContent = 'save err: ' + e.message; }
@@ -540,15 +561,15 @@
         try {
           await sdDir.getDirectoryHandle(name, { create: true });
           const scales = {}; [1, 2, 3].forEach(n => { scales['Track' + n + 'Scale'] = { Scale: 0, Root: 0, Custom: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] }; });
-          await wrJSON(sdDir, [name, 'ProjectSettings.txt'], Object.assign({ BPM: 120, Muted: Array(12).fill("1"), QuantizedMute: Array(12).fill("0"), modulationTrack: 1, modulationSubtrack: 1, modulationPolarity: "Unipolar", modulationSource: "Velocity", modulationSlideMode: "Instant", DrumMap: ["C1", "C1#", "D1", "D1#", "E1", "F1", "F1#", "G1"], Cv0: { Type: 0, Param: 0 }, Cv1: { Type: 0, Param: 0 }, Cv2: { Type: 0, Param: 0 }, Cv3: { Type: 0, Param: 0 } }, scales));
+          await wrJSON(sdDir, [name, 'ProjectSettings.txt'], Object.assign({ BPM: 120, Muted: Array(12).fill("0"), QuantizedMute: Array(12).fill("0"), modulationTrack: 1, modulationSubtrack: 1, modulationPolarity: "Unipolar", modulationSource: "Velocity", modulationSlideMode: "Instant", DrumMap: ["C1", "C1#", "D1", "D1#", "E1", "F1", "F1#", "G1"], Cv0: { Type: 0, Param: 0 }, Cv1: { Type: 0, Param: 0 }, Cv2: { Type: 0, Param: 0 }, Cv3: { Type: 0, Param: 0 } }, scales));
           for (const t of ['1', '2', '3']) {
             await wrJSON(sdDir, [name, 'track' + t, 'TrackSettings.txt'], { direction: 0, slide: 50, shuffle: 50, humanize: 0, ratchet: 0, ArpEngaged: 0, gatelength: 50, patternChain: ["A"] });
-            const steps = []; for (let i = 0; i < 32; i++) steps.push({ note: "", velocity: 0, modifier: 0, ratchet: 0 });
-            await wrJSON(sdDir, [name, 'track' + t, 'patternA.txt'], { step_limit: 32, count: 32, duration: 2, Polyrhythm: { From: 4, To: 4 }, steps: steps });
+            const steps = []; for (let i = 0; i < 16; i++) steps.push({ note: "", velocity: 0, modifier: 0, ratchet: 0 });
+            await wrJSON(sdDir, [name, 'track' + t, 'patternA.txt'], { step_limit: 16, count: 16, duration: 2, Polyrhythm: { From: 4, To: 4 }, steps: steps });
           }
           await wrJSON(sdDir, [name, 'trackD', 'TrackSettings.txt'], { direction: 0, slide: 50, shuffle: 50, humanize: [0, 0, 0, 0, 0, 0, 0, 0, 0], ratchet: [0, 0, 0, 0, 0, 0, 0, 0, 0], ArpEngaged: 0, triggerlength: [10, 10, 10, 10, 10, 10, 10, 10, 50], patternChain: ["A"] });
-          const dsteps = [], drats = []; for (let p = 0; p < 8; p++) { dsteps.push(Array(32).fill(128)); drats.push(Array(32).fill(0)); }
-          await wrJSON(sdDir, [name, 'trackD', 'patternA.txt'], { step_limit: [128, 32, 32, 32, 32, 32, 32, 32, 32], count: 32, duration: 2, Polyrhythm: { From: 4, To: 4 }, modulations: Array(128).fill(128), steps: dsteps, ratchets: drats });
+          const dsteps = [], drats = []; for (let p = 0; p < 8; p++) { dsteps.push(Array(16).fill(128)); drats.push(Array(16).fill(0)); }
+          await wrJSON(sdDir, [name, 'trackD', 'patternA.txt'], { step_limit: [128, 16, 16, 16, 16, 16, 16, 16, 16], count: 16, duration: 2, Polyrhythm: { From: 4, To: 4 }, modulations: Array(128).fill(128), steps: dsteps, ratchets: drats });
           await refreshProjects(name); $("projSel").value = name; await loadProject(name, 'A'); sdstat.textContent = 'created ' + name;
         } catch (e) { sdstat.textContent = 'new err: ' + e.message; }
       }
@@ -609,7 +630,7 @@
           paint(); ev.preventDefault();
         }
       });
-      $("stepsNum").onchange = e => { state.steps = Math.max(1, Math.min(128, +e.target.value || 1)); e.target.value = state.steps; paint(); };
+      $("stepsNum").onchange = e => { state.steps = Math.max(1, Math.min(128, +e.target.value || 1)); native.len[state.track] = state.steps; e.target.value = state.steps; paint(); };
       $("clear").onclick = () => { if (state.track === "D") { state.drum = []; ensureDrum(); } else { state.melodic[state.track] = null; ensureMelodic(state.track); } paint(); };
       $("exportBtn").onclick = doExport;
       $("importBtn").onclick = () => $("importFile").click();
