@@ -454,7 +454,11 @@
           const arr = ensureMelodic(t);
           state.steps = Math.max(1, Math.min(128, Math.max(state.steps, (pat.step_limit | 0) || 16)));
           for (let i = 0; i < 128; i++) arr[i] = { modifier: 0, ratchet: 0, notes: [], cc: [] };
-          (pat.steps || []).forEach((st, i) => { if (i >= 128) return; const midi = parseNativeNote(st.note); const v = st.velocity | 0; arr[i] = { modifier: st.modifier || 0, ratchet: st.ratchet || 0, notes: (midi != null && v > 0) ? [[midi, v]] : [], cc: [] }; });
+          if (Array.isArray(pat.steps2)) {
+            pat.steps2.forEach((st, i) => { if (i >= 128) return; arr[i] = { modifier: st.modifier || 0, ratchet: st.ratchet || 0, notes: (st.notes || []).map(p => [p[0], p[1]]), cc: (st.cc || []).map(c => [c[0], c[1]]) }; });
+          } else {
+            (pat.steps || []).forEach((st, i) => { if (i >= 128) return; const midi = parseNativeNote(st.note); const v = st.velocity | 0; arr[i] = { modifier: st.modifier || 0, ratchet: st.ratchet || 0, notes: (midi != null && v > 0) ? [[midi, v]] : [], cc: [] }; });
+          }
         }
       }
       async function loadProject(name, pattern) {
@@ -484,9 +488,9 @@
           const lim = Array.isArray(base.step_limit) ? base.step_limit : [N, 16, 16, 16, 16, 16, 16, 16, 16];
           return Object.assign({}, base, { step_limit: lim, count: N, steps: steps, ratchets: rats });
         }
-        const arr = ensureMelodic(t), steps = [];
-        for (let s = 0; s < N; s++) { const st = arr[s]; const n = st.notes && st.notes.length ? st.notes[0] : null; steps.push({ note: n ? nativeNote(n[0]) : "", velocity: n ? n[1] : 0, modifier: st.modifier || 0, ratchet: st.ratchet || 0 }); }
-        return Object.assign({}, base, { step_limit: N, count: N, steps: steps });
+        const arr = ensureMelodic(t), steps = [], poly = [];
+        for (let s = 0; s < N; s++) { const st = arr[s]; const n = st.notes && st.notes.length ? st.notes[0] : null; steps.push({ note: n ? nativeNote(n[0]) : "", velocity: n ? n[1] : 0, modifier: st.modifier || 0, ratchet: st.ratchet || 0 }); poly.push({ modifier: st.modifier || 0, ratchet: st.ratchet || 0, notes: (st.notes || []).map(x => [x[0], x[1]]), cc: (st.cc || []).map(c => [c[0], c[1]]) }); }
+        return Object.assign({}, base, { step_limit: N, count: N, steps: steps, steps2: poly });
       }
       async function saveAll() {
         if (!sdDir || !native.projectName) { sdstat.textContent = 'open a project first'; return; }
