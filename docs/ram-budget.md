@@ -30,8 +30,17 @@ Per step: notes `1 + 2*CAPN` bytes, CC `1 + 2*CAPC` bytes.
 8 simultaneous notes is ample for chords; 8 distinct CCs covers a controller bank. Could raise CC
 cap independently if needed.
 
-## Next check before wiring
+## Heap / safety confirmation (resolved)
 
-Confirm the CCM heap region (`_sbrk` limit / linker `end`) so the poly arrays do not collide with
-the allocator. If CCM is contested, fall back to overlaying the legacy single-note step arrays
-(delta = (CAPN-1) bytes/step) plus a sparse CC store.
+- **Heap lives in main SRAM, not CCM.** An `_sbrk`-style literal pair `0x2001D078` (just past
+  `.bss`) / `0x20020000` (SRAM top) exists; both are SRAM. No CCM-base literal exists anywhere.
+- **No code references any CCM address >= `0x1000B52C`** (verified: the PC-relative literal map has
+  zero hits in `0x1000B52C..0x10010000`; raw `0x1000xxxx` values found there are non-pointer data,
+  not address literals).
+- The app already keeps 46 KB of `.bss` in CCM, so CCM is enabled and used for CPU-only data.
+
+**Verdict: the ~18.7 KB CCM pocket (`0x1000B52C`..`0x10010000`) is free.** Place the poly arrays
+there (align start to `0x1000B530`). CAP = 8 notes + 8 CC (~12.8 KB) fits with ~5.9 KB headroom.
+
+Caveat: CCM is not DMA-accessible on STM32F4. The step arrays are read by the CPU for sequencing /
+MIDI out, which is fine; if any future path DMAs directly from them, mirror to SRAM first.
