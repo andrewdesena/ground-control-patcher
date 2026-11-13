@@ -178,6 +178,21 @@ on SD save, per-step CC capture, and real velocity (currently stored as 100). Un
 wired the captured poly data is inert — the hook changes nothing you can hear, so flashing is low
 risk for testing the store path.
 
+## Playback map (for the fan-out layer)
+
+- MIDI-out send queue push: `0x08019840`.
+- Primitives: note-on `0x8019A2A` (status 0x90), note-off `0x8019A5E` (0x80), note-pair
+  `0x8019A92` (builds on then off), CC `0x8019ACE` (0xB0) — all push to the queue above.
+- Playback is **not** a simple step loop. A step feeds a per-track **arp/ratchet player**
+  `0x80208F6` (loops `0x8019A92` calls stepping the note) and a **gate/trigger player**
+  `0x8021748`. Channel/scale come from `[track+0x178]` / `[track+0x1f]`.
+- Step processor that reads the step note and calls the arp player: `0x8020A84` calls
+  `0x80208F6` at `0x8020C72`.
+- **Fan-out hook point** = inject extra `0x8019A92` sends per poly note at the step→player bridge,
+  with matching channel + gate + scheduled note-offs. BLOCKED until the player argument contract
+  (which register is note/track/gate at `0x8020C72`) is pinned, or confirmed by a 60 s MIDI capture.
+  Do not guess this — a wrong guess = stuck notes / wrong channel on real hardware.
+
 Backlog (Drew's asks, later layers)
 
 - **CC values per step**: DONE in the `steps2` format + emulator-proven bank. Remaining work is the
