@@ -64,13 +64,22 @@
   .arr4{display:flex;gap:3px}.arr4 input{width:32px!important}
   .drawerTab.active{color:var(--accent);border-color:var(--accent)}
   .grp select{background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:4px 6px;font:inherit;max-width:180px}
-  #sdstat{color:var(--muted);font-size:10px;max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}`;
+  #sdstat{color:var(--muted);font-size:10px;max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cell.sel{outline:2px solid #fff;outline-offset:-2px;z-index:1}
+  #ccHost{margin-top:6px}
+  .cclane{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:6px;margin:6px 0;overflow:hidden;background:#0b0d10}
+  .cchead{flex:0 0 56px;position:sticky;left:0;z-index:3;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:var(--accent2);gap:4px;padding:4px 2px}
+  .cchead button{font-size:9px;padding:1px 4px}
+  .ccsvg{flex:1;min-width:0;display:block;cursor:crosshair}
+  .ccsvg circle{fill:var(--accent2);stroke:#04342c;stroke-width:1;cursor:ns-resize}
+  .ccsvg polyline{fill:none;stroke:var(--accent2);stroke-width:1.5;opacity:.8}
+  .ccsvg .cgrid{stroke:#1c2230;stroke-width:1}`;
 
   const TPL = `
   <header>
     <h1>GC Pattern Editor</h1>
     <div class="grp"><label>Steps</label><input id="stepsNum" type="number" min="1" max="128" value="32" style="width:62px"></div>
-    <div class="grp"><label>Vel</label><input id="vel" type="number" min="1" max="127" value="100" style="width:52px"></div>
+    <div class="grp"><label>Vel</label><input id="vel" type="number" min="1" max="127" value="100" style="width:52px"><button id="applyVel" title="Apply Vel to selected notes">▸ sel</button></div>
     <div class="grp" style="margin-left:auto">
       <button id="settingsBtn">Settings</button>
       <button id="clear">Clear track</button>
@@ -86,7 +95,13 @@
   </header>
   <div id="app">
     <div id="side"></div>
-    <div id="main"><div class="hint" id="hint"></div><div id="rollWrap"></div><div class="lanes" id="lanes"></div></div>
+    <div id="main"><div class="hint" id="hint"></div><div id="rollWrap"></div>
+      <div id="ccSection"><div class="grp" id="ccCtl"><label>CC lane</label>
+        <input id="ccAdd" type="number" min="0" max="127" value="74" style="width:60px">
+        <button id="addCC">Add lane</button>
+        <span style="color:var(--muted);font-size:10px">click a lane to add a point · drag points · right-click removes</span>
+      </div><div id="ccHost"></div></div>
+      <div class="lanes" id="lanes"></div></div>
   </div>
   <div id="drawer"><div class="dhead"><strong style="color:var(--accent)">Settings</strong>
     <div class="grp" id="drawerTabs"></div><button id="closeDrawer">✕</button></div>
@@ -102,7 +117,7 @@
       this.$ = $;
 
       const MELODIC = [1, 2, 3], DRUM = 8;
-      const state = { steps: 32, track: 1, melodic: {}, drum: [], tset: {}, global: {}, cv: {}, drawerTab: "Global" };
+      const state = { steps: 32, track: 1, melodic: {}, drum: [], tset: {}, global: {}, cv: {}, drawerTab: "Global", sel: new Set(), ccLanes: [], pasteStep: 0 };
       const ensureMelodic = t => {
         if (!state.melodic[t]) { state.melodic[t] = []; for (let i = 0; i < 128; i++) state.melodic[t].push({ notes: [], cc: [], modifier: 0, ratchet: 0 }); }
         return state.melodic[t];
@@ -143,10 +158,26 @@
       })();
 
       // ---- melodic (full 0..127 piano roll) ----
+      const NS = "http://www.w3.org/2000/svg";
       const noteIndex = (step, pitch) => ensureMelodic(state.track)[step].notes.findIndex(p => p[0] === pitch);
       const cellOn = (step, pitch) => noteIndex(step, pitch) >= 0;
-      const toggleNote = (step, pitch) => { const st = ensureMelodic(state.track)[step], i = noteIndex(step, pitch); if (i >= 0) st.notes.splice(i, 1); else st.notes.push([pitch, +$("vel").value]); paint(); };
-      const setCC = (step, ccNum, val) => { const st = ensureMelodic(state.track)[step], i = st.cc.findIndex(c => c[0] === ccNum); if (val === null) { if (i >= 0) st.cc.splice(i, 1); } else if (i >= 0) st.cc[i][1] = val; else st.cc.push([ccNum, val]); buildCC(); };
+      const keyOf = (s, p) => s + ":" + p;
+      const noteAt = (s, p) => { const i = noteIndex(s, p); return i >= 0 ? ensureMelodic(state.track)[s].notes[i] : null; };
+      const isSel = (s, p) => state.sel.has(keyOf(s, p));
+      const velColor = v => { v = Math.max(0, Math.min(127, v | 0)); const l = 28 + 36 * (v / 127); return "hsl(356,72%," + l.toFixed(0) + "%)"; };
+      function selectOrToggle(s, p, ev) {
+        const list = ensureMelodic(state.track)[s].notes, i = list.findIndex(x => x[0] === p), k = keyOf(s, p);
+        state.pasteStep = s;
+        if (i < 0) { list.push([p, +$("vel").value || 100]); state.sel = new Set([k]); }
+        else if (ev && ev.shiftKey) { if (state.sel.has(k)) state.sel.delete(k); else state.sel.add(k); }
+        else state.sel = new Set([k]);
+        paint();
+      }
+      function removeNote(s, p) { const list = ensureMelodic(state.track)[s].notes, i = list.findIndex(x => x[0] === p); if (i >= 0) { list.splice(i, 1); state.sel.delete(keyOf(s, p)); paint(); } }
+      const toggleNote = (s, p) => { const st = ensureMelodic(state.track)[s], i = noteIndex(s, p); if (i >= 0) st.notes.splice(i, 1); else st.notes.push([p, +$("vel").value]); paint(); };
+      const setCCval = (s, num, v) => { const st = ensureMelodic(state.track)[s]; v = Math.max(0, Math.min(127, v | 0)); const i = st.cc.findIndex(c => c[0] === num); if (i >= 0) st.cc[i][1] = v; else st.cc.push([num, v]); };
+      const delCCval = (s, num) => { const st = ensureMelodic(state.track)[s]; const i = st.cc.findIndex(c => c[0] === num); if (i >= 0) st.cc.splice(i, 1); };
+      const setCC = (s, num, val) => { if (val === null) delCCval(s, num); else setCCval(s, num, val); buildCC(); };
 
       function buildMelodic() {
         const w = $("rollWrap"); w.innerHTML = "";
@@ -160,8 +191,12 @@
           const k = document.createElement("div"); k.className = "key" + (isBlack(pitch) ? " black" : ""); k.textContent = noteName(pitch); row.appendChild(k);
           for (let s = 0; s < state.steps; s++) {
             const c = document.createElement("div");
-            c.className = "cell" + (isBlack(pitch) ? " blackrow" : "") + (s % 4 === 0 ? " beat" : "") + (s % 16 === 0 ? " bar" : "") + (cellOn(s, pitch) ? " on" : "");
-            c.addEventListener("click", () => toggleNote(s, pitch)); row.appendChild(c);
+            const nv = noteAt(s, pitch);
+            c.className = "cell" + (isBlack(pitch) ? " blackrow" : "") + (s % 4 === 0 ? " beat" : "") + (s % 16 === 0 ? " bar" : "") + (isSel(s, pitch) ? " sel" : "");
+            if (nv) c.style.background = velColor(nv[1]);
+            c.addEventListener("click", ev => selectOrToggle(s, pitch, ev));
+            c.addEventListener("contextmenu", ev => { ev.preventDefault(); removeNote(s, pitch); });
+            row.appendChild(c);
           }
           vs.appendChild(row);
         }
@@ -171,21 +206,46 @@
         buildCC();
       }
       function buildCC() {
-        const host = $("lanes"); host.innerHTML = "";
-        const lane = document.createElement("div"); lane.className = "lane";
-        lane.innerHTML = '<label>CC#</label><input id="ccNum" type="number" min="0" max="127" value="74" style="width:60px"><label>Value</label><input id="ccVal" type="number" min="0" max="127" value="64" style="width:60px">';
-        const bar = document.createElement("div"); bar.className = "ccbar";
-        const st = ensureMelodic(state.track), ccNum = +((($("ccNum")) && $("ccNum").value) || 74);
-        for (let s = 0; s < state.steps; s++) {
-          const cell = document.createElement("div"); cell.className = "cc";
-          const e = st[s].cc.find(c => c[0] === ccNum);
-          if (e) { const f = document.createElement("div"); f.className = "fill"; f.style.height = (e[1] / 127 * 100) + "%"; cell.appendChild(f); const l = document.createElement("div"); l.className = "lbl"; l.textContent = e[1]; cell.appendChild(l); }
-          cell.addEventListener("click", () => setCC(s, ccNum, +((($("ccVal")) && $("ccVal").value) || 0)));
-          cell.addEventListener("contextmenu", ev => { ev.preventDefault(); setCC(s, ccNum, null); });
-          bar.appendChild(cell);
-        }
-        lane.appendChild(bar); host.appendChild(lane);
-        const ccn = $("ccNum"); if (ccn) ccn.onchange = buildCC;
+        const host = $("ccHost"); if (!host) return; host.innerHTML = "";
+        const mc = ensureMelodic(state.track), W = state.steps * 20, H = 64;
+        state.ccLanes.forEach(num => {
+          const lane = document.createElement("div"); lane.className = "cclane";
+          const head = document.createElement("div"); head.className = "cchead";
+          head.appendChild(document.createTextNode("CC " + num));
+          const xb = document.createElement("button"); xb.textContent = "✕";
+          xb.onclick = () => { state.ccLanes = state.ccLanes.filter(n => n !== num); buildCC(); };
+          head.appendChild(xb); lane.appendChild(head);
+          const svg = document.createElementNS(NS, "svg");
+          svg.setAttribute("class", "ccsvg"); svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+          svg.setAttribute("width", W); svg.setAttribute("height", H);
+          for (let s = 0; s <= state.steps; s += 4) { const ln = document.createElementNS(NS, "line"); ln.setAttribute("class", "cgrid"); ln.setAttribute("x1", s * 20); ln.setAttribute("y1", 0); ln.setAttribute("x2", s * 20); ln.setAttribute("y2", H); svg.appendChild(ln); }
+          const pts = [];
+          for (let s = 0; s < state.steps; s++) { const e = mc[s].cc.find(c => c[0] === num); if (e) pts.push([s, e[1]]); }
+          const yOf = v => H - 3 - (v / 127) * (H - 8);
+          if (pts.length > 1) { const pl = document.createElementNS(NS, "polyline"); pl.setAttribute("points", pts.map(([s, v]) => (s * 20 + 10) + "," + yOf(v)).join(" ")); svg.appendChild(pl); }
+          pts.forEach(([s, v]) => {
+            const c = document.createElementNS(NS, "circle"); c.setAttribute("cx", s * 20 + 10); c.setAttribute("cy", yOf(v)); c.setAttribute("r", 4);
+            c.addEventListener("pointerdown", ev => {
+              ev.preventDefault(); ev.stopPropagation();
+              const rect = svg.getBoundingClientRect();
+              const move = e2 => { const y = e2.clientY - rect.top; const val = Math.round((H - 3 - Math.max(0, Math.min(H - 8, y))) / (H - 8) * 127); setCCval(s, num, val); buildCC(); };
+              const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+              window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
+            });
+            c.addEventListener("contextmenu", ev => { ev.preventDefault(); ev.stopPropagation(); delCCval(s, num); buildCC(); });
+            svg.appendChild(c);
+          });
+          svg.addEventListener("click", ev => {
+            if (ev.target !== svg) return;
+            const rect = svg.getBoundingClientRect();
+            const s = Math.max(0, Math.min(state.steps - 1, Math.floor((ev.clientX - rect.left) / 20)));
+            const y = ev.clientY - rect.top;
+            const val = Math.round((H - 3 - Math.max(0, Math.min(H - 8, y))) / (H - 8) * 127);
+            setCCval(s, num, val); buildCC();
+          });
+          lane.appendChild(svg); host.appendChild(lane);
+        });
+        if (!state.ccLanes.length) { const e = document.createElement("div"); e.className = "hint"; e.textContent = "No CC lanes. Pick a CC# above and Add lane to draw automation."; host.appendChild(e); }
       }
 
       // ---- drum ----
@@ -213,14 +273,15 @@
         const t = $("side"); t.innerHTML = "";
         [["1", "Track 1"], ["2", "Track 2"], ["3", "Track 3"], ["D", "Track D"]].forEach(([v, label]) => {
           const b = document.createElement("button"); b.className = "ttab" + (state.track === v ? " active" : "") + (v === "D" ? " d" : "");
-          b.textContent = label; b.onclick = () => { state.track = v; paint(); }; t.appendChild(b);
+          b.textContent = label; b.onclick = () => { state.track = v; state.sel = new Set(); paint(); }; t.appendChild(b);
         });
         const g = document.createElement("div"); g.style.cssText = "margin-top:auto;color:#8b93a1;font-size:10px;padding:6px 2px"; g.textContent = "128 steps · MIDI 0–127"; t.appendChild(g);
       }
       function paint() {
         buildTrackbar();
         const isD = state.track === "D";
-        $("hint").textContent = isD ? "Track D (drums): click a lane cell to place a trigger." : "Full piano roll (MIDI 0–127): scroll vertically, click to place/remove notes (chords allowed). CC lane below: click to set, right-click to clear.";
+        $("hint").textContent = isD ? "Track D (drums): click a lane cell to place a trigger." : "Click to add/select · shift-click multi-select · right-click deletes · drag CC points to draw automation · Ctrl/Cmd C/V copies notes.";
+        const cs = $("ccSection"); if (cs) cs.style.display = isD ? "none" : "";
         if (isD) buildDrum(); else buildMelodic();
       }
 
@@ -281,6 +342,10 @@
           for (let i = 0; i < src2.length && i < 128; i++) { arr[i] = { modifier: src2[i].modifier || 0, ratchet: src2[i].ratchet || 0, notes: (src2[i].notes || []).map(p => [p[0], p[1]]), cc: (src2[i].cc || []).map(c => [c[0], c[1]]) }; }
           const ts = state.tset[tr.index] || (state.tset[tr.index] = {}); if (tr.scale) { ts.Scale = tr.scale.Scale; ts.Root = tr.scale.Root; } if (tr.settings) Object.assign(ts, tr.settings); if (tr.polyrhythm) { ts.PolyFrom = tr.polyrhythm.From; ts.PolyTo = tr.polyrhythm.To; } }
         if (doc.drum && doc.drum.steps) { const dm = ensureDrum(); for (const st of doc.drum.steps) { if (st.index >= 128) continue; const tgt = { pads: {}, ratchet: st.ratchet || 0, modifier: st.modifier || 0 }; for (const trg of (st.triggers || [])) tgt.pads[trg.pad] = trg.velocity; dm[st.index] = tgt; } }
+        const ccNums = new Set();
+        for (const t of MELODIC) { const arr = ensureMelodic(t); for (let i = 0; i < state.steps; i++) arr[i].cc.forEach(c => ccNums.add(c[0])); }
+        if (ccNums.size) state.ccLanes = [...ccNums].sort((a, b) => a - b);
+        state.sel = new Set();
         paint(); if ($("drawer").classList.contains("open")) buildDrawer();
       }
 
@@ -323,6 +388,31 @@
       if (sdDir) { $("saveSD").disabled = false; sdstat.textContent = 'SD: ' + sdDir.name; refreshSD(); }
 
       // ---- wire ----
+      $("applyVel").onclick = () => {
+        if (state.track === "D") return;
+        const v = Math.max(1, Math.min(127, +$("vel").value || 100));
+        const arr = ensureMelodic(state.track);
+        state.sel.forEach(k => { const [s, p] = k.split(":").map(Number); const x = arr[s].notes.find(q => q[0] === p); if (x) x[1] = v; });
+        paint();
+      };
+      $("addCC").onclick = () => { const num = Math.max(0, Math.min(127, +$("ccAdd").value || 0)); if (!state.ccLanes.includes(num)) state.ccLanes.push(num); buildCC(); };
+      let clip = null;
+      window.addEventListener("keydown", ev => {
+        if (!this.isConnected) return;
+        const t = (ev.composedPath && ev.composedPath()[0]) || {}; const tag = (t.tagName || "").toUpperCase();
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+        if (state.track === "D") return;
+        if ((ev.ctrlKey || ev.metaKey) && (ev.key === "c" || ev.key === "C")) {
+          const arr = ensureMelodic(state.track); let minS = Infinity; const got = [];
+          state.sel.forEach(k => { const [s, p] = k.split(":").map(Number); const n = arr[s].notes.find(q => q[0] === p); if (n) { got.push([s, p, n[1]]); if (s < minS) minS = s; } });
+          if (got.length) { clip = got.map(([s, p, v]) => [s - minS, p, v]); state.pasteStep = minS; ev.preventDefault(); }
+        } else if ((ev.ctrlKey || ev.metaKey) && (ev.key === "v" || ev.key === "V")) {
+          if (!clip || !clip.length) return;
+          const arr = ensureMelodic(state.track), dest = state.pasteStep || 0;
+          clip.forEach(([ds, p, v]) => { const s = dest + ds; if (s >= 0 && s < state.steps) { if (!arr[s].notes.find(q => q[0] === p)) arr[s].notes.push([p, v]); } });
+          paint(); ev.preventDefault();
+        }
+      });
       $("stepsNum").onchange = e => { state.steps = Math.max(1, Math.min(128, +e.target.value || 1)); e.target.value = state.steps; paint(); };
       $("clear").onclick = () => { if (state.track === "D") { state.drum = []; ensureDrum(); } else { state.melodic[state.track] = null; ensureMelodic(state.track); } paint(); };
       $("exportBtn").onclick = doExport;
@@ -333,7 +423,7 @@
 
       for (const t of MELODIC) ensureMelodic(t); ensureDrum(); paint();
       // tiny API for tests
-      this._api = { state, exportJSON, toggleNote, toggleDrum, setCC, paint, noteName, nameToMidi };
+      this._api = { state, exportJSON, toggleNote, toggleDrum, setCC, setCCval, delCCval, selectOrToggle, removeNote, paint, buildCC, noteName, nameToMidi };
     }
   }
   if (!customElements.get("gc-editor")) customElements.define("gc-editor", GCEditor);
