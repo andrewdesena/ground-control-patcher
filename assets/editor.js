@@ -66,11 +66,11 @@
   .grp select{background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:4px 6px;font:inherit;max-width:180px}
   #sdstat{color:var(--muted);font-size:10px;max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .cell.sel{outline:2px solid #fff;outline-offset:-2px;z-index:1}
-  #ccHost{margin-top:6px}
-  .cclane{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:6px;margin:6px 0;overflow:hidden;background:#0b0d10}
+  #ccHost{margin-top:6px;overflow-x:auto}
+  .cclane{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:6px;margin:6px 0;overflow:hidden;background:#0b0d10;width:max-content}
   .cchead{flex:0 0 56px;position:sticky;left:0;z-index:3;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:var(--accent2);gap:4px;padding:4px 2px}
   .cchead button{font-size:9px;padding:1px 4px}
-  .ccsvg{flex:1;min-width:0;display:block;cursor:crosshair}
+  .ccsvg{flex:0 0 auto;display:block;cursor:crosshair}
   .ccsvg circle{fill:var(--accent2);stroke:#04342c;stroke-width:1;cursor:ns-resize}
   .ccsvg polyline{fill:none;stroke:var(--accent2);stroke-width:1.5;opacity:.8}
   .ccsvg .cgrid{stroke:#1c2230;stroke-width:1}
@@ -90,20 +90,18 @@
       <button id="importBtn">Import</button><input id="importFile" type="file" accept=".json" hidden>
       <button id="exportBtn" class="primary">Export project</button>
     </div>
-    <div class="grp" style="margin-left:8px">
-      <button id="connectSD">Open SD card</button>
-      <span id="sdstat"></span>
-    </div>
   </header>
   <div id="app">
     <div id="side"></div>
     <div id="main">
-      <div id="sdbar" hidden>
-        <div class="grp"><label>Project</label><select id="projSel"></select>
-          <button id="openProj">Open</button><button id="newProj">New</button><button id="delProj">Delete</button></div>
+      <div id="sdbar">
+        <div class="grp"><button id="connectSD" class="primary">Open SD card</button><span id="sdstat"></span></div>
         <span class="sep"></span>
-        <div class="grp"><label>Pattern</label><select id="patSel"></select><button id="loadPat">Load</button>
-          <button id="saveAll" class="primary">Save to SD</button></div>
+        <div class="grp"><label>Project</label><select id="projSel" disabled></select>
+          <button id="openProj" disabled>Open</button><button id="newProj">New</button><button id="delProj" disabled>Delete</button></div>
+        <span class="sep"></span>
+        <div class="grp"><label>Pattern</label><select id="patSel" disabled></select><button id="loadPat" disabled>Load</button>
+          <button id="saveAll" disabled>Save to SD</button></div>
       </div>
       <div class="hint" id="hint"></div><div id="rollWrap"></div>
       <div id="ccSection"><div class="grp" id="ccCtl"><label>CC lane</label>
@@ -211,6 +209,9 @@
           vs.appendChild(row);
         }
         w.appendChild(vs);
+        // keep the CC automation lanes horizontally locked to the step columns
+        const ch = $("ccHost");
+        if (ch) vs.addEventListener("scroll", () => { ch.scrollLeft = vs.scrollLeft; ch.dataset.synced = "1"; });
         // center on middle C-ish
         requestAnimationFrame(() => { vs.scrollTop = (127 - 60) * 16 - 120; });
         buildCC();
@@ -421,7 +422,8 @@
         const sel = $("projSel"); const cur = keep || native.projectName || sel.value; sel.innerHTML = "";
         names.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o); });
         if (cur && names.includes(cur)) sel.value = cur;
-        $("openProj").disabled = !names.length; $("delProj").disabled = !names.length; $("newProj").disabled = !sdDir;
+        $("projSel").disabled = !names.length; $("openProj").disabled = !names.length; $("delProj").disabled = !names.length; $("newProj").disabled = !sdDir;
+        $("patSel").disabled = !names.length; $("loadPat").disabled = !names.length; $("saveAll").disabled = !names.length;
         if (sdDir) sdstat.textContent = sdDir.name + ' · ' + names.length + ' project(s)';
         return names;
       }
@@ -430,6 +432,7 @@
         const sel = $("patSel"); const cur = keep || native.pattern || 'A'; sel.innerHTML = "";
         native.letters.forEach(L => { const o = document.createElement('option'); o.value = L; o.textContent = 'Pattern ' + L; sel.appendChild(o); });
         sel.value = native.letters.includes(cur) ? cur : native.letters[0];
+        $("patSel").disabled = false; $("loadPat").disabled = false; $("saveAll").disabled = false;
       }
       function applyTrackSettings(t, ts) {
         const s = state.tset[t] || (state.tset[t] = {});
