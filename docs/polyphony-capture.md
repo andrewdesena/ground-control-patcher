@@ -193,6 +193,28 @@ risk for testing the store path.
   (which register is note/track/gate at `0x8020C72`) is pinned, or confirmed by a 60 s MIDI capture.
   Do not guess this — a wrong guess = stuck notes / wrong channel on real hardware.
 
+### Resolved: live-input vs sequencer are DIFFERENT paths
+
+- `0x8019580` → `0x802063C` → `0x8022054` is **live MIDI INPUT** (reads hardware receive queue
+  `0x200030E4/0x20003120/...`). Do NOT patch here — it's MIDI-thru, not sequencer playback.
+- The **sequencer** plays each track via a **vtable-dispatched per-track tick `0x8020CE4(track,
+  note)`** (no `bl` callers — invoked through a function-pointer/vtable), which calls
+  `0x8020A84(track, note)` → arp player `0x80208F6(track, note, …)`. Play position/timing live in
+  the track object: pattern base `[track+0x17c]`, timing `[+0x184]`, counters `[+0x6c]`/`[+0x68]`,
+  flags `[+0x18d]`/`[+0x18e]`.
+- Players emit via `0x8019A92` (note-pair) with per-track channel from `[track+0x1f]`.
+
+### Fan-out plan (scoped, next build)
+
+Hook the per-track tick `0x8020CE4` (a fixed function address even though it's vtable-called):
+- save regs, run original, then read the track's current step from the track object,
+- look up `poly[t][step]`, and for each extra note call `0x8020A84(track, extra_note)` (the same
+  wrapper the tick uses) so channel/gate/note-off pairing is preserved.
+- Need: pin which track-object field holds the current step index (the tick reads `[+0x17c]`
+  base; step offset is added inside). Then emulate-test with a synthetic track object.
+This is a subsystem-level hook (object/task model), so it gets its own build + Unicorn test before
+any hardware flash.
+
 Backlog (Drew's asks, later layers)
 
 - **CC values per step**: DONE in the `steps2` format + emulator-proven bank. Remaining work is the
