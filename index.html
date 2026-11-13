@@ -464,11 +464,13 @@
     if (!fsSupported()) { showBanner('This browser cannot access the SD card. Use Chrome or Edge over https/localhost.'); return; }
     try {
       fsDir = await window.showDirectoryPicker({ mode: 'readwrite' });
+      window.__gcSD = fsDir;   // share the handle with the embedded editor
       sdStatus('connected: ' + fsDir.name, 'ok');
       $('sdFiles').hidden = false;
       $('install').disabled = !lastOutput;
       await refreshProjects();
-    } catch (e) { if (!e || e.name !== 'AbortError') showBanner('Could not open the card: ' + e.message); }
+      return fsDir;
+    } catch (e) { if (!e || e.name !== 'AbortError') showBanner('Could not open the card: ' + e.message); return null; }
   }
   async function refreshProjects() {
     if (!fsDir) return;
@@ -540,10 +542,10 @@
   $('install').addEventListener('click', installFirmware);
   $('dl').addEventListener('click', downloadFirmware);
 
-  window.GCModder = { HexFile: HexFile, identify: identify, applyBundle: applyBundle, loadHex: loadHex, takeFile: takeFile, getOutput: function () { return lastOutput; }, ready: true };
+  window.GCModder = { HexFile: HexFile, identify: identify, applyBundle: applyBundle, loadHex: loadHex, takeFile: takeFile, getOutput: function () { return lastOutput; }, connectSD: connectSD, getSD: function () { return fsDir; }, ready: true };
 })();
 </script>
-<script src="assets/editor.js"></script>
+<script src="assets/editor.js?v=792"></script>
 <script>
 (function () {
   function showView(v) {

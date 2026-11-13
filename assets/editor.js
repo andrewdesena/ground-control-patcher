@@ -536,7 +536,13 @@
       $("connectSD").onclick = async () => {
         if (!window.showDirectoryPicker && !window.__gcSD) { sdstat.textContent = 'needs Chrome/Edge over https'; return; }
         try {
-          sdDir = window.__gcSD || await window.showDirectoryPicker({ mode: 'readwrite' });
+          sdDir = window.__gcSD || null;
+          if (!sdDir && window.GCModder && window.GCModder.connectSD) {
+            const h = await window.GCModder.connectSD();   // same picker/flow as the patcher
+            if (!h) return;
+            sdDir = h;
+          }
+          if (!sdDir) sdDir = await window.showDirectoryPicker({ mode: 'readwrite' });
           window.__gcSD = sdDir; $("sdbar").hidden = false;
           try { native.global = await rdJSON(sdDir, ['GlobalSettings.txt']); } catch (e) { native.global = null; }
           const names = await refreshProjects();
