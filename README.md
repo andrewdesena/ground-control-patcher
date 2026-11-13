@@ -1,18 +1,60 @@
-# gc-modder
+# Ground Control — Polyphony patcher
 
-Browser tool that takes a stock Endorphin.es **Ground Control** firmware `.hex`, bakes in mods, and
-hands back a flashable `.hex`. Static site, no server, no upload: the file never leaves the tab.
+Unofficial customization of **Endorphin.es Ground Control** firmware **v3.26**, applied **locally in
+your browser**. Firmware is never uploaded. This repo contains only the static site, patch
+definitions, emulator/test tooling, and docs — **not** the vendor firmware; you bring your own stock
+`gc-*.hex`.
 
-Status: **build toolchain fixed; clock-priority patch builds, verifies, and emits a flashable
-`.hex` — but it is EXPERIMENTAL and UNFLASHED.** A manually-tested **Unicorn emulator harness**
-(`tools/fw_sandbox.py`) loads the full image and runs real firmware functions, including the
-audio player's FPU/VFP path. Polyphony: the **playback step cursor is solved** (see
-`docs/polyphony-capture.md`) and note capture is wired into the shipped experimental firmware;
-the final piece is the chord fan-out splice, which needs the emulator to drive a real track object.
-Toolchain note: `tools/thumbfix.py` encodes far branches as `addend - instr_off` (gas emits
-`target-base-4`); `tools/test_thumbfix.py` is the regression. `tools/verify.py` proves zero
-collateral, and `tools/apply.py` writes the new-flash cave records the stock file omits, then
-re-checks content identity.
+Open the patcher: _(GitHub Pages URL once live, e.g. `https://<user>.github.io/gc-modder/`)_.
+Requires **Chrome or Edge over https** (the SD-card step uses the File System Access API).
+
+## Use
+
+1. **Back up your whole microSD card.**
+2. Download the official Ground Control firmware (`gc-*.hex`) from endorphin.es.
+3. Open the patcher → select that `.hex` → tick **Polyphony v1** → **Build modded firmware**.
+4. Hold **PROJ ~5 s** on the module to mount the SD over USB → **Connect GC SD card** → **Install to
+   GC**. It writes the patched file to the **card ROOT** under the **same `gc-*.hex` name** (do not
+   rename; keep only one firmware `.hex` there).
+5. **PROJ ~5 s** again: the module reboots and flashes. Power-cycle when done.
+
+The patcher **creates a file; it does not flash the module itself** — the module's own bootloader
+flashes a `gc-*.hex` found at the card root.
+
+## What Polyphony v1 changes
+
+- **Clock priority** — `0xF8`/`0xFA`/`0xFB`/`0xFC` go to the front of the MIDI event queue instead of
+  waiting behind notes.
+- **Polyphonic note capture** for melodic tracks 1–3 — every held note is stored per step with its
+  **real velocity** (not just the last note).
+- **Stock-gate chord playback** — each saved chord note replays through the real note emitter with the
+  **same timing and gate as the primary note**, so chords hold exactly like stock.
+
+## Limits (v1)
+
+- Melodic tracks 1–3 only; assumes default channels 1/2/3.
+- Chords exist only for notes **recorded on this firmware**; stock-recorded projects load as mono.
+- Captured velocity falls back to 100 if a note-on velocity wasn't seen.
+
+## Verify / return to stock
+
+- Supported base: firmware **v3.26**, canonical image SHA-256
+  `e1db4815f8cf2983f832493aa8b2085586cb5ea10446e133774bdfc91bca9f52`.
+- `tools/verify.py` proves a bundle moves **0** untouched bytes; the tool re-parses its output before
+  writing.
+- To return to stock: put the original vendor `gc-*.hex` back at the card root, **PROJ ~5 s**.
+
+---
+
+# Technical / development
+
+Status: **Polyphony v1 builds and is emulator-verified (capture w/ real velocity, stock-gate chord
+playback, clock fix); EXPERIMENTAL / UNFLASHED.** The **Unicorn emulator harness**
+(`tools/fw_sandbox.py`) runs real firmware functions including the player's **FPU/VFP** path
+(set a Cortex-M7/M4 core *before* mapping memory, or VFP won't decode). Playback step cursor is
+solved (`docs/polyphony-capture.md`). Toolchain: `tools/thumbfix.py` encodes far branches as
+`addend - instr_off`; `tools/verify.py` proves zero collateral; `tools/apply.py` writes the new-flash
+cave records the stock file omits, then re-checks content identity.
 
 ```
 index.html          THE TOOL. Single self-contained file: double-click it, it works. UI + engine inside.
