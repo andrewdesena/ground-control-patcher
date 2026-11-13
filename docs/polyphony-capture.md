@@ -267,6 +267,12 @@ rejects Cortex-M4/M7 here).
   - note-pair `0x8019A92`: note = `r3` (not a pointer); velocity = `r0`; calls A2A then A5E
 - `tools/boot_trace.py`: boots from reset with a minimal peripheral model (RCC CR/CFGR ready) and
   reports how far init gets + which functions are reached.
+- `tools/drive_player.py`: drives the real per-note emitter `0x8021748` with a synthetic track
+  object and captures its MIDI. Confirms the emitter runs (FPU/VFP included) and that the note is
+  carried in `r3` to note-on/off; `0x8019A92` (pair) is **self-contained note-on + note-off**, so
+  extra chord notes emitted through it can't leave stuck notes. Call-site arg layout (from
+  `0x80217f4`): `r0=0, r1=time, r2=duration, r3=[obj+4]`, stack `[sp]=note, [sp+4]=vel,
+  [sp+8]=channel`; channel = `[[obj+8]+0x1f]`.
   - Boot advances through clock init; then clock-setup `0x80319BC` returns failure -> fatal
     self-loop `0x0801245A` (`cpsid i; b .`). Full sequencer boot needs a real RCC/PLL model.
 - **Remaining wall to the step cursor:** boot the scheduler (needs RCC + timer/peripheral model) so
