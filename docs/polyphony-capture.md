@@ -221,6 +221,25 @@ risk for testing the store path.
 
 Backlog (Drew's asks, later layers)
 
+### Dynamic trace harness — BUILT & PROVEN (tools/fw_sandbox.py)
+
+- `tools/fw_sandbox.py`: Unicorn sandbox that loads the full image, maps FLASH/SRAM/CCM/wide
+  peripheral space, calls any function with controlled regs/memory, and steps/stops/traces.
+- `tools/trace_emit.py`: executes the real emit primitives and captures the MIDI bytes at the
+  queue push. **Confirmed contracts (dynamic):**
+  - note-on `0x8019A2A`: note = `r2`, velocity = `r0`  -> e.g. `90 3C 64`
+  - note-off `0x8019A5E`: note = `r2`
+  - note-pair `0x8019A92`: note = `r3` (not a pointer); velocity = `r0`; calls A2A then A5E
+- `tools/boot_trace.py`: boots from reset with a minimal peripheral model (RCC CR/CFGR ready) and
+  reports how far init gets + which functions are reached.
+  - Boot advances through clock init; then clock-setup `0x80319BC` returns failure -> fatal
+    self-loop `0x0801245A` (`cpsid i; b .`). Full sequencer boot needs a real RCC/PLL model.
+- **Remaining wall to the step cursor:** boot the scheduler (needs RCC + timer/peripheral model) so
+  it generates step notes and calls the ticks; hook the tick to read the live (track, step). Or,
+  next tractable experiment: call the melodic player `0x8021A14` with a synthetic track object and
+  trace its memory reads to see whether it reads the step note from `[track]->pattern` (if so, the
+  cursor is in the track object and fan-out hooks the player, which already has the track).
+
 - **CC values per step**: DONE in the `steps2` format + emulator-proven bank. Remaining work is the
   firmware wiring: capture live `0xB0` into the per-step CC array on the record path, and fan CC out
   on playback / MIDI out per track.
