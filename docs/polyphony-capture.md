@@ -204,16 +204,20 @@ risk for testing the store path.
   flags `[+0x18d]`/`[+0x18e]`.
 - Players emit via `0x8019A92` (note-pair) with per-track channel from `[track+0x1f]`.
 
-### Fan-out plan (scoped, next build)
+### Status: fan-out needs dynamic tracing (static RE exhausted)
 
-Hook the per-track tick `0x8020CE4` (a fixed function address even though it's vtable-called):
-- save regs, run original, then read the track's current step from the track object,
-- look up `poly[t][step]`, and for each extra note call `0x8020A84(track, extra_note)` (the same
-  wrapper the tick uses) so channel/gate/note-off pairing is preserved.
-- Need: pin which track-object field holds the current step index (the tick reads `[+0x17c]`
-  base; step offset is added inside). Then emulate-test with a synthetic track object.
-This is a subsystem-level hook (object/task model), so it gets its own build + Unicorn test before
-any hardware flash.
+- `0x802B548` = pattern/chain advancer: indexes a 24-entry table, wraps patterns, writes
+  `[track+5]`. Steps within a pattern advance elsewhere by timing.
+- Melodic player `0x8021A14` and x0x player `0x8020A84` are dispatched as per-track **vtable ticks**
+  (`0x8021D04` at vtable slot `0x08038790`; `0x8020CE4` at `0x080386FC`) with the **note already
+  computed in `r1`**.
+- The step→note→voice computation is inside the RTOS task scheduler (object/vtable dispatch). There
+  is no single `bl` site to splice fan-out safely, and the per-track step cursor field is not
+  statically evident. Guessing it risks stuck notes / wrong channels on hardware.
+- **Recommended next technique:** a dynamic trace — run the firmware under an emulator (or the
+  REA debugger) with clock/timer emulation, hook `0x8019A92` (note emit), and observe which caller /
+  registers / track-object field drive each step's note. That pins the cursor without guessing.
+  Hardware MIDI capture is the other route.
 
 Backlog (Drew's asks, later layers)
 
