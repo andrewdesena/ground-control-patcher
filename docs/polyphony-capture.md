@@ -254,6 +254,10 @@ rejects Cortex-M4/M7 here).
 
 ### Dynamic trace harness — BUILT & PROVEN (tools/fw_sandbox.py)
 
+- **FPU/FPU-VFP unlocked:** the sandbox sets a Cortex-M7/M4 CPU model *before* mapping memory and
+  enables CPACR, so the player's VFP math now executes. Without this, `vpush` fails to decode
+  (`UC_ERR_INSN_INVALID`) and the sequencer/player cannot be run at all. This is the key to
+  emulator-testing the playback path.
 - `tools/fw_sandbox.py`: Unicorn sandbox that loads the full image, maps FLASH/SRAM/CCM/wide
   peripheral space, calls any function with controlled regs/memory, and steps/stops/traces.
 - `tools/trace_emit.py`: executes the real emit primitives and captures the MIDI bytes at the

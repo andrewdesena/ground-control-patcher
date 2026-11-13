@@ -46,6 +46,17 @@ class Sandbox:
                     img[addr - lo + i] = byte
         self.lo = lo
         self.uc = Uc(UC_ARCH_ARM, UC_MODE_THUMB)
+        # IMPORTANT: set an FPU-capable Cortex-M core BEFORE mapping memory, or the FPU/VFP
+        # instructions in the audio player fail to decode (UC_ERR_INSN_INVALID). This is what
+        # unlocks running the real sequencer/player in emulation.
+        for _m in ('UC_CPU_ARM_CORTEX_M7', 'UC_CPU_ARM_CORTEX_M4'):
+            _c = getattr(__import__('unicorn.arm_const', fromlist=['x']), _m, None)
+            if _c is not None:
+                try:
+                    self.uc.ctl_set_cpu_model(_c)
+                    break
+                except Exception:
+                    pass
         # map flash from its real base (0x08000000) so low-flash writes/reads don't fault
         fbase = 0x08000000
         fsize = ((lo + len(img) - fbase) // 0x1000 + 2) * 0x1000
@@ -56,6 +67,11 @@ class Sandbox:
                          (0x50000000, 0x01000000),   # USB OTG etc.
                          (SCB, SCBSZ)]:
             self.uc.mem_map(base, sz)
+        # enable the FPU (CPACR CP10/CP11 full access) so VFP math executes
+        try:
+            self.uc.mem_write(0xE000ED88, (0x00F00000).to_bytes(4, 'little'))
+        except Exception:
+            pass
         self.md = Cs(CS_ARCH_ARM, CS_MODE_THUMB)
 
     def w(self, addr, data): self.uc.mem_write(addr, bytes(data))
