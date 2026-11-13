@@ -24,8 +24,9 @@ Printable docs: [reference guide (Letter)](docs/reference/guide-letter.pdf) ·
 2. Download the official Ground Control firmware (`gc-*.hex`) from endorphin.es.
 3. Open the patcher → select that `.hex` → tick **Polyphony v1** → **Build modded firmware**.
 4. Hold **PROJ ~5 s** on the module to mount the SD over USB → **Connect GC SD card** → **Install to
-   GC**. It writes the patched file to the **card ROOT** under the **same `gc-*.hex` name** (do not
-   rename; keep only one firmware `.hex` there).
+   GC**. It writes the patched file to the **card ROOT** as **`<stock-name>-poly1.hex`** — a
+   `gc-*.hex` name that still satisfies the updater but is clearly marked as patched (keep only one
+   firmware `.hex` there).
 5. **PROJ ~5 s** again: the module reboots and flashes. Power-cycle when done.
 
 The patcher **creates a file; it does not flash the module itself** — the module's own bootloader

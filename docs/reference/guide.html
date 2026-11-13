@@ -48,7 +48,7 @@ bytes and writes a single <code>gc-*.hex</code> back to your card. Firmware is n
   <li>Download the official firmware <code>gc-*.hex</code> (v3.26) from endorphin.es.</li>
   <li>Open <span class="mono">https://andrewdesena.github.io/ground-control-patcher/</span> in Chrome/Edge (https). Select the <code>.hex</code>, tick <strong>Polyphony v1</strong>, click <strong>Build modded firmware</strong>. Confirm the base image shows <span class="mono">✓ Ground Control v3.26</span>.</li>
   <li>On the module hold <strong>PROJ ~5 s</strong> to mount the SD over USB. In the tool click <strong>Connect GC SD card</strong> and pick the card, then <strong>Install to GC</strong>.</li>
-  <li>The tool writes the patched file to the <strong>card ROOT</strong> under the <strong>same <code>gc-*.hex</code> name</strong>. <em>Do not rename it, and keep only one firmware <code>.hex</code> at the root.</em></li>
+  <li>The tool writes the patched file to the <strong>card ROOT</strong> as <strong><code>&lt;stock-name&gt;-poly1.hex</code></strong> — still a <code>gc-*.hex</code>, but clearly marked as patched. <em>Keep only one firmware <code>.hex</code> at the root.</em></li>
   <li>Press <strong>PROJ ~5 s</strong> again: the module reboots and flashes. Power-cycle when done.</li>
 </ol>
 <div class="box warn"><strong>The patcher creates a file; it does not flash the module.</strong> The module's own bootloader flashes a <code>gc-*.hex</code> found at the card root. Keep the v2.x SD-recovery procedure handy for the first modded image.</div>

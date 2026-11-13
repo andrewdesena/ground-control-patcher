@@ -413,7 +413,13 @@
     }
     var out = work.toString();
     new HexFile(out);  // read our own output back before handing it over
-    lastOutput = { text: out, name: (fileName || 'gc-firmware.hex') };  // KEEP the stock name — updater says don't rename
+    lastOutput = { text: out, name: (function () {
+      // Stamp our own suffix so a patched image is never mistaken for stock, while
+      // still matching the updater's required gc-*.hex pattern.
+      var base = (fileName || 'gc-firmware.hex').replace(/\.hex$/i, '');
+      if (!/-poly1$/i.test(base)) base += '-poly1';
+      return base + '.hex';
+    })() };
     $('install').disabled = !fsDir;
     $('dl').disabled = false;
     canonicalHash(new HexFile(out)).then(function (hh) { if (hh) say('output SHA-256: ' + hh, 'ok'); }).catch(function () {});
@@ -511,7 +517,7 @@
   async function installFirmware() {
     if (!fsDir) { showBanner('Connect the GC SD card first (hold PROJ 5s on the module).'); return; }
     if (!lastOutput) { showBanner('Build the firmware first.'); return; }
-    var name = prompt('Firmware file name on the card (keep it as-is — must be gc-*.hex in the card ROOT)', lastOutput.name); if (!name) return;
+    var name = prompt('Firmware file name on the card (must be gc-*.hex in the card ROOT; the tool appends -poly1)', lastOutput.name); if (!name) return;
     if (!/\.hex$/i.test(name)) name += '.hex';
     if (!/^gc-.*\.hex$/i.test(name) && !confirm('The updater expects a file named gc-*.hex in the card root; "' + name + '" may not be picked up. Continue anyway?')) return;
     try {

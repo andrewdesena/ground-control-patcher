@@ -27,7 +27,7 @@
   <li><b>Get the stock firmware.</b> Download the official <code>gc-*.hex</code> (v3.26) from endorphin.es.</li>
   <li><b>Build in the browser.</b> Open the patcher (Chrome/Edge, https), select the <code>.hex</code>, tick <b>Polyphony v1</b>, click <b>Build</b>. Confirm <span class="mono">✓ v3.26</span>.</li>
   <li><b>Mount the card.</b> Hold <b>PROJ ~5 s</b> on the module. In the tool: <b>Connect GC SD card</b> → pick it → <b>Install to GC</b>.</li>
-  <li><b>One file, root, same name.</b> The patched <code>gc-*.hex</code> goes to the <b>card ROOT</b>, unchanged name, and must be the <b>only</b> firmware <code>.hex</code> there.</li>
+  <li><b>One file, root, marked name.</b> The patched <code>gc-*.hex</code> goes to the <b>card ROOT</b> as <code>&lt;stock&gt;-poly1.hex</code>, and must be the <b>only</b> firmware <code>.hex</code> there.</li>
   <li><b>Flash.</b> Press <b>PROJ ~5 s</b> again — the module reboots and flashes. Power-cycle when done.</li>
 </ol>
 <div class="warn"><b>The patcher makes a file; it does not flash the module.</b> The module's bootloader flashes a <code>gc-*.hex</code> at the card root. Keep the v2.x SD-recovery method handy for the first modded image.</div>
