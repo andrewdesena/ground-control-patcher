@@ -19,7 +19,8 @@ INTEREST = {0x08019A92: 'emit-pair', 0x08019A2A: 'note-on', 0x08020A84: 'x0x-pla
             0x08021A14: 'melodic-player', 0x08020CE4: 'x0x-tick', 0x08021D04: 'melodic-tick',
             0x0802B548: 'chain-adv', 0x0802063C: 'live-input', 0x08022054: 'dispatcher'}
 # peripheral read fakes: RCC_CR (0x40023800) clocks ready, RCC_CFGR (0x40023808) PLL = sysclk
-FAKE = {0x40023800: 0x00020003, 0x40023808: 0x00000008}  # CR: HSION|HSIRDY|HSERDY; CFGR: SWS=PLL
+FAKE = {0x40023800: 0x03030003, 0x40023808: 0x0000000A,  # CR: HSI/HSE/PLL all ON+READY; CFGR: SWS=PLL, PLLSRC=HSE
+        0x40023C00: 0x00000301}  # FLASH_ACR: 1 WS, prefetch/cache on
 
 
 def main():
