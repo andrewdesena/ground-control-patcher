@@ -219,7 +219,23 @@ risk for testing the store path.
   registers / track-object field drive each step's note. That pins the cursor without guessing.
   Hardware MIDI capture is the other route.
 
-### Fan-out cave — BUILT & EMULATOR-TESTED (mods/poly-fanout.source.json)
+### Stock-accurate gate — poly-gate (supersedes the fixed-duration fan-out)
+
+- `mods/poly-gate.source.json` wraps the real emitter `0x8021748`: at entry it has
+  `r0=obj, r1=time, r2=step_ptr, r3=gate`, reads `poly[track][step]` (step=[obj+0x3c]), and replays
+  every non-primary note by calling `0x8021748` again with the SAME `r1`/`r3` and a temp step-record.
+  Result: extras get identical stock time/gate (no fixed 100). Reentrancy guard 0x1000FE00.
+- `tools/test_gate.py` PASS: mono, triad(gate50), 7th(gate80), 8-note(gate33) all call the emitter
+  for exactly the non-primary notes with the passed-through gate. Use poly-gate INSTEAD of
+  poly-fanout (both would double-emit).
+
+### Web tool + SD over USB
+
+- `index.html` now: pick stock .hex -> choose "Polyphony v1" -> build in-browser -> **Install to GC**
+  writes the patched firmware onto the mounted SD card via the File System Access API (hold PROJ 5s
+  for USB mass-storage, then power-cycle to flash). Download .hex is fallback only.
+- Same panel connects the GC SD card to **read/open/save project .json files** directly (editor).
+- Requires Chrome/Edge over https or localhost (File System Access API; not available on file://).
 
 - Hook `0x08021A6E` (inside player `0x8021A14`, r0=step, r4=obj, r8=parent) -> cave `0x08047600`.
 - Cave reproduces the original `strb.w r0,[r4,#0x3c]`, then reads `poly[track][step]` from CCM

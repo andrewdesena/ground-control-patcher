@@ -1,0 +1,48 @@
+{
+  "name": "Ground Control \u2014 Polyphony v1",
+  "version": "1.0",
+  "status": "experimental",
+  "description": "Clock-priority fix + polyphonic note capture (real velocity) + stock-gate chord playback for melodic tracks 1-3.",
+  "patches": [
+    {
+      "addr": "0x8046810",
+      "bytes": "0fb5c1b2f82906d0fa2904d0fc2902d0fb2900d014e0bde80f40d5f8007a013f07f07f07d5f804ca67450cd009fb07560fc6c6f800a0c5f8007a5046d3f761b8bde80f40ffe7d5f8047ad5f800ba09fb0756d3f715b8",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8019884",
+      "bytes": "2cf0c4ff00bf00bf00bf00bf",
+      "note": "queue index select -> cave"
+    },
+    {
+      "addr": "0x8047400",
+      "bytes": "2fb55977dbf774ffc0b2022818d862790346db0203ebc01303eb021313444bf23050c1f20000184429464ff60052c1f200020a441278002a00d1642200f004f8bde82f40def7d8b970b50378082b01d90023037000249c420ad200f1010505eb44052e788e4201d00134f4e76a7009e0082b07d200f1010505eb430529706a7001330370184670bd",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8025814",
+      "bytes": "21f0f4bd",
+      "note": "armed step store -> cave (store+poly capture)"
+    },
+    {
+      "addr": "0x8047800",
+      "bytes": "01b548790b794ff6005cc1f2000c9c448cf800000b794a79bde80140d7f7e6bc",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x801f1e8",
+      "bytes": "28f00abb",
+      "note": "note-on add -> stash velocity by note"
+    },
+    {
+      "addr": "0x8047a00",
+      "bytes": "2de9ff5f4ff6006cc1f2000c9cf80040002c43d101248cf80040157890f83c60876897f81f80b8f10108b8f1030f2ed25feac82909ebc8195fea061ab244d1444bf2305ac1f2000ad14499f800a0baf1000f1cd00024544519d209f1010b0beb440b9bf800609bf80170ae420dd04ff6106bc1f2000b8bf800608bf8017000268bf802605a46d9f75ffe0134e3e700244ff6006cc1f2000c8cf80040bde8ff5f2de9ff47d9f752be",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8021748",
+      "bytes": "26f05ab9",
+      "note": "emitter entry -> chord wrapper"
+    }
+  ]
+}

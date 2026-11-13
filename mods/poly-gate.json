@@ -1,0 +1,23 @@
+{
+  "name": "poly-gate",
+  "status": "experimental",
+  "description": "Stock-accurate gate for chord fan-out. Wraps the real per-note emitter 0x8021748: on a top-level call (guard clear) it takes the SAME args the player uses (r0=obj, r1=time, r2=step_ptr, r3=gate), reads poly[track][step] (step=[obj+0x3c], track=[[obj+8]+0x1f]-1), and replays every note EXCEPT the primary ([r2]) by recursively calling 0x8021748 with the SAME r1 time and r3 gate and a temp step-record, so each extra note gets identical stock timing/gate (self-contained pair -> no stuck notes). Then it runs the primary normally. Reentrancy guard at CCM 0x1000FE00; temp record at 0x1000FE10.",
+  "requires": {
+    "blank": [
+      "0x08047A00",
+      "0x08047FFF"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x8047a00",
+      "bytes": "2de9ff5f4ff6006cc1f2000c9cf80040002c43d101248cf80040157890f83c60876897f81f80b8f10108b8f1030f2ed25feac82909ebc8195fea061ab244d1444bf2305ac1f2000ad14499f800a0baf1000f1cd00024544519d209f1010b0beb440b9bf800609bf80170ae420dd04ff6106bc1f2000b8bf800608bf8017000268bf802605a46d9f75ffe0134e3e700244ff6006cc1f2000c8cf80040bde8ff5f2de9ff47d9f752be",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8021748",
+      "bytes": "26f05ab9",
+      "note": "emitter entry -> chord wrapper"
+    }
+  ]
+}
