@@ -1,0 +1,18 @@
+{
+  "name": "poly-capture",
+  "status": "experimental",
+  "description": "Layer 1 of polyphony: read the full held-note list of a track and copy every held note+velocity into a destination buffer. Contract: capture(track_ptr, dest_ptr) -> count. track+0x120 = element count (<=24), elements are 12 bytes at track+12*i, note at element+8, velocity at element+9. dest receives count*2 bytes as [note, vel] pairs. This routine is position-independent (no absolute references) so it can be tested at any load address and later wired into the commit path.",
+  "requires": {
+    "blank": [
+      "0x08047000",
+      "0x08047FFF"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x8047000",
+      "bytes": "f0b590f82021182a88bf1822002393420cd21c4604eb4404a4000444257a667a01eb43073d707e700133f0e71046f0bd",
+      "note": "cave routine"
+    }
+  ]
+}
