@@ -1,0 +1,19 @@
+{
+  "name": "LED single-bit probe 0",
+  "status": "diagnostic",
+  "description": "ORs only bit 0 into 0x20001E7B every scan; no clearing.",
+  "requires": {},
+  "patches": [
+    {
+      "addr": "0x8048a00",
+      "bytes": "10b5054c207840f001002070bde8104002490348704700007b1e0020741e00202c2b0020",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8012068",
+      "bytes": "36f0cafc",
+      "note": "OR bit 0 into persistent LED state before shift-out"
+    }
+  ],
+  "enabled": false
+}

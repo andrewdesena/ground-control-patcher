@@ -1,0 +1,26 @@
+{
+  "name": "LED single-bit probe 0",
+  "status": "diagnostic",
+  "description": "Diagnostic: ORs only bit 0 into 0x20001E7B every scan. No clearing, no accumulation. Test whether bit 0 is a steady key LED.",
+  "cave": {
+    "addr": "0x08048A00",
+    "asm": [
+      "push {r4, lr}",
+      "ldr r4, =0x20001E7B",
+      "ldrb r0, [r4]",
+      "orr r0, #1",
+      "strb r0, [r4]",
+      "pop {r4, lr}",
+      "ldr r1, =0x20001E74",
+      "ldr r0, =0x20002B2C",
+      "bx lr"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x08012068",
+      "asm": ["bl 0x08048A00"],
+      "note": "OR bit 0 into persistent LED state before shift-out"
+    }
+  ]
+}
