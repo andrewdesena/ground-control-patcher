@@ -541,14 +541,19 @@
   async function installFirmware() {
     if (!fsDir) { showBanner('Connect the GC SD card first (hold PROJ 5s on the module).'); return; }
     if (!lastOutput) { showBanner('Build the firmware first.'); return; }
-    var name = prompt('Firmware file name on the card (must be gc-*.hex in the card ROOT; the tool appends -poly1 or -leddiag)', lastOutput.name); if (!name) return;
+    var defName = /leddiag/i.test(lastOutput.name) ? 'gc-led.hex' : lastOutput.name;
+    var name = prompt('Firmware file name on the card (must be gc-*.hex in the card ROOT; short 8.3-style names are safest)', defName); if (!name) return;
     if (!/\.hex$/i.test(name)) name += '.hex';
     if (!/^gc-.*\.hex$/i.test(name) && !confirm('The updater expects a file named gc-*.hex in the card root; "' + name + '" may not be picked up. Continue anyway?')) return;
     try {
       var fh = await fsDir.getFileHandle(name, { create: true });
       var w = await fh.createWritable(); await w.write(lastOutput.text); await w.close();
-      sdStatus('wrote ' + name, 'ok');
-      showBanner('Firmware written as "' + name + '". Keep it as-is and make sure it is the ONLY gc-*.hex in the card ROOT. Then press PROJ ~5s to exit mass storage — the module reboots and flashes.');
+      // read it back immediately: proves the volume actually kept the bytes
+      var chk = await fsDir.getFileHandle(name);
+      var f = await chk.getFile();
+      if (f.size !== lastOutput.text.length) throw new Error('volume kept ' + f.size + ' of ' + lastOutput.text.length + ' bytes');
+      sdStatus('wrote ' + name + ' · ' + f.size + ' bytes verified', 'ok');
+      showBanner('Firmware written as "' + name + '" and read back at ' + f.size + ' bytes. Keep it as-is and make sure it is the ONLY gc-*.hex in the card ROOT. Then press PROJ ~5s to exit mass storage — the module reboots and flashes.');
     } catch (e) { showBanner('Could not write firmware: ' + e.message); }
   }
   function downloadFirmware() {
