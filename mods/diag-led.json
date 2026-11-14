@@ -1,7 +1,7 @@
 {
   "name": "LED bit-map diagnostic",
   "status": "diagnostic",
-  "description": "Diagnostic only. Forces all 56 outputs on in the SPI output buffer 0x20001E74 immediately before the shift-out, every scan phase. If keys/segments light, the driver path is confirmed; if nothing lights, the buffer or hook is wrong. Flash alone (untick Polyphony v1.1). Not for musical use.",
+  "description": "Diagnostic only. Lights six spaced key bits (28, 32, 36, 40, 44, 48) in the SPI output buffer 0x20001E74 immediately before shift-out. Report which six keys light and their order. Flash alone (untick Polyphony v1.1). Not for musical use.",
   "requires": {
     "blank": [
       "0x08048800",
@@ -11,7 +11,7 @@
   "patches": [
     {
       "addr": "0x8048800",
-      "bytes": "10b5074cff2020706070a070e07020716071a071bde810400149024870470000741e00202c2b0020",
+      "bytes": "10b5084ce07840f01000e070112020716071a07940f00100a071bde81040014901487047741e00202c2b0020",
       "note": "cave routine"
     },
     {

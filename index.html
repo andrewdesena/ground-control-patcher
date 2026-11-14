@@ -300,9 +300,9 @@
   // Diagnostic: LED bit-map probe (flash alone, do not combine with polyphony)
   var DIAG = {
     name: 'LED bit-map diagnostic', version: 'diag', status: 'diagnostic', enabled: false,
-    description: 'Diagnostic only: forces all 56 outputs on in the SPI buffer. Tick this alone and untick Polyphony v1.1.',
+    description: 'Diagnostic: lights bits 28,32,36,40,44,48 so you can report which six keys light. Tick alone, untick Polyphony v1.1.',
     patches: [
-      { addr: '0x8048800', bytes: '10b5074cff2020706070a070e07020716071a071bde810400149024870470000741e00202c2b0020' },
+      { addr: '0x8048800', bytes: '10b5084ce07840f01000e070112020716071a07940f00100a071bde81040014901487047741e00202c2b0020' },
       { addr: '0x8012068', bytes: '36f0cafb' }
     ]
   };
