@@ -1,7 +1,7 @@
 {
   "name": "LED bit-map diagnostic",
   "status": "diagnostic",
-  "description": "Diagnostic only. Forces three known bits (28, 40, 51) on in the live 56-bit LED bitmap (0x20001E7B) every scan cycle, without touching anything else. Flash this alone (untick the polyphony mod), note which physical keys light, then report them. Used to derive the note/key to bit mapping; not for musical use.",
+  "description": "Diagnostic only. Forces all 56 outputs on in the SPI output buffer 0x20001E74 immediately before the shift-out, every scan phase. If keys/segments light, the driver path is confirmed; if nothing lights, the buffer or hook is wrong. Flash alone (untick Polyphony v1.1). Not for musical use.",
   "requires": {
     "blank": [
       "0x08048800",
@@ -11,13 +11,13 @@
   "patches": [
     {
       "addr": "0x8048800",
-      "bytes": "10b5094ce07840f01000e070607940f001006071a07940f00800a071bde8104002490348704700007b1e0020741e00202c2b0020",
+      "bytes": "10b5074cff2020706070a070e07020716071a071bde810400149024870470000741e00202c2b0020",
       "note": "cave routine"
     },
     {
       "addr": "0x8012068",
       "bytes": "36f0cafb",
-      "note": "force diagnostic bits before the SPI shift-out (reproduces r1/r0 loads)"
+      "note": "force all key bits in the output buffer before SPI shift-out"
     }
   ]
 }
