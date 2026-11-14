@@ -1,0 +1,42 @@
+{
+  "name": "poly-clear-on-rest",
+  "status": "experimental",
+  "description": "Clears a step's chord record when the firmware commits a rest/clear (commit FUN_0801F32C is called with r1 < 0). Hook at 0x0801F32E (reproduces strb.w r1,[r0,#0x2f5]) checks r1; if negative it zeroes poly[track][step] at 0x1000B530 + track*0x880 + step*17. Normal note commits (r1 >= 0) leave the chord intact, so adding a note does not wipe the step.",
+  "cave": {
+    "addr": "0x08048400",
+    "asm": [
+      "cmp r1, #0",
+      "bge 1f",
+      "ldrb.w r2, [r0, #0x2e1]",
+      "ldrb.w r3, [r0, #0x2df]",
+      "lsls r12, r2, #11",
+      "add r12, r12, r2, lsl #7",
+      "lsls r2, r3, #4",
+      "add r2, r2, r3",
+      "add r12, r12, r2",
+      "movw r2, #0xb530",
+      "movt r2, #0x1000",
+      "add r12, r12, r2",
+      "movs r2, #0",
+      "strb r2, [r12]",
+      "1:",
+      "strb.w r1, [r0, #0x2f5]",
+      "bx lr"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x0801F32E",
+      "asm": [
+        "bl 0x08048400"
+      ],
+      "note": "rest/clear commit also clears the step's poly record"
+    }
+  ],
+  "requires": {
+    "blank": [
+      "0x08048400",
+      "0x080484FF"
+    ]
+  }
+}

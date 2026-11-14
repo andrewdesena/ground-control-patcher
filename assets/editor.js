@@ -43,6 +43,10 @@
   .cell.beat{border-left:1px solid #343b47}.cell.bar{background:#0f1217}.cell.blackrow{background:#0a0c0f}
   .cell:hover{outline:1px solid var(--accent2);outline-offset:-1px}
   .cell.on{background:var(--accent)!important}
+  .cell.tie{border-left:3px solid #fff}
+  .cell.slide{border-bottom:3px solid #fff}
+  .cell.ratchet{box-shadow:inset 0 0 0 2px rgba(255,255,255,.55)}
+  .flag.on{background:var(--accent2);color:#0b0b0b}
   .dcell.on{background:var(--drum)!important}
   .dlane{display:flex}
   .dlabel{flex:0 0 56px;height:20px;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;font-size:10px;color:var(--drum);border-bottom:1px solid #191c22;background:var(--panel);position:sticky;left:0;z-index:3}
@@ -105,6 +109,13 @@
           <button id="saveAll" disabled>Save to SD</button></div>
       </div>
       <div id="trackLabel"></div>
+      <div class="grp" id="flagCtl" style="margin:6px 0">
+        <label>Step flags</label>
+        <button id="tieStep" class="flag" title="Hold the note into the next step">Tie</button>
+        <button id="slideStep" class="flag" title="Slide into the next note">Slide</button>
+        <button id="ratStep" class="flag" title="Ratchet this step (amount from track settings)">Ratchet</button>
+        <span style="color:var(--muted);font-size:10px">last-clicked step</span>
+      </div>
       <div class="hint" id="hint"></div><div id="rollWrap"></div>
       <div id="ccSection"><div class="grp" id="ccCtl"><label>CC lane</label>
         <input id="ccAdd" type="number" min="0" max="127" value="74" style="width:60px">
@@ -133,6 +144,14 @@
         return state.melodic[t];
       };
       const ensureDrum = () => { while (state.drum.length < 128) state.drum.push({ pads: {}, ratchet: 0, modifier: 0 }); return state.drum; };
+      const flagAt = () => ensureMelodic(state.track)[state.pasteStep || 0];
+      function syncFlags() {
+        const st = flagAt(), t = $("tieStep"), sl = $("slideStep"), r = $("ratStep");
+        if (!st || !t) return;
+        t.classList.toggle("on", !!(st.modifier & 1));
+        sl.classList.toggle("on", !!(st.modifier & 2));
+        r.classList.toggle("on", !!st.ratchet);
+      }
 
       const F = (k, label, def, type = "num", extra = {}) => Object.assign({ k, label, def, type }, extra);
       const GLOBAL_FIELDS = [
@@ -176,11 +195,12 @@
       const isSel = (s, p) => state.sel.has(keyOf(s, p));
       const velColor = v => { v = Math.max(0, Math.min(127, v | 0)); const l = 28 + 36 * (v / 127); return "hsl(356,72%," + l.toFixed(0) + "%)"; };
       const cellEl = (s, p) => { const rows = $("rollWrap").querySelectorAll('.row'); const row = rows[127 - p]; return row ? row.querySelectorAll('.cell')[s] : null; };
-      function updateCell(s, p) { const c = cellEl(s, p); if (!c) return; const nv = noteAt(s, p); c.classList.toggle('sel', isSel(s, p)); c.style.background = nv ? velColor(nv[1]) : ''; }
+      function updateCell(s, p) { const c = cellEl(s, p); if (!c) return; const nv = noteAt(s, p), f = ensureMelodic(state.track)[s]; c.classList.toggle('sel', isSel(s, p)); c.style.background = nv ? velColor(nv[1]) : ''; c.classList.toggle('tie', !!(f.modifier & 1)); c.classList.toggle('slide', !!(f.modifier & 2)); c.classList.toggle('ratchet', !!f.ratchet); }
       function selectOrToggle(s, p, ev) {
         const list = ensureMelodic(state.track)[s].notes, i = list.findIndex(x => x[0] === p), k = keyOf(s, p);
         const oldSel = new Set(state.sel);
         state.pasteStep = s;
+        syncFlags();
         if (i < 0) { if (list.length >= 8) return; list.push([p, +$("vel").value || 100]); state.sel = new Set([k]); }
         else if (ev && ev.shiftKey) { if (state.sel.has(k)) state.sel.delete(k); else state.sel.add(k); }
         else state.sel = new Set([k]);
@@ -199,6 +219,7 @@
         const prevTop = prevVs ? prevVs.scrollTop : null;
         const prevLeft = prevVs ? prevVs.scrollLeft : null;
         w.innerHTML = "";
+        const mc = ensureMelodic(state.track);
         const vs = document.createElement("div"); vs.className = "vscroll";
         const hdr = document.createElement("div"); hdr.className = "steps-hdr";
         const sp = document.createElement("div"); sp.className = "spacer"; hdr.appendChild(sp);
@@ -209,8 +230,8 @@
           const k = document.createElement("div"); k.className = "key" + (isBlack(pitch) ? " black" : ""); k.textContent = noteName(pitch); row.appendChild(k);
           for (let s = 0; s < state.steps; s++) {
             const c = document.createElement("div");
-            const nv = noteAt(s, pitch);
-            c.className = "cell" + (isBlack(pitch) ? " blackrow" : "") + (s % 4 === 0 ? " beat" : "") + (s % 16 === 0 ? " bar" : "") + (isSel(s, pitch) ? " sel" : "");
+            const nv = noteAt(s, pitch), f = mc[s];
+            c.className = "cell" + (isBlack(pitch) ? " blackrow" : "") + (s % 4 === 0 ? " beat" : "") + (s % 16 === 0 ? " bar" : "") + (isSel(s, pitch) ? " sel" : "") + (f.modifier & 1 ? " tie" : "") + (f.modifier & 2 ? " slide" : "") + (f.ratchet ? " ratchet" : "");
             if (nv) c.style.background = velColor(nv[1]);
             c.addEventListener("click", ev => selectOrToggle(s, pitch, ev));
             c.addEventListener("contextmenu", ev => { ev.preventDefault(); removeNote(s, pitch); });
@@ -231,6 +252,7 @@
           setTimeout(() => { vs.scrollTop = t; if (prevLeft != null) vs.scrollLeft = prevLeft; }, 0);
         });
         buildCC();
+        syncFlags();
       }
       function buildCC() {
         const host = $("ccHost"); if (!host) return; const prevLeft = host.scrollLeft; host.innerHTML = "";
@@ -428,6 +450,7 @@
       async function wrBytes(dir, parts, u8) { let d = dir; for (let i = 0; i < parts.length - 1; i++) d = await d.getDirectoryHandle(parts[i], { create: true }); const fh = await d.getFileHandle(parts[parts.length - 1], { create: true }); const w = await fh.createWritable(); await w.write(u8); await w.close(); }
       async function existsFile(dir, parts) { try { await rd(dir, parts); return true; } catch (e) { return false; } }
       async function backup(dir, parts) { try { if (await existsFile(dir, parts)) await wr(dir, parts.slice(0, -1).concat(parts[parts.length - 1] + '.bak'), await rd(dir, parts)); } catch (e) {} }
+      async function backupBytes(dir, parts) { try { if (await existsFile(dir, parts)) await wrBytes(dir, parts.slice(0, -1).concat(parts[parts.length - 1] + '.bak'), await rdBytes(dir, parts)); } catch (e) {} }
       async function listDirs(root) { const out = []; for await (const e of root.values()) if (e.kind === 'directory') out.push(e.name); return out; }
       async function listFiles(dir) { const out = []; for await (const e of dir.values()) if (e.kind === 'file') out.push(e.name); return out; }
       async function projectNames() { return (await listDirs(sdDir)).filter(n => /^project/i.test(n)).sort(); }
@@ -550,7 +573,7 @@
             if (ts.triggerlength !== undefined && s.gatelength !== undefined) ts.triggerlength = ts.triggerlength.map((x, i) => i === ts.triggerlength.length - 1 ? s.gatelength : x);
             await backup(sdDir, [name, 'track' + t, 'TrackSettings.txt']); await wrJSON(sdDir, [name, 'track' + t, 'TrackSettings.txt'], ts);
             await backup(sdDir, [name, 'track' + t, 'pattern' + L + '.txt']); await wrJSON(sdDir, [name, 'track' + t, 'pattern' + L + '.txt'], serializePattern(t));
-            if (t !== 'D') await wrBytes(sdDir, [name, 'track' + t, 'poly' + L], encodePoly(t));
+            if (t !== 'D') { await backupBytes(sdDir, [name, 'track' + t, 'poly' + L]); await wrBytes(sdDir, [name, 'track' + t, 'poly' + L], encodePoly(t)); }
           }
           sdstat.textContent = 'saved ' + name + ' · pattern ' + L + ' (.bak + poly' + L + ')';
         } catch (e) { sdstat.textContent = 'save err: ' + e.message; }
@@ -631,6 +654,9 @@
         }
       });
       $("stepsNum").onchange = e => { state.steps = Math.max(1, Math.min(128, +e.target.value || 1)); native.len[state.track] = state.steps; e.target.value = state.steps; paint(); };
+      $("tieStep").onclick = () => { const st = flagAt(); st.modifier ^= 1; syncFlags(); paint(); };
+      $("slideStep").onclick = () => { const st = flagAt(); st.modifier ^= 2; syncFlags(); paint(); };
+      $("ratStep").onclick = () => { const st = flagAt(); st.ratchet = st.ratchet ? 0 : 1; syncFlags(); paint(); };
       $("clear").onclick = () => { if (state.track === "D") { state.drum = []; ensureDrum(); } else { state.melodic[state.track] = null; ensureMelodic(state.track); } paint(); };
       $("exportBtn").onclick = doExport;
       $("importBtn").onclick = () => $("importFile").click();

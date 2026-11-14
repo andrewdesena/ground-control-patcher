@@ -1,5 +1,5 @@
 {
-  "name": "Ground Control \u2014 Polyphony v1.1 (clock + poly + entry + step-record chords + SD persistence)",
+  "name": "Ground Control \u2014 Polyphony v1.1 (clock + poly + entry + step-record + clear + SD persistence)",
   "version": "1.0",
   "status": "experimental",
   "description": "Clock-priority fix + polyphonic note capture (real velocity) + stock-gate chord playback for melodic tracks 1-3.",
@@ -83,6 +83,16 @@
       "addr": "0x801fe2a",
       "bytes": "28f0e9f9",
       "note": "second key held in step record: keep step instead of advancing"
+    },
+    {
+      "addr": "0x8048400",
+      "bytes": "002912da90f8e12290f8df325feac22c0cebc21c1a011a4494444bf23052c1f20002944400228cf8002080f8f5127047",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x801f32e",
+      "bytes": "29f067f8",
+      "note": "rest/clear commit also clears the step's poly record"
     }
   ]
 }

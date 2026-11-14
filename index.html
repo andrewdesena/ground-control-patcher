@@ -270,10 +270,10 @@
   var $ = function (id) { return document.getElementById(id); };
   var drop = $('drop'), fileInput = $('file'), log = $('log'), banner = $('banner');
   var hex = null, fileName = '', lastOutput = null, fsDir = null;
-  // Ground Control — Polyphony v1.1 (clock + poly + entry + step-record chords + SD persistence); embedded for offline/file://
+  // Ground Control — Polyphony v1.1 (clock + poly + entry + step-record + clear + SD persistence); embedded for offline/file://
   var V1 = {
-    name: 'Polyphony v1.1 (clock + poly + entry + step-record chords + SD persistence)', version: '1.1', status: 'experimental',
-    description: 'Clock-priority fix + poly capture/velocity + stock-gate playback + hardware entry append + hold-to-chord step recording + poly sidecar load/save for melodic tracks 1-3.',
+    name: 'Polyphony v1.1 (clock + poly + entry + step-record + clear + SD persistence)', version: '1.1', status: 'experimental',
+    description: 'Clock-priority fix + poly capture/velocity + stock-gate playback + hardware entry append + hold-to-chord step recording + rest-clear + poly sidecar load/save for melodic tracks 1-3. Arpeggiator remains mono.',
     patches: [
       { addr: '0x8046810', bytes: '0fb5c1b2f82906d0fa2904d0fc2902d0fb2900d014e0bde80f40d5f8007a013f07f07f07d5f804ca67450cd009fb07560fc6c6f800a0c5f8007a5046d3f761b8bde80f40ffe7d5f8047ad5f800ba09fb0756d3f715b8' },
       { addr: '0x8019884', bytes: '2cf0c4ff00bf00bf00bf00bf' },
@@ -290,7 +290,9 @@
       { addr: '0x8048000', bytes: '95f8040095f8051094f8e12294f8df324bf2305cc1f2000cd60206ebc2161a011a441644664432780023934209d206f1010c0ceb430c9cf800c084450ed00133f3e7082a10d206f1010c0ceb420c8cf800008cf801100132327005e006f1010c0ceb430c8cf8011094f820617047' },
       { addr: '0x801fd52', bytes: '28f055f9' },
       { addr: '0x8048200', bytes: '013b84f8df3220462946d6f79fffd7f7d6bd' },
-      { addr: '0x801fe2a', bytes: '28f0e9f9' }
+      { addr: '0x801fe2a', bytes: '28f0e9f9' },
+      { addr: '0x8048400', bytes: '002912da90f8e12290f8df325feac22c0cebc21c1a011a4494444bf23052c1f20002944400228cf8002080f8f5127047' },
+      { addr: '0x801f32e', bytes: '29f067f8' }
     ]
   };
   var mods = [V1];
@@ -553,7 +555,7 @@
   window.GCModder = { HexFile: HexFile, identify: identify, applyBundle: applyBundle, loadHex: loadHex, takeFile: takeFile, getOutput: function () { return lastOutput; }, connectSD: connectSD, getSD: function () { return fsDir; }, ready: true };
 })();
 </script>
-<script src="assets/editor.js?v=803"></script>
+<script src="assets/editor.js?v=805"></script>
 <script>
 (function () {
   function showView(v) {
