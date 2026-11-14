@@ -1,0 +1,19 @@
+{
+  "name": "LED MIDI bit probe",
+  "status": "diagnostic",
+  "description": "Diagnostic: MIDI note-on ORs bit (note%24) into 0x20001E7B. Never clears. Send notes 0..23, report order new keys light.",
+  "requires": {},
+  "patches": [
+    {
+      "addr": "0x8048a00",
+      "bytes": "2b7917b4084c03f01f01182900db1839ca0801f0070101208840a15c41ea0001a15417bc704700007b1e0020",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8020348",
+      "bytes": "28f05afb",
+      "note": "on MIDI note-on, OR bit (note%24) into persistent LED state"
+    }
+  ],
+  "enabled": false
+}
