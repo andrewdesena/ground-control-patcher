@@ -1,0 +1,23 @@
+{
+  "name": "poly-chord-step-record",
+  "status": "experimental",
+  "description": "Step-record chord entry: stock step recording advances the step when a second, different key is pressed while one is held (that gesture is also how SLIDE is entered). This patch redirects that single advance path (0x0801FE28, reached only from 0x0801FDAE) so the new note joins the CURRENT step instead of advancing. Result: hold the first key, press the remaining notes of the chord, then release \u2014 the chord is captured on one step; the next first-key press advances normally. Trade-off: overlapping keys no longer create SLIDE by this gesture. Note-on append itself is handled by poly-entry; this patch only suppresses the step advance.",
+  "requires": {
+    "blank": [
+      "0x08048200",
+      "0x080482FF"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x8048200",
+      "bytes": "013b84f8df3220462946d6f79fffd7f7d6bd",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x801fe2a",
+      "bytes": "28f0e9f9",
+      "note": "second key held in step record: keep step instead of advancing"
+    }
+  ]
+}

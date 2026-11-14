@@ -1,5 +1,5 @@
 {
-  "name": "Ground Control \u2014 Polyphony v1.1 (clock + live poly + entry + SD persistence)",
+  "name": "Ground Control \u2014 Polyphony v1.1 (clock + poly + entry + step-record chords + SD persistence)",
   "version": "1.0",
   "status": "experimental",
   "description": "Clock-priority fix + polyphonic note capture (real velocity) + stock-gate chord playback for melodic tracks 1-3.",
@@ -73,6 +73,16 @@
       "addr": "0x801fd52",
       "bytes": "28f055f9",
       "note": "note-on -> append chord note to step poly"
+    },
+    {
+      "addr": "0x8048200",
+      "bytes": "013b84f8df3220462946d6f79fffd7f7d6bd",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x801fe2a",
+      "bytes": "28f0e9f9",
+      "note": "second key held in step record: keep step instead of advancing"
     }
   ]
 }

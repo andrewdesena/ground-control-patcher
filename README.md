@@ -50,6 +50,8 @@ flashes a `gc-*.hex` found at the card root.
   **same timing and gate as the primary note**, so chords hold exactly like stock.
 - **Hardware chord entry** — a note-on while editing a step appends to that step's poly record
   (deduped, max 8 notes), so step-edit mode accepts chords instead of overwriting one note.
+- **Step-record chords** — holding the first key and adding notes keeps them on the same step
+  instead of advancing; the next first-key press advances normally.
 - **SD persistence** — each save also writes `trackN/poly<letter>` (2,176 bytes = 128 × [count,
   note/vel pairs]); loading a pattern reads it straight into the poly array. Chords survive power
   cycles, and browser-authored chords play on the module.
@@ -60,6 +62,9 @@ flashes a `gc-*.hex` found at the card root.
 - Stock projects still load as mono until a chord is recorded or authored and saved by v1.1/editor.
 - Captured velocity falls back to 100 if a note-on velocity wasn't seen.
 - Up to 8 notes per step.
+- Overlapping keys in step record now build a chord; they no longer create `SLIDE`.
+- In EDIT mode the piano keys still light only the **primary** note; extra chord notes are stored and
+  played but not shown on the key LEDs yet.
 
 ## Hardware validation checklist (v1.1)
 
@@ -67,8 +72,9 @@ flashes a `gc-*.hex` found at the card root.
 2. Play a stock project: tracks and clock behave as before.
 3. In the editor, save a chord pattern to the card; load it on the module and play — all chord notes sound.
 4. Enter a chord in step-edit mode on the module and play.
-5. Save the pattern on the module, power-cycle, reload — the chord persists.
-6. If anything fails: return to stock (original `gc-*.hex` at root, PROJ ~5 s) and keep the pattern/SD state for diagnosis.
+5. In step record, hold the first key, add the rest of the chord, release, and play the step.
+6. Save the pattern on the module, power-cycle, reload — the chord persists.
+7. If anything fails: return to stock (original `gc-*.hex` at root, PROJ ~5 s) and keep the pattern/SD state for diagnosis.
 
 ## Entering chords on the hardware (v1.1)
 
@@ -76,7 +82,7 @@ flashes a `gc-*.hex` found at the card root.
 |---|---|---|
 | **Live recording** | `PLAY` (running) → `RECORD` | **Yes** — hold the whole chord across the step; every held note is captured with its velocity and quantized to the grid. This is the reliable path. |
 | **Step editor (EDIT)** | Hold `RECORD` > 1.5 s (works stopped or running) | **Yes (v1.1)** — `PAGE` to the step, then press each note key; each note-on appends to that step's poly record (max 8). Switch tracks with `TRACK D/1/2/3`. |
-| **Step recording** | Stopped → press `RECORD` once | **No** — each key press writes one note and auto-advances to the next step, so a chord would be split across steps. Stock overlapping keys mean `SLIDE`, not a chord. Use live record or the editor instead. |
+| **Step recording** | Stopped → press `RECORD` once | **Yes (v1.1)** — press and **hold the first key**, then press the remaining chord notes before releasing; they join the same step. Release all keys and the next key press advances. Trade-off: overlapping keys no longer create `SLIDE` by that gesture. |
 | **Browser editor** | Editor tab → open SD card | **Yes** — click notes per step (max 8), save; the module reads the `poly<letter>` sidecar on load. |
 
 Caveats for the first hardware run: the editor entry-append is emulator-proven but not yet hardware-tested, and
