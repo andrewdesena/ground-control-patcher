@@ -429,7 +429,7 @@
     var out = work.toString();
     new HexFile(out);  // read our own output back before handing it over
     lastOutput = { text: out, name: chosen.some(function (m) { return m.status === 'diagnostic'; })
-      ? 'gc-led.hex' : 'gc-26p11.hex' };
+      ? 'gc-led.hex' : 'gc-v3.26_poly-v1.1.hex' };
     $('install').disabled = !fsDir;
     $('dl').disabled = false;
     canonicalHash(new HexFile(out)).then(function (hh) { if (hh) say('output SHA-256: ' + hh, 'ok'); }).catch(function () {});
@@ -533,9 +533,12 @@
     var name = prompt('Firmware file name on the card (must be gc-*.hex in the card ROOT; short 8.3-style names are safest)', defName); if (!name) return;
     if (!/\.hex$/i.test(name)) name += '.hex';
     if (!/^gc-.*\.hex$/i.test(name) && !confirm('The updater expects a file named gc-*.hex in the card root; "' + name + '" may not be picked up. Continue anyway?')) return;
+    async function dropSidecar(n) { try { await fsDir.removeEntry('._' + n); } catch (e) {} }
     try {
+      await dropSidecar(name);
       var fh = await fsDir.getFileHandle(name, { create: true });
       var w = await fh.createWritable(); await w.write(lastOutput.text); await w.close();
+      await dropSidecar(name);
       // read it back immediately: proves the volume actually kept the bytes
       var chk = await fsDir.getFileHandle(name);
       var f = await chk.getFile();
