@@ -13,6 +13,8 @@
       "bne 9f",
       "movs r4, #1",
       "strb r4, [r12]",
+      "cmp r3, #0",
+      "beq 8f",
       "ldrb r5, [r2]",
       "ldrb r6, [r0, #0x3c]",
       "ldr r7, [r0, #8]",
