@@ -451,6 +451,7 @@
       async function existsFile(dir, parts) { try { await rd(dir, parts); return true; } catch (e) { return false; } }
       async function backup(dir, parts) { try { if (await existsFile(dir, parts)) await wr(dir, parts.slice(0, -1).concat(parts[parts.length - 1] + '.bak'), await rd(dir, parts)); } catch (e) {} }
       async function backupBytes(dir, parts) { try { if (await existsFile(dir, parts)) await wrBytes(dir, parts.slice(0, -1).concat(parts[parts.length - 1] + '.bak'), await rdBytes(dir, parts)); } catch (e) {} }
+      async function dropBackup(dir, parts) { try { const p = parts.slice(0, -1).concat(parts[parts.length - 1] + '.bak'); let d = dir; for (let i = 0; i < p.length - 1; i++) d = await d.getDirectoryHandle(p[i]); await d.removeEntry(p[p.length - 1]); } catch (e) {} }
       async function listDirs(root) { const out = []; for await (const e of root.values()) if (e.kind === 'directory') out.push(e.name); return out; }
       async function listFiles(dir) { const out = []; for await (const e of dir.values()) if (e.kind === 'file') out.push(e.name); return out; }
       async function projectNames() { return (await listDirs(sdDir)).filter(n => /^project/i.test(n)).sort(); }
@@ -564,18 +565,18 @@
         if (!sdDir || !native.projectName) { sdstat.textContent = 'open a project first'; return; }
         const name = native.projectName, L = $("patSel").value || 'A';
         try {
-          if (native.global) { await backup(sdDir, ['GlobalSettings.txt']); await wrJSON(sdDir, ['GlobalSettings.txt'], native.global); }
-          if (native.project) { native.project.BPM = state.global.BPM; await backup(sdDir, [name, 'ProjectSettings.txt']); await wrJSON(sdDir, [name, 'ProjectSettings.txt'], native.project); }
+          if (native.global) { await dropBackup(sdDir, ['GlobalSettings.txt']); await wrJSON(sdDir, ['GlobalSettings.txt'], native.global); }
+          if (native.project) { native.project.BPM = state.global.BPM; await dropBackup(sdDir, [name, 'ProjectSettings.txt']); await wrJSON(sdDir, [name, 'ProjectSettings.txt'], native.project); }
           for (const t of ['1', '2', '3', 'D']) {
             const ts = native.tracks[t] || {}, s = state.tset[t] || {};
             ['direction', 'slide', 'shuffle'].forEach(k => { if (s[k] !== undefined) ts[k] = s[k]; });
             if (ts.gatelength !== undefined) ts.gatelength = s.gatelength;
             if (ts.triggerlength !== undefined && s.gatelength !== undefined) ts.triggerlength = ts.triggerlength.map((x, i) => i === ts.triggerlength.length - 1 ? s.gatelength : x);
-            await backup(sdDir, [name, 'track' + t, 'TrackSettings.txt']); await wrJSON(sdDir, [name, 'track' + t, 'TrackSettings.txt'], ts);
+            await dropBackup(sdDir, [name, 'track' + t, 'TrackSettings.txt']); await wrJSON(sdDir, [name, 'track' + t, 'TrackSettings.txt'], ts);
             await backup(sdDir, [name, 'track' + t, 'pattern' + L + '.txt']); await wrJSON(sdDir, [name, 'track' + t, 'pattern' + L + '.txt'], serializePattern(t));
-            if (t !== 'D') { await backupBytes(sdDir, [name, 'track' + t, 'poly' + L]); await wrBytes(sdDir, [name, 'track' + t, 'poly' + L], encodePoly(t)); }
+            if (t !== 'D') { await dropBackup(sdDir, [name, 'track' + t, 'poly' + L]); await wrBytes(sdDir, [name, 'track' + t, 'poly' + L], encodePoly(t)); }
           }
-          sdstat.textContent = 'saved ' + name + ' · pattern ' + L + ' (.bak + poly' + L + ')';
+          sdstat.textContent = 'saved ' + name + ' · pattern ' + L + ' (pattern .bak + poly' + L + ')';
         } catch (e) { sdstat.textContent = 'save err: ' + e.message; }
       }
       async function newProject() {

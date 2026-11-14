@@ -429,7 +429,7 @@
     var out = work.toString();
     new HexFile(out);  // read our own output back before handing it over
     lastOutput = { text: out, name: chosen.some(function (m) { return m.status === 'diagnostic'; })
-      ? 'gc-led.hex' : 'gc326p11.hex' };
+      ? 'gc-led.hex' : 'gc-26p11.hex' };
     $('install').disabled = !fsDir;
     $('dl').disabled = false;
     canonicalHash(new HexFile(out)).then(function (hh) { if (hh) say('output SHA-256: ' + hh, 'ok'); }).catch(function () {});
@@ -560,7 +560,7 @@
   window.GCModder = { HexFile: HexFile, identify: identify, applyBundle: applyBundle, loadHex: loadHex, takeFile: takeFile, getOutput: function () { return lastOutput; }, connectSD: connectSD, getSD: function () { return fsDir; }, ready: true };
 })();
 </script>
-<script src="assets/editor.js?v=805"></script>
+<script src="assets/editor.js?v=806"></script>
 <script>
 (function () {
   function showView(v) {
