@@ -297,7 +297,16 @@
       { addr: '0x8028224', bytes: '20f0ecf9' }
     ]
   };
-  var mods = [V1];
+  // Diagnostic: LED bit-map probe (flash alone, do not combine with polyphony)
+  var DIAG = {
+    name: 'LED bit-map diagnostic', version: 'diag', status: 'diagnostic', enabled: false,
+    description: 'Diagnostic only: lights LED bits 28, 40 and 51 so you can report which keys light. Tick this alone and untick Polyphony v1.1.',
+    patches: [
+      { addr: '0x8048800', bytes: '10b5094ce07840f01000e070607940f001006071a07940f00800a071bde8104002490348704700007b1e0020741e00202c2b0020' },
+      { addr: '0x8012068', bytes: '36f0cafb' }
+    ]
+  };
+  var mods = [V1, DIAG];
 
   // Known-good base images (canonical image SHA-256 -> version). Patcher warns if the input
   // doesn't match, and shows the output hash so a build can be verified.
@@ -429,7 +438,8 @@
       // Stamp our own suffix so a patched image is never mistaken for stock, while
       // still matching the updater's required gc-*.hex pattern.
       var base = (fileName || 'gc-firmware.hex').replace(/\.hex$/i, '');
-      if (!/-poly1$/i.test(base)) base += '-poly1';
+      var suffix = chosen.some(function (m) { return m.status === 'diagnostic'; }) ? '-leddiag' : '-poly1';
+      if (!new RegExp(suffix + '$', 'i').test(base)) base += suffix;
       return base + '.hex';
     })() };
     $('install').disabled = !fsDir;
@@ -531,7 +541,7 @@
   async function installFirmware() {
     if (!fsDir) { showBanner('Connect the GC SD card first (hold PROJ 5s on the module).'); return; }
     if (!lastOutput) { showBanner('Build the firmware first.'); return; }
-    var name = prompt('Firmware file name on the card (must be gc-*.hex in the card ROOT; the tool appends -poly1)', lastOutput.name); if (!name) return;
+    var name = prompt('Firmware file name on the card (must be gc-*.hex in the card ROOT; the tool appends -poly1 or -leddiag)', lastOutput.name); if (!name) return;
     if (!/\.hex$/i.test(name)) name += '.hex';
     if (!/^gc-.*\.hex$/i.test(name) && !confirm('The updater expects a file named gc-*.hex in the card root; "' + name + '" may not be picked up. Continue anyway?')) return;
     try {

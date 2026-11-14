@@ -92,6 +92,14 @@ stock editor **removal** (pressing a lit key again, or `REST` to clear a step) d
 record. If a note will not go away, clear the step and re-enter it, or fix it in the browser editor. Treat this
 as the one behavior to verify on the module.
 
+## LED bit-map diagnostic (temporary)
+
+The key-LED driver is a 56-bit SPI shift-register chain. To derive the note/key → bit mapping, the patcher
+includes a second, **off-by-default** mod: **LED bit-map diagnostic**. Tick it **alone** (untick Polyphony
+v1.1), build, flash, and note which keys light — it forces bits **28, 40 and 51**. Report those keys; the
+mapping is then encoded into the poly build. The diagnostic output is named `<stock>-leddiag.hex` so it cannot
+be confused with the real build.
+
 ## Verify / return to stock
 
 - Supported base: firmware **v3.26**, canonical image SHA-256

@@ -1,0 +1,23 @@
+{
+  "name": "LED bit-map diagnostic",
+  "status": "diagnostic",
+  "description": "Diagnostic only. Ticks bits 28, 40 and 51 in the live LED bitmap so you can report which keys light. Flash this alone (untick Polyphony v1.1), observe, then rebuild the normal mod.",
+  "requires": {
+    "blank": [
+      "0x08048800",
+      "0x080488FF"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x8048800",
+      "bytes": "10b5094ce07840f01000e070607940f001006071a07940f00800a071bde8104002490348704700007b1e0020741e00202c2b0020",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8012068",
+      "bytes": "36f0cafb",
+      "note": "force diagnostic bits before the SPI shift-out (reproduces r1/r0 loads)"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "name": "LED bit-map diagnostic",
+  "status": "diagnostic",
+  "description": "Diagnostic only. Forces three known bits (28, 40, 51) on in the live 56-bit LED bitmap (0x20001E7B) every scan cycle, without touching anything else. Flash this alone (untick the polyphony mod), note which physical keys light, then report them. Used to derive the note/key to bit mapping; not for musical use.",
+  "cave": {
+    "addr": "0x08048800",
+    "asm": [
+      "push {r4, lr}",
+      "ldr r4, =0x20001E7B",
+      "ldrb r0, [r4, #3]",
+      "orr r0, #0x10",
+      "strb r0, [r4, #3]",
+      "ldrb r0, [r4, #5]",
+      "orr r0, #0x01",
+      "strb r0, [r4, #5]",
+      "ldrb r0, [r4, #6]",
+      "orr r0, #0x08",
+      "strb r0, [r4, #6]",
+      "pop {r4, lr}",
+      "ldr r1, =0x20001E74",
+      "ldr r0, =0x20002B2C",
+      "bx lr"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x08012068",
+      "asm": [
+        "bl 0x08048800"
+      ],
+      "note": "force diagnostic bits before the SPI shift-out (reproduces r1/r0 loads)"
+    }
+  ],
+  "requires": {
+    "blank": [
+      "0x08048800",
+      "0x080488FF"
+    ]
+  }
+}
