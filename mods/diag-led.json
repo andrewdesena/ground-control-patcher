@@ -1,7 +1,7 @@
 {
   "name": "LED bit-map diagnostic",
   "status": "diagnostic",
-  "description": "Diagnostic only. Lights low-range bits (0, 4, 8, 12, 16, 20, 24) in the SPI output buffer 0x20001E74 immediately before shift-out. Report which controls/keys light and their order. Flash alone (untick Polyphony v1.1). Not for musical use.",
+  "description": "Diagnostic sweep: lights key bits 0..23 one at a time in bit order, repeating. Watch one full cycle and report the order the keys light. Flash alone (untick Polyphony v1.1).",
   "requires": {
     "blank": [
       "0x08048800",
@@ -10,8 +10,8 @@
   },
   "patches": [
     {
-      "addr": "0x8048800",
-      "bytes": "10b5074c112020706070a070e07840f00100e070bde810400149024870470000741e00202c2b0020",
+      "addr": "0x8048a00",
+      "bytes": "30b5104c208801302080b0f5006f07d100202080a1780131182900db0021a170a178094d002028706870a870ca0801f0070101208840a854bde83040024903487047000010ff0010741e00202c2b0020",
       "note": "cave routine"
     },
     {
