@@ -2,7 +2,7 @@
   "name": "Ground Control \u2014 Polyphony v1.1 (clock + poly + entry + step-record + clear + transpose + SD persistence)",
   "version": "1.0",
   "status": "experimental",
-  "description": "Clock-priority fix + polyphonic note capture (real velocity) + stock-gate chord playback for melodic tracks 1-3.",
+  "description": "Clock-priority fix + polyphonic note capture (real velocity) + stock-gate chord playback for melodic tracks 1-3. Key-LED chord display in EDIT mode.",
   "patches": [
     {
       "addr": "0x8046810",
@@ -103,6 +103,21 @@
       "addr": "0x8028224",
       "bytes": "20f0ecf9",
       "note": "after successful mono transpose, shift the same track's chord notes"
+    },
+    {
+      "addr": "0x8048a00",
+      "bytes": "f0b5354c20786178a278090212040843104300285bd00300013b0340002b56d1c2b2002a06d0002112f0010f16d152080131f9e7c0f30722002a06d0082112f0010f0bd152080131f9e7c0f30742102112f0010f02d152080131f9e71f4d6e5c1f4d2d781f4b53f8254094f8df7207eb4703234493f83c309b1b002b27db742b25dc194a4ff4086105fb012207eb07110a44117800291ad0082900d9082101258d4214da05eb050616447678f61a0cd4182e0ada0d4ca65d074cf00806f007060127b740265c3e4326540135e8e702490748bde8f0407047741e0020008b0408daca00205004002030b50010188b04082c2b0020",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8048b00",
+      "bytes": "1315170c0e100d0f110416141203010608050702000b090a140e130d09110f12101617150306040705080c000b010a02",
+      "note": "bit->keyIdx (24 bytes) then keyIdx->bit (24 bytes)"
+    },
+    {
+      "addr": "0x8012068",
+      "bytes": "36f0cafc",
+      "note": "OR chord key bits before SPI shift-out"
     }
   ]
 }
