@@ -70,6 +70,20 @@ flashes a `gc-*.hex` found at the card root.
 5. Save the pattern on the module, power-cycle, reload — the chord persists.
 6. If anything fails: return to stock (original `gc-*.hex` at root, PROJ ~5 s) and keep the pattern/SD state for diagnosis.
 
+## Entering chords on the hardware (v1.1)
+
+| Mode | How to get there | Chord entry |
+|---|---|---|
+| **Live recording** | `PLAY` (running) → `RECORD` | **Yes** — hold the whole chord across the step; every held note is captured with its velocity and quantized to the grid. This is the reliable path. |
+| **Step editor (EDIT)** | Hold `RECORD` > 1.5 s (works stopped or running) | **Yes (v1.1)** — `PAGE` to the step, then press each note key; each note-on appends to that step's poly record (max 8). Switch tracks with `TRACK D/1/2/3`. |
+| **Step recording** | Stopped → press `RECORD` once | **No** — each key press writes one note and auto-advances to the next step, so a chord would be split across steps. Stock overlapping keys mean `SLIDE`, not a chord. Use live record or the editor instead. |
+| **Browser editor** | Editor tab → open SD card | **Yes** — click notes per step (max 8), save; the module reads the `poly<letter>` sidecar on load. |
+
+Caveats for the first hardware run: the editor entry-append is emulator-proven but not yet hardware-tested, and
+stock editor **removal** (pressing a lit key again, or `REST` to clear a step) does not yet clear the poly
+record. If a note will not go away, clear the step and re-enter it, or fix it in the browser editor. Treat this
+as the one behavior to verify on the module.
+
 ## Verify / return to stock
 
 - Supported base: firmware **v3.26**, canonical image SHA-256
