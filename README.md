@@ -64,8 +64,7 @@ flashes a `gc-*.hex` found at the card root.
 - Captured velocity falls back to 100 if a note-on velocity wasn't seen.
 - Up to 8 notes per step.
 - Overlapping keys in step record now build a chord; they no longer create `SLIDE`.
-- In EDIT mode the piano keys still light only the **primary** note; extra chord notes are stored and
-  played but not shown on the key LEDs yet.
+- In EDIT mode all stored chord notes light on the keys (v1.1, 23-site build); primary note plus extras.
 - Module pattern copy/rename may not carry the `poly<letter>` sidecar yet.
 
 ## Hardware validation checklist (v1.1)
@@ -74,9 +73,10 @@ flashes a `gc-*.hex` found at the card root.
 2. Play a stock project: tracks and clock behave as before.
 3. In the editor, save a chord pattern to the card; load it on the module and play — all chord notes sound.
 4. Enter a chord in step-edit mode on the module and play.
-5. In step record, hold the first key, add the rest of the chord, release, and play the step.
-6. Save the pattern on the module, power-cycle, reload — the chord persists.
-7. If anything fails: return to stock (original `gc-*.hex` at root, PROJ ~5 s) and keep the pattern/SD state for diagnosis.
+5. In EDIT mode on a stored chord step, confirm **all** chord notes light on the keys.
+6. In step record, hold the first key, add the rest of the chord, release, and play the step.
+7. Save the pattern on the module, power-cycle, reload — the chord persists.
+8. If anything fails: return to stock (original `gc-*.hex` at root, PROJ ~5 s) and keep the pattern/SD state for diagnosis.
 
 ## Entering chords on the hardware (v1.1)
 
@@ -92,13 +92,14 @@ stock editor **removal** (pressing a lit key again, or `REST` to clear a step) d
 record. If a note will not go away, clear the step and re-enter it, or fix it in the browser editor. Treat this
 as the one behavior to verify on the module.
 
-## LED bit-map diagnostic (temporary)
+## Key LED map
 
-The key-LED driver is a 56-bit SPI shift-register chain. To derive the note/key → bit mapping, the patcher
-includes a second, **off-by-default** mod: **LED bit-map diagnostic**. Tick it **alone** (untick Polyphony
-v1.1), build, flash, and note which keys light — it forces bits **28, 40 and 51**. Report those keys; the
-mapping is then encoded into the poly build. The diagnostic output is named `<stock>-leddiag.hex` so it cannot
-be confused with the real build.
+The key LEDs are on the 56-bit SPI shift chain. The full bit→key table was decoded on hardware
+(five binary-plane probes) and is documented in `docs/led-bitmap.md`. It is compiled into the poly
+build; the temporary diagnostic mods have been removed from the patcher.
+
+Rules for any future LED patch: OR/set bits only, never clear low bytes (`0x20001E74`); bits 0–1 drive
+matrix lines and can make the driver hum; byte 2 (bits 16–23) is quiet.
 
 ## Verify / return to stock
 
