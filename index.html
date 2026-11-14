@@ -428,14 +428,8 @@
     }
     var out = work.toString();
     new HexFile(out);  // read our own output back before handing it over
-    lastOutput = { text: out, name: (function () {
-      // Stamp our own suffix so a patched image is never mistaken for stock, while
-      // still matching the updater's required gc-*.hex pattern.
-      var base = (fileName || 'gc-firmware.hex').replace(/\.hex$/i, '');
-      var suffix = chosen.some(function (m) { return m.status === 'diagnostic'; }) ? '-leddiag' : '-poly1';
-      if (!new RegExp(suffix + '$', 'i').test(base)) base += suffix;
-      return base + '.hex';
-    })() };
+    lastOutput = { text: out, name: chosen.some(function (m) { return m.status === 'diagnostic'; })
+      ? 'gc-led.hex' : 'gc326p11.hex' };
     $('install').disabled = !fsDir;
     $('dl').disabled = false;
     canonicalHash(new HexFile(out)).then(function (hh) { if (hh) say('output SHA-256: ' + hh, 'ok'); }).catch(function () {});
@@ -535,7 +529,7 @@
   async function installFirmware() {
     if (!fsDir) { showBanner('Connect the GC SD card first (hold PROJ 5s on the module).'); return; }
     if (!lastOutput) { showBanner('Build the firmware first.'); return; }
-    var defName = /leddiag/i.test(lastOutput.name) ? 'gc-led.hex' : lastOutput.name;
+    var defName = lastOutput.name;
     var name = prompt('Firmware file name on the card (must be gc-*.hex in the card ROOT; short 8.3-style names are safest)', defName); if (!name) return;
     if (!/\.hex$/i.test(name)) name += '.hex';
     if (!/^gc-.*\.hex$/i.test(name) && !confirm('The updater expects a file named gc-*.hex in the card root; "' + name + '" may not be picked up. Continue anyway?')) return;
