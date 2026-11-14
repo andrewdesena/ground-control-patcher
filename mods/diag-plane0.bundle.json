@@ -1,0 +1,19 @@
+{
+  "name": "LED plane probe 0",
+  "status": "diagnostic",
+  "description": "ORs 0xAA into LED bytes 0-2 (odd bits). Report lit keys.",
+  "requires": {},
+  "patches": [
+    {
+      "addr": "0x8048a00",
+      "bytes": "10b5094c207840f0aa002070607840f0aa006070a07840f0aa00a070bde810400149024870470000741e00202c2b0020",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8012068",
+      "bytes": "36f0cafc",
+      "note": "OR odd-bit plane into phase output before shift-out"
+    }
+  ],
+  "enabled": false
+}

@@ -299,10 +299,10 @@
   };
   // Diagnostic: LED bit-map probe (flash alone, do not combine with polyphony)
   var DIAG = {
-    name: 'LED single-bit probe 0 (E74)', version: 'diag', status: 'diagnostic', enabled: false,
-    description: 'Diagnostic: ORs only bit 0 into the phase output 0x20001E74 before shift-out. No clearing. Report whether one key stays lit.',
+    name: 'LED plane probe 0', version: 'diag', status: 'diagnostic', enabled: false,
+    description: 'Diagnostic: lights keys whose bit index is odd (bits 1,3,5...23). Set-only. Report which keys light.',
     patches: [
-      { addr: '0x8048a00', bytes: '10b5054c207840f001002070bde810400149024870470000741e00202c2b0020' },
+      { addr: '0x8048a00', bytes: '10b5094c207840f0aa002070607840f0aa006070a07840f0aa00a070bde810400149024870470000741e00202c2b0020' },
       { addr: '0x8012068', bytes: '36f0cafc' }
     ]
   };
