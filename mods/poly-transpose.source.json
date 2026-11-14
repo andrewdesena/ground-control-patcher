@@ -1,0 +1,77 @@
+{
+  "name": "poly-transpose-follow",
+  "status": "experimental",
+  "description": "Track transpose/shift (FUN_08028194) walks the 128 mono step notes and adds a delta. This hook at 0x08028224 runs only on the success path, reproduces strh r4,[ip,#0x38], recovers the track index by matching ip against the track table (pattern sub-struct = track + index*0x194), then adds the same delta to every note in that track's poly record (clamped 0..127). Chords now follow transpose/scale shifts applied on the module.",
+  "cave": {
+    "addr": "0x08048600",
+    "asm": [
+      "push {r0, r1, r2, r3, r4, r5, r6, r7, lr}",
+      "strh.w r4, [r12, #0x38]",
+      "movw r0, #0x8230",
+      "movt r0, #0x0802",
+      "ldr r0, [r0]",
+      "movs r1, #0",
+      "1:",
+      "ldr r2, [r0, r1, lsl #2]",
+      "ldrb r3, [r2, #0x2e]",
+      "movw r6, #0x194",
+      "mla r6, r3, r6, r2",
+      "cmp r6, r12",
+      "beq 2f",
+      "adds r1, #1",
+      "cmp r1, #4",
+      "bne 1b",
+      "b 9f",
+      "2:",
+      "movw r0, #0xb530",
+      "movt r0, #0x1000",
+      "lsls r2, r1, #11",
+      "add r2, r2, r1, lsl #7",
+      "add r0, r0, r2",
+      "movs r1, #0",
+      "3:",
+      "ldrb r2, [r0]",
+      "movs r3, #0",
+      "4:",
+      "cmp r3, r2",
+      "bhs 5f",
+      "add r6, r0, #1",
+      "add r6, r6, r3, lsl #1",
+      "ldrb r7, [r6]",
+      "add r7, r7, r5",
+      "cmp r7, #0",
+      "bge 6f",
+      "movs r7, #0",
+      "6:",
+      "cmp r7, #127",
+      "ble 7f",
+      "movs r7, #127",
+      "7:",
+      "strb r7, [r6]",
+      "adds r3, #1",
+      "b 4b",
+      "5:",
+      "adds r0, #17",
+      "adds r1, #1",
+      "cmp r1, #128",
+      "bne 3b",
+      "9:",
+      "pop {r0, r1, r2, r3, r4, r5, r6, r7, pc}"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x08028224",
+      "asm": [
+        "bl 0x08048600"
+      ],
+      "note": "after successful mono transpose, shift the same track's chord notes"
+    }
+  ],
+  "requires": {
+    "blank": [
+      "0x08048600",
+      "0x080486FF"
+    ]
+  }
+}

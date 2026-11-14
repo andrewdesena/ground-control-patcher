@@ -270,10 +270,10 @@
   var $ = function (id) { return document.getElementById(id); };
   var drop = $('drop'), fileInput = $('file'), log = $('log'), banner = $('banner');
   var hex = null, fileName = '', lastOutput = null, fsDir = null;
-  // Ground Control — Polyphony v1.1 (clock + poly + entry + step-record + clear + SD persistence); embedded for offline/file://
+  // Ground Control — Polyphony v1.1 (clock + poly + entry + step-record + clear + transpose + SD persistence); embedded
   var V1 = {
-    name: 'Polyphony v1.1 (clock + poly + entry + step-record + clear + SD persistence)', version: '1.1', status: 'experimental',
-    description: 'Clock-priority fix + poly capture/velocity + stock-gate playback + hardware entry append + hold-to-chord step recording + rest-clear + poly sidecar load/save for melodic tracks 1-3. Arpeggiator remains mono.',
+    name: 'Polyphony v1.1 (clock + poly + entry + step-record + clear + transpose + SD persistence)', version: '1.1', status: 'experimental',
+    description: 'Clock fix + poly capture/velocity + stock-gate playback + entry append + hold-to-chord step record + rest clear + transpose follow + poly sidecar load/save. Arpeggiator stays mono.',
     patches: [
       { addr: '0x8046810', bytes: '0fb5c1b2f82906d0fa2904d0fc2902d0fb2900d014e0bde80f40d5f8007a013f07f07f07d5f804ca67450cd009fb07560fc6c6f800a0c5f8007a5046d3f761b8bde80f40ffe7d5f8047ad5f800ba09fb0756d3f715b8' },
       { addr: '0x8019884', bytes: '2cf0c4ff00bf00bf00bf00bf' },
@@ -292,7 +292,9 @@
       { addr: '0x8048200', bytes: '013b84f8df3220462946d6f79fffd7f7d6bd' },
       { addr: '0x801fe2a', bytes: '28f0e9f9' },
       { addr: '0x8048400', bytes: '002912da90f8e12290f8df325feac22c0cebc21c1a011a4494444bf23052c1f20002944400228cf8002080f8f5127047' },
-      { addr: '0x801f32e', bytes: '29f067f8' }
+      { addr: '0x801f32e', bytes: '29f067f8' },
+      { addr: '0x8048600', bytes: 'ffb5acf8384048f23020c0f602000068002150f8212092f82e3040f2941603fb0626664503d001310429f2d11fe04bf23050c1f20000ca0202ebc112104400210278002393420ed200f1010606eb430637782f44002f00da00277f2f00dd7f2737700133eee7113001318029e8d1ffbd' },
+      { addr: '0x8028224', bytes: '20f0ecf9' }
     ]
   };
   var mods = [V1];

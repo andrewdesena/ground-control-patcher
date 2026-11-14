@@ -1,0 +1,23 @@
+{
+  "name": "poly-transpose-follow",
+  "status": "experimental",
+  "description": "Track transpose/shift (FUN_08028194) walks the 128 mono step notes and adds a delta. This hook at 0x08028224 runs only on the success path, reproduces strh r4,[ip,#0x38], recovers the track index by matching ip against the track table (pattern sub-struct = track + index*0x194), then adds the same delta to every note in that track's poly record (clamped 0..127). Chords now follow transpose/scale shifts applied on the module.",
+  "requires": {
+    "blank": [
+      "0x08048600",
+      "0x080486FF"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x8048600",
+      "bytes": "ffb5acf8384048f23020c0f602000068002150f8212092f82e3040f2941603fb0626664503d001310429f2d11fe04bf23050c1f20000ca0202ebc112104400210278002393420ed200f1010606eb430637782f44002f00da00277f2f00dd7f2737700133eee7113001318029e8d1ffbd",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8028224",
+      "bytes": "20f0ecf9",
+      "note": "after successful mono transpose, shift the same track's chord notes"
+    }
+  ]
+}

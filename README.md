@@ -52,6 +52,7 @@ flashes a `gc-*.hex` found at the card root.
   (deduped, max 8 notes), so step-edit mode accepts chords instead of overwriting one note.
 - **Step-record chords** — holding the first key and adding notes keeps them on the same step
   instead of advancing; the next first-key press advances normally.
+- **Transpose follow** — a track transpose/shift also moves the stored chord notes (clamped 0–127).
 - **SD persistence** — each save also writes `trackN/poly<letter>` (2,176 bytes = 128 × [count,
   note/vel pairs]); loading a pattern reads it straight into the poly array. Chords survive power
   cycles, and browser-authored chords play on the module.
@@ -65,6 +66,7 @@ flashes a `gc-*.hex` found at the card root.
 - Overlapping keys in step record now build a chord; they no longer create `SLIDE`.
 - In EDIT mode the piano keys still light only the **primary** note; extra chord notes are stored and
   played but not shown on the key LEDs yet.
+- Module pattern copy/rename may not carry the `poly<letter>` sidecar yet.
 
 ## Hardware validation checklist (v1.1)
 
