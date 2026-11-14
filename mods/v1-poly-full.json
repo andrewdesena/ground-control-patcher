@@ -43,6 +43,16 @@
       "addr": "0x801cd96",
       "bytes": "2af033ff",
       "note": "after f_close -> load poly sidecar"
+    },
+    {
+      "addr": "0x8047e00",
+      "bytes": "ec462de9f0416446032f30d0e67b702020726f2060726c20a0727920e0722673002060734ef20000c1f2000004f108010a22ccf79bfdd0b94bf23051c1f2000140f6800207fb02f001444ef20000c1f2000040f680024ef20033c1f20003ccf718ff4ef20000c1f20000cdf755f804f11800cdf751f8bde8f0417047",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x801c542",
+      "bytes": "2bf05dfc",
+      "note": "writer f_close prep -> save poly sidecar"
     }
   ]
 }
