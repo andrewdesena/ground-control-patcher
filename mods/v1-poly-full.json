@@ -5,6 +5,16 @@
   "description": "Clock-priority fix + polyphonic note capture (real velocity) + stock-gate chord playback for melodic tracks 1-3. Key-LED chord display in EDIT mode.",
   "patches": [
     {
+      "addr": "0x8047400",
+      "bytes": "2fb55977214b1878c0b202281ad86279802a17d20346db0203ebc01303eb021313444bf23050c1f20000184429464ff60052c1f200020a441278002a00d1642200f004f8bde82f40def7d6b970b50378082b01d90023037000249c420ad200f1010505eb44052e788e4201d00134f4e76a7009e0082b07d200f1010505eb430529706a7001330370184670bddaca0020",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8025814",
+      "bytes": "21f0f4bd",
+      "note": "armed step store -> cave (store+poly capture)"
+    },
+    {
       "addr": "0x8047800",
       "bytes": "01b548790b794ff6005cc1f2000c9c448cf800000b794a79bde80140d7f7e6bc",
       "note": "cave routine"
