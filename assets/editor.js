@@ -516,9 +516,9 @@
           const lim = Array.isArray(base.step_limit) ? base.step_limit : [N, 16, 16, 16, 16, 16, 16, 16, 16];
           return Object.assign({}, base, { step_limit: lim, count: N, steps: steps, ratchets: rats });
         }
-        const arr = ensureMelodic(t), steps = [], poly = [];
-        for (let s = 0; s < N; s++) { const st = arr[s]; const n = st.notes && st.notes.length ? st.notes[0] : null; steps.push({ note: n ? nativeNote(n[0]) : "", velocity: n ? n[1] : 0, modifier: st.modifier || 0, ratchet: st.ratchet || 0 }); poly.push({ modifier: st.modifier || 0, ratchet: st.ratchet || 0, notes: (st.notes || []).map(x => [x[0], x[1]]), cc: (st.cc || []).map(c => [c[0], c[1]]) }); }
-        return Object.assign({}, base, { step_limit: N, count: N, steps: steps, steps2: poly });
+        const arr = ensureMelodic(t), steps = [];
+        for (let s = 0; s < N; s++) { const st = arr[s]; const n = st.notes && st.notes.length ? st.notes[0] : null; steps.push({ note: n ? nativeNote(n[0]) : "", velocity: n ? n[1] : 0, modifier: st.modifier || 0, ratchet: st.ratchet || 0 }); }
+        return Object.assign({}, base, { step_limit: N, count: N, steps: steps });
       }
       function encodePoly(t) {
         const arr = ensureMelodic(t), out = new Uint8Array(2176);
