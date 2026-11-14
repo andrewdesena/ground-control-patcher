@@ -1,0 +1,28 @@
+{
+  "name": "LED plane probe 3",
+  "status": "diagnostic",
+  "description": "Diagnostic: ORs 0xFF into LED byte 1 (index bit 8). Report lit keys.",
+  "cave": {
+    "addr": "0x08048A00",
+    "asm": [
+      "push {r4, lr}",
+      "ldr r4, =0x20001E74",
+      "ldrb r0, [r4, #1]",
+      "orr r0, #0xff",
+      "strb r0, [r4, #1]",
+      "pop {r4, lr}",
+      "ldr r1, =0x20001E74",
+      "ldr r0, =0x20002B2C",
+      "bx lr"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x08012068",
+      "asm": [
+        "bl 0x08048A00"
+      ],
+      "note": "OR index bit 8 plane"
+    }
+  ]
+}

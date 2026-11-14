@@ -1,0 +1,18 @@
+{
+  "name": "LED plane probe 2",
+  "status": "diagnostic",
+  "description": "Diagnostic: ORs mask 0xF0 into LED phase output bytes 0-2 (index bits 4-7). Report lit keys. Set-only.",
+  "requires": {},
+  "patches": [
+    {
+      "addr": "0x8048a00",
+      "bytes": "10b5094c207840f0f0002070607840f0f0006070a07840f0f000a070bde810400149024870470000741e00202c2b0020",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8012068",
+      "bytes": "36f0cafc",
+      "note": "OR index bits 4-7 plane into phase output"
+    }
+  ]
+}
