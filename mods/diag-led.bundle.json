@@ -1,7 +1,7 @@
 {
   "name": "LED bit-map diagnostic",
   "status": "diagnostic",
-  "description": "Diagnostic: lights bits 28,32,36,40,44,48 so you can report which six keys light.",
+  "description": "Diagnostic: lights low bits 0,4,8,12,16,20,24.",
   "requires": {
     "blank": [
       "0x08048800",
@@ -11,7 +11,7 @@
   "patches": [
     {
       "addr": "0x8048800",
-      "bytes": "10b5084ce07840f01000e070112020716071a07940f00100a071bde81040014901487047741e00202c2b0020",
+      "bytes": "10b5074c112020706070a070e07840f00100e070bde810400149024870470000741e00202c2b0020",
       "note": "cave routine"
     },
     {
