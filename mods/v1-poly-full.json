@@ -5,16 +5,6 @@
   "description": "Clock-priority fix + polyphonic note capture (real velocity) + stock-gate chord playback for melodic tracks 1-3. Key-LED chord display in EDIT mode.",
   "patches": [
     {
-      "addr": "0x8047400",
-      "bytes": "2fb55977dbf774ffc0b2022818d862790346db0203ebc01303eb021313444bf23050c1f20000184429464ff60052c1f200020a441278002a00d1642200f004f8bde82f40def7d8b970b50378082b01d90023037000249c420ad200f1010505eb44052e788e4201d00134f4e76a7009e0082b07d200f1010505eb430529706a7001330370184670bd",
-      "note": "cave routine"
-    },
-    {
-      "addr": "0x8025814",
-      "bytes": "21f0f4bd",
-      "note": "armed step store -> cave (store+poly capture)"
-    },
-    {
       "addr": "0x8047800",
       "bytes": "01b548790b794ff6005cc1f2000c9c448cf800000b794a79bde80140d7f7e6bc",
       "note": "cave routine"
@@ -23,66 +13,6 @@
       "addr": "0x801f1e8",
       "bytes": "28f00abb",
       "note": "note-on add -> stash velocity by note"
-    },
-    {
-      "addr": "0x8047a00",
-      "bytes": "2de9ff5f4ff6006cc1f2000c9cf80040002c43d101248cf80040157890f83c60876897f81f80b8f10108b8f1030f2ed25feac82909ebc8195fea061ab244d1444bf2305ac1f2000ad14499f800a0baf1000f1cd00024544519d209f1010b0beb440b9bf800609bf80170ae420dd04ff6106bc1f2000b8bf800608bf8017000268bf802605a46d9f75ffe0134e3e700244ff6006cc1f2000c8cf80040bde8ff5f2de9ff47d9f752be",
-      "note": "cave routine"
-    },
-    {
-      "addr": "0x8021748",
-      "bytes": "26f05ab9",
-      "note": "emitter entry -> chord wrapper"
-    },
-    {
-      "addr": "0x8047e00",
-      "bytes": "ec462de9f0416446032f30d0e67b702020726f2060726c20a0727920e0722673002060734ef20000c1f2000004f108010a22ccf79bfdd0b94bf23051c1f2000140f6800207fb02f001444ef20000c1f2000040f680024ef20033c1f20003ccf718ff4ef20000c1f20000cdf755f804f11800cdf751f8bde8f0417047",
-      "note": "cave routine"
-    },
-    {
-      "addr": "0x801c542",
-      "bytes": "2bf05dfc",
-      "note": "writer f_close prep -> save poly sidecar"
-    },
-    {
-      "addr": "0x8048000",
-      "bytes": "95f8040095f8051094f8e12294f8df324bf2305cc1f2000cd60206ebc2161a011a441644664432780023934209d206f1010c0ceb430c9cf800c084450ed00133f3e7082a10d206f1010c0ceb420c8cf800008cf801100132327005e006f1010c0ceb430c8cf8011094f820617047",
-      "note": "cave routine"
-    },
-    {
-      "addr": "0x801fd52",
-      "bytes": "28f055f9",
-      "note": "note-on -> append chord note to step poly"
-    },
-    {
-      "addr": "0x8048200",
-      "bytes": "013b84f8df3220462946d6f79fffd7f7d6bd",
-      "note": "cave routine"
-    },
-    {
-      "addr": "0x801fe2a",
-      "bytes": "28f0e9f9",
-      "note": "second key held in step record: keep step instead of advancing"
-    },
-    {
-      "addr": "0x8048400",
-      "bytes": "002912da90f8e12290f8df325feac22c0cebc21c1a011a4494444bf23052c1f20002944400228cf8002080f8f5127047",
-      "note": "cave routine"
-    },
-    {
-      "addr": "0x801f32e",
-      "bytes": "29f067f8",
-      "note": "rest/clear commit also clears the step's poly record"
-    },
-    {
-      "addr": "0x8048600",
-      "bytes": "ffb5acf8384048f23020c0f602000068002150f8212092f82e3040f2941603fb0626664503d001310429f2d11fe04bf23050c1f20000ca0202ebc112104400210278002393420ed200f1010606eb430637782f44002f00da00277f2f00dd7f2737700133eee7113001318029e8d1ffbd",
-      "note": "cave routine"
-    },
-    {
-      "addr": "0x8028224",
-      "bytes": "20f0ecf9",
-      "note": "after successful mono transpose, shift the same track's chord notes"
     }
   ]
 }
