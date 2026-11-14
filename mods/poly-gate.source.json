@@ -29,6 +29,8 @@
       "movt r10, #0x1000",
       "add r9, r9, r10",
       "ldrb r10, [r9]",
+      "cmp r10, #8",
+      "bhi 8f",
       "cmp r10, #0",
       "beq 8f",
       "movs r4, #0",

@@ -20,6 +20,8 @@
       "movt r7, #0x1000",
       "add r6, r6, r7",
       "ldrb r7, [r6]",
+      "cmp r7, #8",
+      "bhi 9f",
       "cmp r7, #0",
       "beq 9f",
       "movs r9, #0",

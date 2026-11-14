@@ -1,0 +1,18 @@
+{
+  "name": "commit-append",
+  "status": "experimental",
+  "description": "Append every committed note (r1 >= 0) to the step's poly record at commit FUN_0801F32C. Hook 0x0801F32E reproduces strb.w r1,[r0,#0x2f5], then merges (note, velocity 100) into poly[track][step] with dedupe and an 8-note cap. Negative commits (rest/clear) are left to the clear cave.",
+  "requires": {},
+  "patches": [
+    {
+      "addr": "0x8048800",
+      "bytes": "00291bdb2de90f5090f8e122032a13d290f8df32802b0fd25feac22c0cebc21c1a011a4494444bf23052c1f200020ceb0200642200f005f8bde80f5080f8f512704770b50378082b01d90023037000249c420ad200f1010505eb44052e788e4201d00134f4e76a7009e0082b07d200f1010505eb430529706a700133037070bd",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x801f32e",
+      "bytes": "29f067fa",
+      "note": "commit note -> append to poly record"
+    }
+  ]
+}

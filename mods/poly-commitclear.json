@@ -1,0 +1,18 @@
+{
+  "name": "commit-append-clear",
+  "status": "experimental",
+  "description": "One hook at commit FUN_0801F32C. Positive note: merge (note, vel 100) into poly[track][step] with dedupe/8-cap. Negative note (rest/clear): zero the step's poly count. Reproduces strb.w r1,[r0,#0x2f5].",
+  "requires": {},
+  "patches": [
+    {
+      "addr": "0x8048400",
+      "bytes": "00291cdb2de90f5090f8e122032a13d290f8df32802b0fd25feac22c0cebc21c1a011a4494444bf23052c1f200020ceb0200642200f019f8bde80f5012e090f8e12290f8df325feac22c0cebc21c1a011a4494444bf23052c1f20002944400228cf8002080f8f512704770b50378082b01d90023037000249c4209d200f1010505eb44052e788e4201d00134f4e709e0082b07d200f1010505eb430529706a700133037070bd",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x801f32e",
+      "bytes": "29f067f8",
+      "note": "commit note -> append; rest -> clear"
+    }
+  ]
+}
