@@ -300,9 +300,9 @@
   // Diagnostic: LED bit-map probe (flash alone, do not combine with polyphony)
   var DIAG = {
     name: 'LED bit-map diagnostic', version: 'diag', status: 'diagnostic', enabled: false,
-    description: 'Diagnostic sweep: lights key bits 0..23 one at a time, repeating. Report the order the keys light. Tick alone, untick Polyphony v1.1.',
+    description: 'Diagnostic: key bit = current edit step on Track 1. Page steps 0..23, report which key lights. Tick alone, untick Polyphony v1.1.',
     patches: [
-      { addr: '0x8048a00', bytes: '30b5104c208801302080b0f5006f07d100202080a1780131182900db0021a170a178094d002028706870a870ca0801f0070101208840a854bde83040024903487047000010ff0010741e00202c2b0020' },
+      { addr: '0x8048a00', bytes: '30b50c4c246894f8df1201f01f01182900db1839084d002028706870a870ca0801f0070101208840a854bde8304002490248704750040020741e00202c2b0020' },
       { addr: '0x8012068', bytes: '36f0cafb' }
     ]
   };

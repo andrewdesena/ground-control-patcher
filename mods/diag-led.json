@@ -1,7 +1,7 @@
 {
   "name": "LED bit-map diagnostic",
   "status": "diagnostic",
-  "description": "Diagnostic sweep: lights key bits 0..23 one at a time in bit order, repeating. Watch one full cycle and report the order the keys light. Flash alone (untick Polyphony v1.1).",
+  "description": "Diagnostic: lights the key bit equal to the current edit step on Track 1 (step 0 -> bit 0, step 1 -> bit 1 ... mod 24). Page through steps in EDIT and report which key lights for each. Safe: no RAM writes except the LED output buffer.",
   "requires": {
     "blank": [
       "0x08048800",
@@ -11,7 +11,7 @@
   "patches": [
     {
       "addr": "0x8048a00",
-      "bytes": "30b5104c208801302080b0f5006f07d100202080a1780131182900db0021a170a178094d002028706870a870ca0801f0070101208840a854bde83040024903487047000010ff0010741e00202c2b0020",
+      "bytes": "30b50c4c246894f8df1201f01f01182900db1839084d002028706870a870ca0801f0070101208840a854bde8304002490248704750040020741e00202c2b0020",
       "note": "cave routine"
     },
     {
