@@ -299,10 +299,10 @@
   };
   // Diagnostic: LED bit-map probe (flash alone, do not combine with polyphony)
   var DIAG = {
-    name: 'LED plane probe 0', version: 'diag', status: 'diagnostic', enabled: false,
-    description: 'Diagnostic: lights keys whose bit index is odd (bits 1,3,5...23). Set-only. Report which keys light.',
+    name: 'LED plane probe 1', version: 'diag', status: 'diagnostic', enabled: false,
+    description: 'Diagnostic: lights keys whose bit index has bit 1 set (2,3,6,7...). Set-only. Report lit keys as low/high.',
     patches: [
-      { addr: '0x8048a00', bytes: '10b5094c207840f0aa002070607840f0aa006070a07840f0aa00a070bde810400149024870470000741e00202c2b0020' },
+      { addr: '0x8048a00', bytes: '10b5094c207840f0cc002070607840f0cc006070a07840f0cc00a070bde810400149024870470000741e00202c2b0020' },
       { addr: '0x8012068', bytes: '36f0cafc' }
     ]
   };

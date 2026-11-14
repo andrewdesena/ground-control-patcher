@@ -1,0 +1,32 @@
+{
+  "name": "LED plane probe 1",
+  "status": "diagnostic",
+  "description": "Diagnostic: ORs mask 0xCC into LED phase output bytes 0-2 (bit 1 of index). Report lit keys. Set-only, no clearing.",
+  "cave": {
+    "addr": "0x08048A00",
+    "asm": [
+      "push {r4, lr}",
+      "ldr r4, =0x20001E74",
+      "ldrb r0, [r4, #0]",
+      "orr r0, #0xcc",
+      "strb r0, [r4, #0]",
+      "ldrb r0, [r4, #1]",
+      "orr r0, #0xcc",
+      "strb r0, [r4, #1]",
+      "ldrb r0, [r4, #2]",
+      "orr r0, #0xcc",
+      "strb r0, [r4, #2]",
+      "pop {r4, lr}",
+      "ldr r1, =0x20001E74",
+      "ldr r0, =0x20002B2C",
+      "bx lr"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x08012068",
+      "asm": ["bl 0x08048A00"],
+      "note": "OR bit-1 plane into phase output before shift-out"
+    }
+  ]
+}

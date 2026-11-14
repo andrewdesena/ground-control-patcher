@@ -1,0 +1,19 @@
+{
+  "name": "LED plane probe 1",
+  "status": "diagnostic",
+  "description": "ORs 0xCC into LED bytes 0-2 (bit 1). Report lit keys.",
+  "requires": {},
+  "patches": [
+    {
+      "addr": "0x8048a00",
+      "bytes": "10b5094c207840f0cc002070607840f0cc006070a07840f0cc00a070bde810400149024870470000741e00202c2b0020",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8012068",
+      "bytes": "36f0cafc",
+      "note": "OR bit-1 plane into phase output before shift-out"
+    }
+  ],
+  "enabled": false
+}
