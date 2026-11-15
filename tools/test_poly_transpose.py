@@ -11,6 +11,7 @@ in that track's poly record, clamped to 0..127.
 import os, sys, json
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
 import asm
+from test_poly_module_only import cache_setup
 from unicorn import Uc, UC_ARCH_ARM, UC_MODE_THUMB, UcError
 from unicorn.arm_const import *
 
@@ -39,8 +40,9 @@ def run_case(cave, delta):
         base = TRACK + i * 0x400
         uc.mem_write(TABLE + i * 4, base.to_bytes(4, 'little'))
         uc.mem_write(base + 0x2e, bytes([i]))
+    cache_setup(uc, tuple(TRACK + i * 0x400 for i in range(4)), (1, 2, 3))
     ip = TRACK + IDX * 0x400 + IDX * 0x194
-    addr = POLY + IDX * 0x880
+    addr = POLY + (IDX - 1) * 0x880
     uc.mem_write(addr + 0 * 17, bytes([2, 60, 64]))
     uc.mem_write(addr + 1 * 17, bytes([1, 120]))
     uc.reg_write(UC_ARM_REG_R12, ip)

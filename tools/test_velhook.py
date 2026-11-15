@@ -10,6 +10,11 @@ reproduces the original two ldrb (+ returns to 0x0801F1EC with r3=note, r2=vel).
 """
 import os, sys, json
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
+# Keep Python assembly files and clang scratch files in the same writable root.
+# clang does not share tempfile's fallback when inherited TMPDIR is unavailable.
+import tempfile
+os.environ['TMPDIR'] = os.path.realpath('/tmp')
+tempfile.tempdir = os.environ['TMPDIR']
 import asm
 from unicorn import Uc, UC_ARCH_ARM, UC_MODE_THUMB, UC_HOOK_CODE, UcError
 from unicorn.arm_const import *

@@ -14,6 +14,7 @@ from unicorn.arm_const import *
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from asm import build
+from test_poly_module_only import cache_setup
 
 CAVE = 0x08047600
 PAIR = 0x08019A92
@@ -35,7 +36,7 @@ def run(count, notes, selector, step=0, primary=60):
         rec += bytes([n, v])
     u.mem_write(BASE + max(selector - 1, 0) * 0x880 + step * 17, rec)
     u.mem_write(0x08028230, struct.pack('<I', 0x20008000))
-    for i in range(3): u.mem_write(0x08038370 + i*4, struct.pack('<I', 0x20008000 + i*0x194))
+    cache_setup(u, (0x20006000, *(0x20008000 + i*0x194 for i in range(3))))
     voice = 0x20008000 + max(selector - 1, 0) * 0x194
     u.mem_write(voice + 0x3c, bytes([step]))
     par = 0x20008000 + (selector - 1) * 0x194

@@ -1,42 +1,49 @@
 {
-  "name": "poly-clear-on-rest",
+  "name": "poly-clear",
   "status": "experimental",
-  "description": "Clears a step's chord record when the firmware commits a rest/clear (commit FUN_0801F32C is called with r1 < 0). Hook at 0x0801F32E (reproduces strb.w r1,[r0,#0x2f5]) checks r1; if negative it zeroes poly[track][step] at 0x1000B530 + track*0x880 + step*17. Normal note commits (r1 >= 0) leave the chord intact, so adding a note does not wipe the step.",
+  "description": "Rest commits clear a complete active chord record. Stock selector 0 drums skipped, valid active cache required, explicit dirty bit set. Final signed comparison preserves the stock continuation flags. The stock commit is a leaf function: use B.W and resume at 0x0801F332 with the original LR intact.",
   "cave": {
-    "addr": "0x08048400",
+    "addr": "0x8048400",
     "asm": [
+      "push {r0-r4, lr}",
       "cmp r1, #0",
-      "bge 1f",
-      "ldrb.w r2, [r0, #0x2e1]",
-      "ldrb.w r3, [r0, #0x2df]",
-      "lsls r12, r2, #11",
-      "add r12, r12, r2, lsl #7",
-      "lsls r2, r3, #4",
-      "add r2, r2, r3",
-      "add r12, r12, r2",
-      "movw r2, #0xb530",
-      "movt r2, #0x1000",
-      "add r12, r12, r2",
-      "movs r2, #0",
-      "strb r2, [r12]",
-      "1:",
+      "bge rest_done",
+      "ldrb.w r0, [r0, #0x2e1]",
+      "bl 0x0804af00",
+      "cmp r0, #0",
+      "beq rest_done",
+      "ldr r4, [sp]",
+      "ldrb.w r3, [r4, #0x2df]",
+      "cmp r3, #128",
+      "bhs rest_done",
+      "add r0, r0, r3, lsl #4",
+      "add r0, r0, r3",
+      "movs r2, #17",
+      "movs r3, #0",
+      "rest_loop:",
+      "strb r3, [r0], #1",
+      "subs r2, #1",
+      "bne rest_loop",
+      "rest_done:",
+      "pop {r0-r4, lr}",
       "strb.w r1, [r0, #0x2f5]",
-      "bx lr"
+      "cmp r1, #0",
+      "b.w 0x0801f332"
     ]
   },
   "patches": [
     {
-      "addr": "0x0801F32E",
+      "addr": "0x801f32e",
       "asm": [
-        "bl 0x08048400"
+        "b.w 0x08048400"
       ],
-      "note": "rest/clear commit also clears the step's poly record"
+      "note": "rest commit zeroes all 17 chord bytes and preserves signed branch flags"
     }
   ],
   "requires": {
     "blank": [
-      "0x08048400",
-      "0x080484FF"
+      "0x8048400",
+      "0x80486c4"
     ]
   }
 }

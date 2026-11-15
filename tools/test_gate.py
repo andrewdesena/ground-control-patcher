@@ -2,7 +2,7 @@
 """
 test_gate.py — unit-test the stock-gate wrapper (poly-gate).
 
-Stubs the emitter body (0x802174C = bx lr) and checks the wrapper calls 0x8021748 (its `bl`) once
+Stubs the emitter body with its real 48-byte frame epilogue and checks the wrapper calls 0x8021748 (its `bl`) once
 per poly note EXCEPT the primary, passing the SAME gate (r3) and time (r1) as the primary call,
 with the correct temp step-record note. That is what "stock-accurate gate" requires: extras go
 through the real emitter with the primary's timing/gate rather than a fixed duration.
@@ -11,6 +11,11 @@ through the real emitter with the primary's timing/gate rather than a fixed dura
 """
 import os, sys, json
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
+# Keep Python assembly files and clang scratch files in the same writable root.
+# clang does not share tempfile's fallback when inherited TMPDIR is unavailable.
+import tempfile
+os.environ['TMPDIR'] = os.path.realpath('/tmp')
+tempfile.tempdir = os.environ['TMPDIR']
 import asm
 from unicorn import Uc, UC_ARCH_ARM, UC_MODE_THUMB, UC_HOOK_CODE, UcError
 from unicorn.arm_const import *
@@ -39,7 +44,7 @@ def run_case(cave, patch, pa, notes, primary, channel, step, gate, label):
     uc.mem_map(0x10000000, 0x10000)
     uc.mem_write(CAVE, cave)
     uc.mem_write(pa, patch)
-    uc.mem_write(BODY_STUB, bytes([0x70, 0x47]))     # body -> bx lr (return immediately)
+    uc.mem_write(BODY_STUB, asm.assemble(['pop {r0-r10, pc}'], BODY_STUB))     # body -> bx lr (return immediately)
     uc.mem_write(OBJ, b'\x00' * 0x100); uc.mem_write(PAR, b'\x00' * 0x40)
     uc.mem_write(OBJ + 8, PAR.to_bytes(4, 'little'))
     uc.mem_write(OBJ + 0x40, HAND.to_bytes(4, 'little'))
@@ -53,9 +58,12 @@ def run_case(cave, patch, pa, notes, primary, channel, step, gate, label):
     for n, v in notes:
         buf += bytes([n, v])
     uc.mem_write(addr, buf)
+    from capstone import Cs, CS_ARCH_ARM, CS_MODE_THUMB
+    emitter_call = next(i.address for i in Cs(CS_ARCH_ARM, CS_MODE_THUMB).disasm(cave, CAVE)
+                        if i.mnemonic == 'bl' and i.op_str == '#0x8021748')
     calls = []
     def hc(u, a, s, _):
-        if a == BL:
+        if a == emitter_call:
             t = u.reg_read(UC_ARM_REG_R2)
             note = u.mem_read(t, 1)[0]
             calls.append((note, u.reg_read(UC_ARM_REG_R3), u.reg_read(UC_ARM_REG_R1)))
@@ -65,11 +73,11 @@ def run_case(cave, patch, pa, notes, primary, channel, step, gate, label):
     uc.reg_write(UC_ARM_REG_SP, 0x2001F000); uc.reg_write(UC_ARM_REG_LR, 0x2001FFF1)
     uc.mem_write(0x2001F000, (100).to_bytes(4, 'little'))
     try:
-        uc.emu_start(CAVE | 1, 0x2001FFF1, count=60000)
+        uc.emu_start(CAVE | 1, 0x2001FFF0, count=60000)
     except UcError as e:
         print("   UCERR", e, "pc=0x%08X" % uc.reg_read(UC_ARM_REG_PC))
     exp = [(n, gate, 777) for (n, v) in notes if n != primary]
-    ok = calls == exp
+    ok = calls == exp and uc.reg_read(UC_ARM_REG_PC) == 0x2001FFF0 and uc.reg_read(UC_ARM_REG_SP) == 0x2001F000
     print(f"  {label:22} poly={notes} -> emitter calls={calls} {'OK' if ok else 'FAIL exp '+str(exp)}")
     return ok
 

@@ -1,16 +1,14 @@
 {
   "name": "poly-transpose-follow",
   "status": "experimental",
-  "description": "Track transpose/shift (FUN_08028194) walks the 128 mono step notes and adds a delta. This hook at 0x08028224 runs only on the success path, reproduces strh r4,[ip,#0x38], recovers the track index by matching ip against the track table (pattern sub-struct = track + index*0x194), then adds the same delta to every note in that track's poly record (clamped 0..127). Chords now follow transpose/scale shifts applied on the module.",
+  "description": "Installed success-only transpose hook resolves stock table slots 1..3, changes every used poly note in the tagged active bank with clamp 0..127 and marks dirty. Drum slot 0 excluded. Held-entry success at 0x0801F23E shifts only the edited poly step, following octave/transpose of the held-note queue. Native pattern parents come from the flash table, independently of the RAM held-manager table at 0x20000450.",
   "cave": {
     "addr": "0x08048600",
     "asm": [
-      "push {r0, r1, r2, r3, r4, r5, r6, r7, lr}",
+      "push {r0-r8, lr}",
       "strh.w r4, [r12, #0x38]",
-      "movw r0, #0x8230",
-      "movt r0, #0x0802",
-      "ldr r0, [r0]",
-      "movs r1, #0",
+      "ldr r0, =0x08038370",
+      "movs r1, #1",
       "1:",
       "ldr r2, [r0, r1, lsl #2]",
       "ldrb r3, [r2, #0x2e]",
@@ -23,14 +21,16 @@
       "bne 1b",
       "b 9f",
       "2:",
-      "movw r0, #0xb530",
-      "movt r0, #0x1000",
-      "lsls r2, r1, #11",
-      "add r2, r2, r1, lsl #7",
-      "add r0, r0, r2",
+      "mov r0, r1",
+      "bl 0x0804af00",
+      "cmp r0, #0",
+      "beq 9f",
       "movs r1, #0",
       "3:",
       "ldrb r2, [r0]",
+      "cmp r2, #8",
+      "it hi",
+      "movhi r2, #0",
       "movs r3, #0",
       "4:",
       "cmp r3, r2",
@@ -56,7 +56,47 @@
       "cmp r1, #128",
       "bne 3b",
       "9:",
-      "pop {r0, r1, r2, r3, r4, r5, r6, r7, pc}"
+      "pop {r0-r8, pc}",
+      ".org 0x100",
+      "@ held-entry transpose: stock 1f20c succeeded, r7=manager+8, r1=delta",
+      "bhi held_more",
+      "push {r0-r3, r5, lr}",
+      "sub sp, #4",
+      "ldrb.w r0, [r7, #0x2d9]",
+      "bl 0x0804af00",
+      "cmp r0, #0",
+      "beq held_done",
+      "ldrb.w r2, [r7, #0x2d7]",
+      "cmp r2, #128",
+      "bhs held_done",
+      "add r0, r0, r2, lsl #4",
+      "add r0, r0, r2",
+      "ldrb r2, [r0]",
+      "cmp r2, #8",
+      "bhi held_done",
+      "adds r0, #1",
+      "held_loop:",
+      "cmp r2, #0",
+      "beq held_done",
+      "ldrb r3, [r0]",
+      "add r3, r3, r1",
+      "cmp r3, #0",
+      "it lt",
+      "movlt r3, #0",
+      "cmp r3, #127",
+      "it gt",
+      "movgt r3, #127",
+      "strb r3, [r0]",
+      "adds r0, #2",
+      "subs r2, #1",
+      "b held_loop",
+      "held_done:",
+      "add sp, #4",
+      "pop {r0-r3, r5, lr}",
+      "movs r0, #1",
+      "b.w 0x0801f242",
+      "held_more:",
+      "b.w 0x0801f25a"
     ]
   },
   "patches": [
@@ -66,12 +106,19 @@
         "bl 0x08048600"
       ],
       "note": "after successful mono transpose, shift the same track's chord notes"
+    },
+    {
+      "addr": "0x0801F23E",
+      "asm": [
+        "b.w 0x08048700"
+      ],
+      "note": "held-note transpose loop exit -> shift poly on success; preserve shared failure epilogue at F242"
     }
   ],
   "requires": {
     "blank": [
       "0x08048600",
-      "0x080486FF"
+      "0x080487ff"
     ]
   }
 }

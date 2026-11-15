@@ -10,6 +10,10 @@ branch lands on the exact intended absolute address.
   python3 tools/test_thumbfix.py
 """
 import os, sys, subprocess, tempfile
+# Keep Python assembly files and clang scratch files in the same writable root.
+# clang does not share tempfile's fallback when inherited TMPDIR is unavailable.
+os.environ['TMPDIR'] = os.path.realpath('/tmp')
+tempfile.tempdir = os.environ['TMPDIR']
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from elftools.elf.elffile import ELFFile

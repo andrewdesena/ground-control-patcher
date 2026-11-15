@@ -1,0 +1,572 @@
+{
+  "name": "poly-lifecycle-validation-report",
+  "status": "emulator-verified-hardware-pending",
+  "description": "Final QA evidence for the installed module. Not an installable patch.",
+  "patches": [],
+  "summary": "PASS: all 17 original suites plus the new SD concurrency suite; readiness gate; real scheduler wrap regression; source-aware native imports; foreign-project delete; invalid-TMPDIR direct invocation.",
+  "findings": [
+    {
+      "finding": 1,
+      "status": "PASS",
+      "fix": "Shared scheduler pair admission requires two of 127 usable slots before the on/off pair. Full-ring insertion cannot overwrite outstanding events. Real insertion, sorting and due-drain reproduce the original 128-event wrap then preserve a prequeued note-off across three tracks and eight ratchets."
+    },
+    {
+      "finding": 2,
+      "status": "PASS",
+      "fix": "Capture native source cwd project/track and source letter before the stock loader. Preserve live edits and authoritative clears, then install independent destination bytes. Active failed persistence retains a dirty snapshot. Tests use different letters, tracks and projects, including the real stock import caller at 0x0801D064."
+    },
+    {
+      "finding": 3,
+      "status": "PASS",
+      "fix": "SD worker snapshots and publishes under short mutex sections. Reads/writes/mkdir occur unlocked. Generation, project and effective request must match before publication or dirty clearing. Independent task contexts and stacks drain a real due note-off while the worker is suspended at read/write boundaries. ABA, edit, clear and cross-project clear races pass."
+    },
+    {
+      "finding": 4,
+      "status": "PASS",
+      "fix": "Delete compares its parsed project with the current project before modifying clear masks, generations or cache."
+    },
+    {
+      "finding": "harness",
+      "status": "PASS",
+      "fix": "Test entry points normalize Python and clang temporary directories. --require-ready runs required QA regressions and rejects missing, corrupt, unexpected or duplicate patch addresses and skipped regression coverage."
+    }
+  ],
+  "checks": [
+    {
+      "suite": "tools/test_capture.py",
+      "command": "./.venv/bin/python tools/test_capture.py",
+      "exit": 0,
+      "log": "/private/tmp/gc-qa-test_capture.log"
+    },
+    {
+      "suite": "tools/test_fanout.py",
+      "command": "./.venv/bin/python tools/test_fanout.py",
+      "exit": 0,
+      "log": "/private/tmp/gc-qa-test_fanout.log"
+    },
+    {
+      "suite": "tools/test_fanout_real.py",
+      "command": "./.venv/bin/python tools/test_fanout_real.py",
+      "exit": 0,
+      "log": "/private/tmp/gc-qa-test_fanout_real.log"
+    },
+    {
+      "suite": "tools/test_gate.py",
+      "command": "./.venv/bin/python tools/test_gate.py",
+      "exit": 0,
+      "log": "/private/tmp/gc-qa-test_gate.log"
+    },
+    {
+      "suite": "tools/test_poly_chord.py",
+      "command": "./.venv/bin/python tools/test_poly_chord.py",
+      "exit": 0,
+      "log": "/private/tmp/gc-qa-test_poly_chord.log"
+    },
+    {
+      "suite": "tools/test_poly_clear.py",
+      "command": "./.venv/bin/python tools/test_poly_clear.py",
+      "exit": 0,
+      "log": "/private/tmp/gc-qa-test_poly_clear.log"
+    },
+    {
+      "suite": "tools/test_poly_entry.py",
+      "command": "./.venv/bin/python tools/test_poly_entry.py",
+      "exit": 0,
+      "log": "/private/tmp/gc-qa-test_poly_entry.log"
+    },
+    {
+      "suite": "tools/test_poly_init.py",
+      "command": "./.venv/bin/python tools/test_poly_init.py",
+      "exit": 0,
+      "log": "/private/tmp/gc-qa-test_poly_init.log"
+    },
+    {
+      "suite": "tools/test_poly_load.py",
+      "command": "./.venv/bin/python tools/test_poly_load.py",
+      "exit": 0,
+      "log": "/private/tmp/gc-qa-test_poly_load.log"
+    },
+    {
+      "suite": "tools/test_poly_module_only.py",
+      "command": "./.venv/bin/python tools/test_poly_module_only.py --require-ready",
+      "exit": 0,
+      "log": "/private/tmp/gc-qa-test_poly_module_only.log"
+    },
+    {
+      "suite": "tools/test_poly_save.py",
+      "command": "./.venv/bin/python tools/test_poly_save.py",
+      "exit": 0,
+      "log": "/private/tmp/gc-qa-test_poly_save.log"
+    },
+    {
+      "suite": "tools/test_poly_sd_concurrency.py",
+      "command": "./.venv/bin/python tools/test_poly_sd_concurrency.py",
+      "exit": 0,
+      "log": "/private/tmp/gc-qa-test_poly_sd_concurrency.log"
+    },
+    {
+      "suite": "tools/test_poly_transpose.py",
+      "command": "./.venv/bin/python tools/test_poly_transpose.py",
+      "exit": 0,
+      "log": "/private/tmp/gc-qa-test_poly_transpose.log"
+    },
+    {
+      "suite": "tools/test_polyrecord.py",
+      "command": "./.venv/bin/python tools/test_polyrecord.py",
+      "exit": 0,
+      "log": "/private/tmp/gc-qa-test_polyrecord.log"
+    },
+    {
+      "suite": "tools/test_polysteps.py",
+      "command": "./.venv/bin/python tools/test_polysteps.py",
+      "exit": 0,
+      "log": "/private/tmp/gc-qa-test_polysteps.log"
+    },
+    {
+      "suite": "tools/test_project_format.py",
+      "command": "./.venv/bin/python tools/test_project_format.py",
+      "exit": 0,
+      "log": "/private/tmp/gc-qa-test_project_format.log"
+    },
+    {
+      "suite": "tools/test_thumbfix.py",
+      "command": "./.venv/bin/python tools/test_thumbfix.py",
+      "exit": 0,
+      "log": "/private/tmp/gc-qa-test_thumbfix.log"
+    },
+    {
+      "suite": "tools/test_velhook.py",
+      "command": "./.venv/bin/python tools/test_velhook.py",
+      "exit": 0,
+      "log": "/private/tmp/gc-qa-test_velhook.log"
+    },
+    {
+      "command": "python3 tools/verify.py mods/v1-poly-full.json",
+      "exit": 0,
+      "result": "OK; untouched bytes that moved: 0; no collateral. System Python lacks optional Capstone, so disassembly was additionally verified with .venv."
+    },
+    {
+      "command": "./.venv/bin/python tools/verify.py mods/v1-poly-full.json",
+      "exit": 0,
+      "result": "OK, including Capstone disassembly"
+    },
+    {
+      "command": "TMPDIR=/nonexistent/gc-temp ./.venv/bin/python tools/test_poly_module_only.py --require-ready",
+      "exit": 0,
+      "result": "PASS"
+    },
+    {
+      "command": "node test/roundtrip.mjs",
+      "exit": 0,
+      "result": "15/15"
+    },
+    {
+      "command": "node test/mods.mjs",
+      "exit": 0,
+      "result": "9/9"
+    },
+    {
+      "command": "node --check on both nonempty current inline scripts",
+      "exit": 0,
+      "result": "PASS"
+    },
+    {
+      "command": "~/bin/prose-lint.sh <all changed authorized files>",
+      "exit": 0,
+      "result": "clean"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0,
+      "result": "PASS"
+    },
+    {
+      "command": "git diff --name-only -- testdata",
+      "exit": 0,
+      "result": "empty; testdata unchanged"
+    }
+  ],
+  "readiness_regression_groups": 28,
+  "stock_to_installed_hook_bytes": [
+    {
+      "address": "0x08025814",
+      "stock": "5977efe7",
+      "installed": "21f0f4bd",
+      "purpose": "armed step store -> cave (store+poly capture)"
+    },
+    {
+      "address": "0x0801F1E8",
+      "stock": "0b794a79",
+      "installed": "28f00abb",
+      "purpose": "note-on add -> stash velocity by note"
+    },
+    {
+      "address": "0x0801C542",
+      "stock": "06a8f8f7e8fc",
+      "installed": "2bf05dfc00bf",
+      "purpose": "native writer close -> snapshot by source parent and destination letter"
+    },
+    {
+      "address": "0x080217F4",
+      "stock": "f8f74df9",
+      "installed": "25f004ff",
+      "purpose": "real pair call -> chord fan-out cave"
+    },
+    {
+      "address": "0x08019A92",
+      "stock": "2de9f743",
+      "installed": "2df035be",
+      "purpose": "admit complete on/off pair only when the real ring has two free usable slots"
+    },
+    {
+      "address": "0x08019840",
+      "stock": "2de9f04f",
+      "installed": "2df07ebf",
+      "purpose": "full scheduler ring rejects new insertions without overwriting pending events"
+    },
+    {
+      "address": "0x0801F32E",
+      "stock": "80f8f512",
+      "installed": "29f067b8",
+      "purpose": "rest commit zeroes all 17 chord bytes and preserves signed branch flags"
+    },
+    {
+      "address": "0x0801C5F4",
+      "stock": "07f01efd",
+      "installed": "2cf004ff",
+      "purpose": "new track directory -> initialize zero sidecars, then stock project accessor"
+    },
+    {
+      "address": "0x0801FD52",
+      "stock": "94f82061",
+      "installed": "28f055f9",
+      "purpose": "note-on -> append chord note to step poly"
+    },
+    {
+      "address": "0x08028224",
+      "stock": "acf83840",
+      "installed": "20f0ecf9",
+      "purpose": "after successful mono transpose, shift the same track's chord notes"
+    },
+    {
+      "address": "0x0801F23E",
+      "stock": "0cd80120",
+      "installed": "29f05fba",
+      "purpose": "held-note transpose loop exit -> shift poly on success; preserve shared failure epilogue at F242"
+    },
+    {
+      "address": "0x0801FE2A",
+      "stock": "84f8df32",
+      "installed": "28f0e9f9",
+      "purpose": "second key held in step record: keep step instead of advancing"
+    },
+    {
+      "address": "0x08020706",
+      "stock": "12f0a6fd",
+      "installed": "2af07bf8",
+      "purpose": "SD task queue receive -> service active-letter cache outside timing callback"
+    },
+    {
+      "address": "0x0801CCC4",
+      "stock": "2de9f04f",
+      "installed": "2df01cbe",
+      "purpose": "native loader invalidates active destination, including native-missing branch"
+    },
+    {
+      "address": "0x0802316E",
+      "stock": "84f82e30",
+      "installed": "27f047fc",
+      "purpose": "defer melodic letter store until SD task installs a zeroed/validated cache"
+    },
+    {
+      "address": "0x08021670",
+      "stock": "83f82e20",
+      "installed": "29f0e6f9",
+      "purpose": "defer melodic letter store until SD task installs a zeroed/validated cache"
+    },
+    {
+      "address": "0x08029C8E",
+      "stock": "83f82e20",
+      "installed": "20f0f7fe",
+      "purpose": "defer melodic letter store until SD task installs a zeroed/validated cache"
+    },
+    {
+      "address": "0x0801A4D0",
+      "stock": "102370b5",
+      "installed": "30f016bb",
+      "purpose": "native melodic clear vtable -> clear cached chord snapshot"
+    },
+    {
+      "address": "0x0802BEFC",
+      "stock": "0123a8f80430",
+      "installed": "1ef020be00bf",
+      "purpose": "inline module melodic clear -> clear poly before stock present/dirty store"
+    },
+    {
+      "address": "0x080215E8",
+      "stock": "0c4b0d4a",
+      "installed": "29f0eab9",
+      "purpose": "boot poly manager init -> zero cache and metadata"
+    },
+    {
+      "address": "0x0801C16E",
+      "stock": "f8f7a2ff",
+      "installed": "2ef007fe",
+      "purpose": "successful native pattern delete -> unlink its melodic sidecar and clear snapshot"
+    },
+    {
+      "address": "0x0801C49A",
+      "stock": "f8f70cfe",
+      "installed": "2ef0d1fc",
+      "purpose": "empty native save -> persist zero sidecar"
+    },
+    {
+      "address": "0x0801DB60",
+      "stock": "2de9f041",
+      "installed": "2df00eba",
+      "purpose": "project load -> flush old project and zero all chord RAM before stock load"
+    },
+    {
+      "address": "0x0801D300",
+      "stock": "fff7a6f8",
+      "installed": "2ef07ef8",
+      "purpose": "stock save-as/copy caller scopes destination selector for an independent chord snapshot"
+    },
+    {
+      "address": "0x0801C688",
+      "stock": "fff7e2fe",
+      "installed": "2ef0fafe",
+      "purpose": "stock whole-project writer scopes destination project before stock project-ID commit"
+    }
+  ],
+  "caves": [
+    {
+      "address": "0x08047400",
+      "length": 136,
+      "end_inclusive": "0x08047487",
+      "sha256": "d547b2f474e088236c12dd04eecfdc7598bb364acca8f36b152c1918a2b9ce24",
+      "exact_bytes": "mods/v1-poly-full.json patches[0].bytes"
+    },
+    {
+      "address": "0x08047800",
+      "length": 32,
+      "end_inclusive": "0x0804781F",
+      "sha256": "fd3f1b3b390b94372afee05497c47458034d89e085d988b21356ad301cf32712",
+      "exact_bytes": "mods/v1-poly-full.json patches[2].bytes"
+    },
+    {
+      "address": "0x08049000",
+      "length": 6,
+      "end_inclusive": "0x08049005",
+      "sha256": "691aa3a5d5b3c2a7cc7de653c896dd2ebb1c47cca2179305f35f1df15e818808",
+      "exact_bytes": "mods/v1-poly-full.json patches[4].bytes"
+    },
+    {
+      "address": "0x08047E00",
+      "length": 24,
+      "end_inclusive": "0x08047E17",
+      "sha256": "872deddd780fb7d4ce622bccd5adf48550c02bf82acddb92f612d6d8943786bc",
+      "exact_bytes": "mods/v1-poly-full.json patches[5].bytes"
+    },
+    {
+      "address": "0x08047600",
+      "length": 368,
+      "end_inclusive": "0x0804776F",
+      "sha256": "acee876614d047419a8336c33e3662b580f0a9bf2d01be4a2c73737aa3b347e5",
+      "exact_bytes": "mods/v1-poly-full.json patches[7].bytes"
+    },
+    {
+      "address": "0x08048400",
+      "length": 60,
+      "end_inclusive": "0x0804843B",
+      "sha256": "3665e6e4872602bba9b37f6db817732ca9dbd054de4842a45888c8f8b5bd0e0b",
+      "exact_bytes": "mods/v1-poly-full.json patches[11].bytes"
+    },
+    {
+      "address": "0x08049400",
+      "length": 140,
+      "end_inclusive": "0x0804948B",
+      "sha256": "d030b319eb39153005972cfbdf61ee57c8a3611e0e8408d8a0a8bc985a4b8932",
+      "exact_bytes": "mods/v1-poly-full.json patches[13].bytes"
+    },
+    {
+      "address": "0x08048000",
+      "length": 134,
+      "end_inclusive": "0x08048085",
+      "sha256": "5c5a49408c1637c85578f84aa344b0ceec77df13e622c3fa792694bc18e2e87e",
+      "exact_bytes": "mods/v1-poly-full.json patches[15].bytes"
+    },
+    {
+      "address": "0x08048600",
+      "length": 344,
+      "end_inclusive": "0x08048757",
+      "sha256": "0a231593be659deb8566b774319afeae3e5282172464790143f1237f1a9ed09b",
+      "exact_bytes": "mods/v1-poly-full.json patches[17].bytes"
+    },
+    {
+      "address": "0x08048200",
+      "length": 18,
+      "end_inclusive": "0x08048211",
+      "sha256": "6999ae3f35a93abc90cb2f2ce2e8666a60d489602396db5944bce4c7c4426033",
+      "exact_bytes": "mods/v1-poly-full.json patches[20].bytes"
+    },
+    {
+      "address": "0x0804A000",
+      "length": 8704,
+      "end_inclusive": "0x0804C1FF",
+      "sha256": "e300ffdfad5dddcafce156a3a915aa53cb93dfd237cd4ab2575007148ef560c4",
+      "exact_bytes": "mods/v1-poly-full.json patches[22].bytes"
+    }
+  ],
+  "exact_fix_region_bytes": [
+    {
+      "address": "0x08047700",
+      "length": 48,
+      "purpose": "Complete-pair admission guard",
+      "bytes": "2de90f500948d0f8001ad0f8042a521a02f07f027e2a05d2bde80f502de9f743d2f7b9b9bde80f500020704710700010"
+    },
+    {
+      "address": "0x08047740",
+      "length": 48,
+      "purpose": "Full-ring insertion guard",
+      "bytes": "2de90f500948d0f8001ad0f8042a521a02f07f027f2a05d2bde80f502de9f04fd2f770b8bde80f500020704710700010"
+    },
+    {
+      "address": "0x0804A600",
+      "length": 4,
+      "purpose": "Worker trampoline",
+      "bytes": "01f0feb8"
+    },
+    {
+      "address": "0x0804A900",
+      "length": 4,
+      "purpose": "Source-aware native-loader trampoline",
+      "bytes": "01f07ebb"
+    },
+    {
+      "address": "0x0804ADB4",
+      "length": 10,
+      "purpose": "Deleted-project check before masks/cache changes",
+      "bytes": "0e4890f88c00b84214d1"
+    },
+    {
+      "address": "0x0804B800",
+      "length": 384,
+      "purpose": "Worker snapshot, unlocked I/O and checked publication",
+      "bytes": "2de9f04f85b0594c20685949884240f0938000254ff0ff30d7f742fd554850f8256004eb050797f80480b8f1180f01d396f82e80b8f1180f78d24f4890f88c90284600f07dfb04f1400050f825b04b4840f6800105fb010a387c012828d1387a404502d1387b484559d0387d00281fd0387a0090387b01904148514640f68002e9f7d2fdd7f714fd28460099019a0523fef736fd02904ff0ff30d7f701fd0298012843d100f04bf800283fd0002038753348fef725fc40f2941008fb006090f8380000281dd004f1180050f82500012101fa08f1084214d1d7f7eafc284641464a460423fef70cfd012802d02448fef707fc4ff0ff30d7f7d3fc00f020f8002814d050461e4940f68002e9f78dfd87f8088087f80c90002038750120387486f82e803879404501d1ff203871d7f7c0fc0135032dfff46eaf05b0bde8f08f04f1400050f8250058450dd10b4890f88c00484508d13879182801d396f82e00404501d10120704700207047000000cf0010594c4f507483030838bb012030b50010"
+    },
+    {
+      "address": "0x0804BF00",
+      "length": 20,
+      "purpose": "Per-track generation bump",
+      "bytes": "07b5034951f82020013241f8202007bd40cf0010"
+    },
+    {
+      "address": "0x0804BF40",
+      "length": 44,
+      "purpose": "Project-owned clear-mask normalization",
+      "bytes": "1fb50649064a92f88c200b5c934204d00a540449002241f820201fbd4ccf001038bb012018cf001000000000"
+    },
+    {
+      "address": "0x0804C000",
+      "length": 512,
+      "purpose": "Source-aware native import and independent destination publication",
+      "bytes": "2de9ff5f82b004460f46fdf7f9ff002800f0d88083460d461646704890f88ca06f488021c9f7a5f800284fd16c4801782f2900d0023090f80890b9f14109b9f1180f43d290f80f80b8f13108b8f1030f3cd2182f3ad24ff0ff30d7f721f9d1450dd14046fff76cff5e4850f82810012202fa07f2114202d0d7f71af926e05a484044017c012910d1017ab9420dd1017b49450ad1554940f6800208fb02115448e9f7c2f9d7f704f913e0d7f701f9404639464a460423fef723f9012806d14c484c4940f68002e9f7aff902e04848fef717f84ff0ff30d7f7e3f82846fff730fffff70eff404800f1180151f82520012303fa06f322ea030241f825202844017ab14208d1017b514505d10021017401755846fdf7f5ff384850f825000090d7f7c7f820460399049a00f054f82079002802d12f48fdf7e4ff2e482d4940f68002e9f772f92846314652460523fef7d8f801904ff0ff30d7f7a3f8274850f82500009988422bd11d4890f88c00504526d1224850f8250090f82e00b04212d158461b4940f68002e9f74ff917482844067280f80ca001210174019a012a08bf002101750ce00198012809d00e4850f82510012202fa06f241ea020140f82510d7f777f804e020460399049a00f003f802b0bde8ff9f2de9f04fd0f776bd38bb012000ef001018cf001000cf001030b5001000f0001000e5001040cf001074830308"
+    }
+  ],
+  "worker_io_boundaries": {
+    "write": {
+      "release": "0x0804B884 d7f714fd",
+      "io": "0x0804B890 fef736fd",
+      "acquire": "0x0804B89A d7f701fd"
+    },
+    "read": {
+      "release": "0x0804B8D8 d7f7eafc",
+      "io": "0x0804B8E4 fef70cfd",
+      "acquire": "0x0804B8F6 d7f7d3fc"
+    }
+  },
+  "ram": {
+    "generations": "0x1000CF40..0x1000CF4B",
+    "mask_projects": "0x1000CF4C..0x1000CF4E",
+    "source_cwd": "0x1000EF00..0x1000EF7F",
+    "independent_import_snapshot": "0x1000F000..0x1000F87F"
+  },
+  "git_diff_numstat": [
+    "196\t20\tindex.html",
+    "1\t1\tmods/poly-chord.source.json",
+    "30\t23\tmods/poly-clear.source.json",
+    "23\t11\tmods/poly-entry.source.json",
+    "61\t10\tmods/poly-fanout.source.json",
+    "8\t94\tmods/poly-load.source.json",
+    "19\t13\tmods/poly-record.source.json",
+    "16\t49\tmods/poly-save.source.json",
+    "60\t13\tmods/poly-transpose.source.json",
+    "144\t16\tmods/v1-poly-full.json",
+    "5\t0\ttools/test_capture.py",
+    "2\t1\ttools/test_fanout.py",
+    "114\t5\ttools/test_fanout_real.py",
+    "13\t5\ttools/test_gate.py",
+    "5\t0\ttools/test_poly_chord.py",
+    "4\t1\ttools/test_poly_clear.py",
+    "3\t1\ttools/test_poly_entry.py",
+    "6\t100\ttools/test_poly_load.py",
+    "6\t89\ttools/test_poly_save.py",
+    "3\t1\ttools/test_poly_transpose.py",
+    "28\t138\ttools/test_polyrecord.py",
+    "5\t0\ttools/test_polysteps.py",
+    "4\t0\ttools/test_thumbfix.py",
+    "5\t0\ttools/test_velhook.py"
+  ],
+  "limitations": [
+    "Unicorn executes real queue, note-pair, due-drain, native-loader/import and installed cache code. FatFS, RTOS boundaries, native tokenizer and final MIDI transport are modeled.",
+    "Physical SD-card timing and hardware validation remain pending."
+  ],
+  "bundle_sha256": "1d67322e797d7a43b52c394d645246dfa1b5339a01bc4fa6cdba21c3b83870cb",
+  "stock_sha256": "c16f25740bdae0f3ca793d3747ad0e578a83dd5d2d4000923471c8716f317fa4",
+  "scope": "Only authorized sources, test files, combined bundle and index were edited. Existing uncommitted changes preserved. No testdata changes and no commit.",
+  "fix_diffs": [
+    {
+      "files": [
+        "mods/poly-fanout.source.json"
+      ],
+      "changes": "Add shared complete-pair admission and full-ring insertion guards, replay displaced prologues, preserve existing queued bytes."
+    },
+    {
+      "files": [
+        "mods/poly-lifecycle.source.json",
+        "mods/poly-load.source.json"
+      ],
+      "changes": "Replace SD worker with unlocked I/O and checked publication; add generations and project-owned masks; replace native loader wrapper with retained source identity and independent destination snapshot; guard foreign-project deletes."
+    },
+    {
+      "files": [
+        "mods/v1-poly-full.json",
+        "index.html"
+      ],
+      "changes": "Rebuild all 36 installed regions from current sources and synchronize the embedded bundle."
+    },
+    {
+      "files": [
+        "tools/test_fanout_real.py",
+        "tools/test_poly_module_only.py",
+        "tools/test_poly_sd_concurrency.py"
+      ],
+      "changes": "Real queue saturation/drain, source-aware native import/copy and failed persistence, foreign delete, independent competing tasks, stale generations, and enforcing readiness negative tests."
+    },
+    {
+      "files": [
+        "tools/test_capture.py",
+        "tools/test_fanout_real.py",
+        "tools/test_gate.py",
+        "tools/test_poly_chord.py",
+        "tools/test_poly_module_only.py",
+        "tools/test_polysteps.py",
+        "tools/test_thumbfix.py",
+        "tools/test_velhook.py"
+      ],
+      "changes": "Normalize inherited clang TMPDIR and Python tempfile.tempdir for direct invocations."
+    }
+  ],
+  "git_diff_scope_note": "Numstat includes existing uncommitted work from before this task; newly added source/test files can be untracked. Fix-specific address and byte diffs are listed above."
+}

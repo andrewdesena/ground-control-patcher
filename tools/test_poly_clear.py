@@ -7,6 +7,7 @@ test_poly_clear.py — rest/clear must zero the step's poly record; note commits
 import os, sys, json
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
 import asm
+from test_poly_module_only import cache_setup
 from unicorn import Uc, UC_ARCH_ARM, UC_MODE_THUMB, UcError
 from unicorn.arm_const import *
 
@@ -27,8 +28,10 @@ def run_case(cave, note, label):
     uc.mem_map(0x20000000, 0x20000)
     uc.mem_map(0x10000000, 0x10000)
     uc.mem_write(CAVE, cave)
+    cache_setup(uc)
+    uc.reg_write(UC_ARM_REG_SP, 0x2001F000)
     uc.mem_write(TRACK, b'\x00' * 0x400)
-    uc.mem_write(TRACK + 0x2e1, bytes([1]))
+    uc.mem_write(TRACK + 0x2e1, bytes([2]))
     uc.mem_write(TRACK + 0x2df, bytes([4]))
     addr = POLY + 1 * 0x880 + 4 * 17
     uc.mem_write(addr, bytes([2, 60, 90, 64, 80]))

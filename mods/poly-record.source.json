@@ -1,7 +1,7 @@
 {
   "name": "poly-record",
   "status": "experimental",
-  "description": "Layer: wire held-note capture into the record path. Replaces the armed single-note store at 0x08025814 (2-byte strb + 2-byte b) with a b.w to a cave that (1) DOES the original store verbatim, then (2) merges the note into a per-(track,step) poly array in CCM at 0x1000B530. Additive: original playback data is untouched. Layout per step: byte0=count(<=8), entries [note,vel] at +1+2*i (stride 17). Per-track stride 128*17=0x880; 3 melodic tracks. poly_merge clips a stale count>8 to 0 (no boot-init needed).",
+  "description": "Live record: stock selector 1..3 resolves through tagged writable cache; stock selector 0 is drums. Preserve mono store, merge valid notes/velocities in active letter, mark dirty.",
   "cave": {
     "addr": "0x08047400",
     "asm": [
@@ -10,19 +10,14 @@
       "ldr r3, =0x2000CADA",
       "ldrb r0, [r3]",
       "uxtb r0, r0",
-      "cmp r0, #2",
-      "bhi 9f",
+      "bl 0x0804af00",
+      "cmp r0, #0",
+      "beq 9f",
       "ldrb r2, [r4, #5]",
       "cmp r2, #128",
       "bhs 9f",
-      "mov r3, r0",
-      "lsls r3, r3, #11",
-      "add r3, r3, r0, lsl #7",
-      "add r3, r3, r2, lsl #4",
-      "add r3, r3, r2",
-      "movw r0, #0xb530",
-      "movt r0, #0x1000",
-      "add r0, r0, r3",
+      "add r0, r0, r2, lsl #4",
+      "add r0, r0, r2",
       "mov r1, r5",
       "cmp r1, #127",
       "bhi 9f",
@@ -75,7 +70,18 @@
     ]
   },
   "patches": [
-    { "addr": "0x08025814", "asm": ["b.w 0x08047400"], "note": "armed step store -> cave (store+poly capture)" }
+    {
+      "addr": "0x08025814",
+      "asm": [
+        "b.w 0x08047400"
+      ],
+      "note": "armed step store -> cave (store+poly capture)"
+    }
   ],
-  "requires": { "blank": ["0x08047400", "0x08047FFF"] }
+  "requires": {
+    "blank": [
+      "0x08047400",
+      "0x08047FFF"
+    ]
+  }
 }

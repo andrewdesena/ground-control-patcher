@@ -15,6 +15,7 @@ held-note count at +0x120) and a note-on event (note at +4, velocity at +5). Ver
 import os, sys, json
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
 import asm
+from test_poly_module_only import cache_setup
 from unicorn import Uc, UC_ARCH_ARM, UC_MODE_THUMB, UcError
 from unicorn.arm_const import *
 
@@ -35,8 +36,9 @@ def run_case(cave, track, step, note, vel, seeded, label, held=3):
     uc.mem_map(0x20000000, 0x20000)
     uc.mem_map(0x10000000, 0x10000)
     uc.mem_write(CAVE, cave)
+    cache_setup(uc)
     uc.mem_write(TRACK, b'\x00' * 0x400)
-    uc.mem_write(TRACK + 0x2e1, bytes([track]))
+    uc.mem_write(TRACK + 0x2e1, bytes([track + 1]))
     uc.mem_write(TRACK + 0x2df, bytes([step]))
     uc.mem_write(TRACK + 0x120, bytes([held]))
     uc.mem_write(EVENT, bytes([0x90, 0, 0, 0, note & 0x7f, vel & 0x7f]))
