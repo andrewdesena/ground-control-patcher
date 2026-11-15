@@ -82,7 +82,9 @@
   #sdbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:6px 0 8px;border-bottom:1px solid var(--line);margin-bottom:8px}
   #sdbar select{max-width:150px}
   #sdbar .sep{width:1px;height:18px;background:var(--line)}
-  #sdbar[hidden]{display:none}`;
+  #sdbar[hidden]{display:none}
+  #toast{position:fixed;right:14px;bottom:14px;background:var(--panel);border:1px solid var(--accent);color:var(--fg);padding:8px 12px;border-radius:6px;font-size:12px;opacity:0;transform:translateY(6px);transition:opacity .18s,transform .18s;pointer-events:none;z-index:50}
+  #toast.show{opacity:1;transform:translateY(0)}`;
 
   const TPL = `
   <header>
@@ -91,7 +93,6 @@
     <div class="grp"><label>Vel</label><input id="vel" type="number" min="1" max="127" value="100" style="width:52px"><button id="applyVel" title="Apply Vel to selected notes">▸ sel</button></div>
     <div class="grp" style="margin-left:auto">
       <button id="settingsBtn">Settings</button>
-      <button id="clear">Clear track</button>
       <button id="importBtn">Import</button><input id="importFile" type="file" accept=".json" hidden>
       <button id="exportBtn" class="primary">Export project</button>
     </div>
@@ -103,12 +104,15 @@
         <div class="grp"><button id="connectSD" class="primary">Open SD card</button><span id="sdstat"></span></div>
         <span class="sep"></span>
         <div class="grp"><label>Project</label><select id="projSel" disabled></select>
-          <button id="openProj" disabled>Open</button><button id="newProj">New</button><button id="delProj" disabled>Delete</button></div>
+          <button id="newProj">New</button><button id="delProj" disabled>Delete</button></div>
         <span class="sep"></span>
-        <div class="grp"><label>Pattern</label><select id="patSel" disabled></select><button id="loadPat" disabled>Load</button>
+        <div class="grp"><label>Pattern</label><select id="patSel" disabled></select>
           <button id="saveAll" disabled>Save to SD</button></div>
       </div>
-      <div id="trackLabel"></div>
+      <div class="grp" id="trackTools" style="margin:6px 0">
+        <span id="trackLabel"></span>
+        <button id="clear">Clear track</button>
+      </div>
       <div class="grp" id="flagCtl" style="margin:6px 0">
         <label>Step flags</label>
         <button id="tieStep" class="flag" title="Hold the note into the next step">Tie</button>
@@ -126,7 +130,8 @@
   </div>
   <div id="drawer"><div class="dhead"><strong style="color:var(--accent)">Settings</strong>
     <div class="grp" id="drawerTabs"></div><button id="closeDrawer">✕</button></div>
-    <div class="dbody" id="drawerBody"></div></div>`;
+    <div class="dbody" id="drawerBody"></div></div>
+  <div id="toast"></div>`;
 
   class GCEditor extends HTMLElement {
     connectedCallback() {
@@ -138,7 +143,38 @@
       this.$ = $;
 
       const MELODIC = [1, 2, 3], DRUM = 8;
-      const state = { steps: 32, track: 1, melodic: {}, drum: [], tset: {}, global: {}, cv: {}, drawerTab: "Global", sel: new Set(), ccLanes: [], pasteStep: 0 };
+      const state = { steps: 32, track: 1, melodic: {}, drum: [], tset: {}, global: {}, cv: {}, drawerTab: "Global", sel: new Set(), ccLanes: [], pasteStep: 0, dirty: false, drag: null, suppressClick: false };
+      let toastTimer = null;
+      function toast(msg) {
+        const t = $("toast"); if (!t) return;
+        t.textContent = msg; t.classList.add("show");
+        clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
+      }
+      function markDirty() {
+        state.dirty = true;
+        try { localStorage.setItem("gc-editor-draft", JSON.stringify(exportJSON())); } catch (e) {}
+      }
+      async function maybeSave(reason) {
+        if (!state.dirty) return true;
+        const save = confirm("Unsaved changes.\n\nOK = save to the SD card first\nCancel = keep them stored in the browser");
+        if (save && sdDir && native.projectName) { await saveAll(); }
+        else { toast("Kept in the browser"); }
+        return true;
+      }
+      function dragApply(s0, p0, s1, p1) {
+        const a = ensureMelodic(state.track);
+        const sLo = Math.min(s0, s1), sHi = Math.max(s0, s1);
+        const pLo = Math.min(p0, p1), pHi = Math.max(p0, p1);
+        state.sel = new Set();
+        for (let s = sLo; s <= sHi; s++) for (let p = pLo; p <= pHi; p++) {
+          if (a[s] && a[s].notes.find(q => q[0] === p)) state.sel.add(s + ":" + p);
+        }
+        const r = this._r;
+        r.querySelectorAll(".cell").forEach(c => {
+          const s = +c.dataset.s, p = +c.dataset.p;
+          c.classList.toggle("sel", state.sel.has(s + ":" + p));
+        });
+      }
       const ensureMelodic = t => {
         if (!state.melodic[t]) { state.melodic[t] = []; for (let i = 0; i < 128; i++) state.melodic[t].push({ notes: [], cc: [], modifier: 0, ratchet: 0 }); }
         return state.melodic[t];
@@ -201,13 +237,13 @@
         const oldSel = new Set(state.sel);
         state.pasteStep = s;
         syncFlags();
-        if (i < 0) { if (list.length >= 8) return; list.push([p, +$("vel").value || 100]); state.sel = new Set([k]); }
+        if (i < 0) { if (list.length >= 8) return; list.push([p, +$("vel").value || 100]); state.sel = new Set([k]); markDirty(); }
         else if (ev && ev.shiftKey) { if (state.sel.has(k)) state.sel.delete(k); else state.sel.add(k); }
         else state.sel = new Set([k]);
         const touched = new Set([...oldSel, ...state.sel]);
         touched.forEach(x => { const q = x.split(':'); updateCell(+q[0], +q[1]); });
       }
-      function removeNote(s, p) { const list = ensureMelodic(state.track)[s].notes, i = list.findIndex(x => x[0] === p); if (i >= 0) { list.splice(i, 1); state.sel.delete(keyOf(s, p)); updateCell(s, p); } }
+      function removeNote(s, p) { const list = ensureMelodic(state.track)[s].notes, i = list.findIndex(x => x[0] === p); if (i >= 0) { list.splice(i, 1); state.sel.delete(keyOf(s, p)); markDirty(); updateCell(s, p); } }
       const toggleNote = (s, p) => { const st = ensureMelodic(state.track)[s], i = noteIndex(s, p); if (i >= 0) st.notes.splice(i, 1); else if (st.notes.length < 8) st.notes.push([p, +$("vel").value]); paint(); };
       const setCCval = (s, num, v) => { const st = ensureMelodic(state.track)[s]; v = Math.max(0, Math.min(127, v | 0)); const i = st.cc.findIndex(c => c[0] === num); if (i >= 0) st.cc[i][1] = v; else st.cc.push([num, v]); };
       const delCCval = (s, num) => { const st = ensureMelodic(state.track)[s]; const i = st.cc.findIndex(c => c[0] === num); if (i >= 0) st.cc.splice(i, 1); };
@@ -233,7 +269,10 @@
             const nv = noteAt(s, pitch), f = mc[s];
             c.className = "cell" + (isBlack(pitch) ? " blackrow" : "") + (s % 4 === 0 ? " beat" : "") + (s % 16 === 0 ? " bar" : "") + (isSel(s, pitch) ? " sel" : "") + (f.modifier & 1 ? " tie" : "") + (f.modifier & 2 ? " slide" : "") + (f.ratchet ? " ratchet" : "");
             if (nv) c.style.background = velColor(nv[1]);
-            c.addEventListener("click", ev => selectOrToggle(s, pitch, ev));
+            c.dataset.s = s; c.dataset.p = pitch;
+            c.addEventListener("pointerdown", ev => { if (ev.button !== 0) return; state.drag = { s, p: pitch, moved: false }; ev.preventDefault(); });
+            c.addEventListener("pointerenter", () => { if (!state.drag) return; state.drag.moved = true; dragApply(state.drag.s, state.drag.p, s, pitch); });
+            c.addEventListener("click", ev => { if (state.suppressClick) { state.suppressClick = false; return; } selectOrToggle(s, pitch, ev); });
             c.addEventListener("contextmenu", ev => { ev.preventDefault(); removeNote(s, pitch); });
             row.appendChild(c);
           }
@@ -467,8 +506,8 @@
         const sel = $("projSel"); const cur = keep || native.projectName || sel.value; sel.innerHTML = "";
         names.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o); });
         if (cur && names.includes(cur)) sel.value = cur;
-        $("projSel").disabled = !names.length; $("openProj").disabled = !names.length; $("delProj").disabled = !names.length; $("newProj").disabled = !sdDir;
-        $("patSel").disabled = !names.length; $("loadPat").disabled = !names.length; $("saveAll").disabled = !names.length;
+        $("projSel").disabled = !names.length; $("delProj").disabled = !names.length; $("newProj").disabled = !sdDir;
+        $("patSel").disabled = !names.length; $("saveAll").disabled = !names.length;
         if (sdDir) sdstat.textContent = sdDir.name + ' · ' + names.length + ' project(s)';
         return names;
       }
@@ -477,7 +516,7 @@
         const sel = $("patSel"); const cur = keep || native.pattern || 'A'; sel.innerHTML = "";
         native.letters.forEach(L => { const o = document.createElement('option'); o.value = L; o.textContent = 'Pattern ' + L; sel.appendChild(o); });
         sel.value = native.letters.includes(cur) ? cur : native.letters[0];
-        $("patSel").disabled = false; $("loadPat").disabled = false; $("saveAll").disabled = false;
+        $("patSel").disabled = false; $("saveAll").disabled = false;
       }
       function applyTrackSettings(t, ts) {
         const s = state.tset[t] || (state.tset[t] = {});
@@ -531,6 +570,8 @@
         state.sel = new Set(); paint();
         if ($("drawer").classList.contains("open")) buildDrawer();
         sdstat.textContent = name + ' loaded · pattern ' + ($("patSel").value || 'A');
+        toast(name + " · pattern " + ($("patSel").value || "A") + " loaded");
+        state.dirty = false;
       }
       function serializePattern(t) {
         const N = Math.max(1, Math.min(128, native.len[t] || state.steps)), base = native.patterns[t] || {};
@@ -577,7 +618,9 @@
             if (t !== 'D') { await dropBackup(sdDir, [name, 'track' + t, 'poly' + L]); await wrBytes(sdDir, [name, 'track' + t, 'poly' + L], encodePoly(t)); }
           }
           sdstat.textContent = 'saved ' + name + ' · pattern ' + L + ' (pattern .bak + poly' + L + ')';
-        } catch (e) { sdstat.textContent = 'save err: ' + e.message; }
+          state.dirty = false; try { localStorage.removeItem("gc-editor-draft"); } catch (e) {}
+          toast("Saved " + name + " · pattern " + L + " to SD");
+        } catch (e) { sdstat.textContent = 'save err: ' + e.message; toast("Save failed: " + e.message); }
       }
       async function newProject() {
         const names = await projectNames(); let def = 'project' + String.fromCharCode(65 + (names.length % 26));
@@ -622,10 +665,10 @@
           if ($("drawer").classList.contains('open')) buildDrawer();
         } catch (e) { if (!e || e.name !== 'AbortError') sdstat.textContent = 'err: ' + e.message; }
       };
-      $("openProj").onclick = async () => { const n = $("projSel").value; if (n) await loadProject(n, $("patSel").value || 'A'); };
+      $("projSel").onchange = async () => { const n = $("projSel").value; if (!n) return; await maybeSave("project"); await loadProject(n, "A"); };
       $("newProj").onclick = newProject;
       $("delProj").onclick = delProject;
-      $("loadPat").onclick = async () => { if (native.projectName) await loadProject(native.projectName, $("patSel").value); };
+      $("patSel").onchange = async () => { if (!native.projectName) return; await maybeSave("pattern"); await loadProject(native.projectName, $("patSel").value); };
       $("saveAll").onclick = saveAll;
       if (sdDir) { $("sdbar").hidden = false; sdstat.textContent = 'SD: ' + (sdDir.name || 'connected'); refreshProjects().catch(() => {}); }
 
@@ -643,6 +686,13 @@
         const t = (ev.composedPath && ev.composedPath()[0]) || {}; const tag = (t.tagName || "").toUpperCase();
         if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
         if (state.track === "D") return;
+        if (ev.key === "Delete" || ev.key === "Backspace") {
+          if (state.sel.size) {
+            Array.from(state.sel).forEach(k => { const [s, p] = k.split(":").map(Number); removeNote(s, p); });
+            state.sel.clear(); markDirty(); paint(); ev.preventDefault();
+          }
+          return;
+        }
         if ((ev.ctrlKey || ev.metaKey) && (ev.key === "c" || ev.key === "C")) {
           const arr = ensureMelodic(state.track); let minS = Infinity; const got = [];
           state.sel.forEach(k => { const [s, p] = k.split(":").map(Number); const n = arr[s].notes.find(q => q[0] === p); if (n) { got.push([s, p, n[1]]); if (s < minS) minS = s; } });
@@ -654,11 +704,20 @@
           paint(); ev.preventDefault();
         }
       });
-      $("stepsNum").onchange = e => { state.steps = Math.max(1, Math.min(128, +e.target.value || 1)); native.len[state.track] = state.steps; e.target.value = state.steps; paint(); };
-      $("tieStep").onclick = () => { const st = flagAt(); st.modifier ^= 1; syncFlags(); paint(); };
-      $("slideStep").onclick = () => { const st = flagAt(); st.modifier ^= 2; syncFlags(); paint(); };
-      $("ratStep").onclick = () => { const st = flagAt(); st.ratchet = st.ratchet ? 0 : 1; syncFlags(); paint(); };
-      $("clear").onclick = () => { if (state.track === "D") { state.drum = []; ensureDrum(); } else { state.melodic[state.track] = null; ensureMelodic(state.track); } paint(); };
+      window.addEventListener("pointerup", () => {
+        if (!state.drag) return;
+        if (state.drag.moved) state.suppressClick = true;
+        state.drag = null;
+      });
+      window.addEventListener("beforeunload", ev => {
+        if (!state.dirty) return;
+        ev.preventDefault(); ev.returnValue = "";
+      });
+      $("stepsNum").onchange = e => { state.steps = Math.max(1, Math.min(128, +e.target.value || 1)); native.len[state.track] = state.steps; e.target.value = state.steps; markDirty(); paint(); };
+      $("tieStep").onclick = () => { const st = flagAt(); st.modifier ^= 1; markDirty(); syncFlags(); paint(); };
+      $("slideStep").onclick = () => { const st = flagAt(); st.modifier ^= 2; markDirty(); syncFlags(); paint(); };
+      $("ratStep").onclick = () => { const st = flagAt(); st.ratchet = st.ratchet ? 0 : 1; markDirty(); syncFlags(); paint(); };
+      $("clear").onclick = () => { if (state.track === "D") { state.drum = []; ensureDrum(); } else { state.melodic[state.track] = null; ensureMelodic(state.track); } markDirty(); paint(); };
       $("exportBtn").onclick = doExport;
       $("importBtn").onclick = () => $("importFile").click();
       $("importFile").onchange = e => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => doImport(rd.result); rd.readAsText(f); };

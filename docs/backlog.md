@@ -22,3 +22,10 @@ Idea from Drew, 2026-11-13. Not started.
 
 Drew finds the stock generators not very musically useful and is open to tuning them. Deferred until
 after chord mode; capture concrete examples of what is wrong before changing behavior.
+
+## Editor UX pass (v1.1)
+Shipped: drag-select rectangle + Delete/Backspace, auto-load project/pattern on dropdown change, unsaved-change prompt with browser draft, save/load toasts, Clear Track moved into the track toolbar, backup pruning.
+
+Still open:
+- Left sidebar as a real file navigator (projects > tracks > patterns) instead of dropdowns.
+- Per-note ties: the stock pattern format stores TIE as a step-level modifier, so one chord note cannot tie independently of others. Doing this needs a new per-note field and firmware support.
