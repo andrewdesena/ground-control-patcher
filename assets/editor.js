@@ -23,7 +23,12 @@
   button:hover{border-color:var(--accent)}
   button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
   #app{display:flex;border:1px solid var(--line);border-top:0;border-radius:0 0 8px 8px;overflow:hidden;background:var(--bg)}
-  #side{flex:0 0 76px;display:flex;flex-direction:column;gap:6px;padding:8px 6px;border-right:1px solid var(--line);background:var(--panel)}
+  #side{flex:0 0 178px;display:flex;flex-direction:column;gap:6px;padding:8px 6px;border-right:1px solid var(--line);background:var(--panel);overflow:auto}
+  #side .nav{display:flex;flex-direction:column;gap:2px;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:4px}
+  #side .navproj{text-align:left;font-size:11px;padding:5px 6px;border:1px solid transparent;background:transparent;color:var(--fg)}
+  #side .navproj.active{border-color:var(--accent);color:var(--accent)}
+  #side .navpat{text-align:left;font-size:10px;padding:3px 6px 3px 16px;border:1px solid transparent;background:transparent;color:var(--muted)}
+  #side .navpat.active{color:var(--accent2);border-color:var(--accent2)}
   #side .ttab{text-align:left;padding:8px 7px;font-size:11px;line-height:1.1}
   #side .ttab.active{border-color:var(--accent2);color:var(--accent2);background:#16262b}
   #side .ttab.d.active{border-color:var(--drum);color:var(--drum);background:#2a2118}
@@ -101,13 +106,11 @@
     <div id="side"></div>
     <div id="main">
       <div id="sdbar">
-        <div class="grp"><button id="connectSD" class="primary">Open SD card</button><span id="sdstat"></span></div>
+        <div class="grp"><button id="connectSD" class="primary">Open SD card</button><span id="sdstat"></span><button id="saveAll" disabled>Save to SD</button><button id="newProj">New</button><button id="delProj" disabled>Delete</button></div>
         <span class="sep"></span>
-        <div class="grp"><label>Project</label><select id="projSel" disabled></select>
-          <button id="newProj">New</button><button id="delProj" disabled>Delete</button></div>
+        <div class="grp" hidden><label>Project</label><select id="projSel" disabled></select></div>
         <span class="sep"></span>
-        <div class="grp"><label>Pattern</label><select id="patSel" disabled></select>
-          <button id="saveAll" disabled>Save to SD</button></div>
+        <div class="grp" hidden><label>Pattern</label><select id="patSel" disabled></select></div>
       </div>
       <div class="grp" id="trackTools" style="margin:6px 0">
         <span id="trackLabel"></span>
@@ -360,7 +363,23 @@
       // ---- left track bar ----
       function buildTrackbar() {
         const t = $("side"); t.innerHTML = "";
-        [["1", "Track 1"], ["2", "Track 2"], ["3", "Track 3"], ["D", "Track D"]].forEach(([v, label]) => {
+        if (native.projects && native.projects.length) {
+          const nav = document.createElement("div"); nav.className = "nav";
+          native.projects.forEach(p => {
+            const pb = document.createElement("button"); pb.className = "navproj" + (native.projectName === p ? " active" : ""); pb.textContent = p;
+            pb.onclick = async () => { await maybeSave("project"); await loadProject(p, "A"); };
+            nav.appendChild(pb);
+            (native.patMap[p] || ["A"]).forEach(L => {
+              const b = document.createElement("button");
+              b.className = "navpat" + (native.projectName === p && (native.pattern || "A") === L ? " active" : "");
+              b.textContent = "Pattern " + L;
+              b.onclick = async () => { await maybeSave("pattern"); await loadProject(p, L); };
+              nav.appendChild(b);
+            });
+          });
+          t.appendChild(nav);
+        }
+        [[ "1", "Track 1"], ["2", "Track 2"], ["3", "Track 3"], ["D", "Track D"]].forEach(([v, label]) => {
           const b = document.createElement("button"); b.className = "ttab" + (state.track === v ? " active" : "") + (v === "D" ? " d" : "");
           b.textContent = label; b.onclick = () => { state.track = v; state.sel = new Set(); if (native.len[v]) state.steps = native.len[v]; const sn = $("stepsNum"); if (sn) sn.value = state.steps; paint(); }; t.appendChild(b);
         });
@@ -503,6 +522,8 @@
       }
       async function refreshProjects(keep) {
         const names = await projectNames();
+        native.projects = names; native.patMap = native.patMap || {};
+        for (const n of names) { try { native.patMap[n] = await patternLetters(n); } catch (e) { native.patMap[n] = ['A']; } }
         const sel = $("projSel"); const cur = keep || native.projectName || sel.value; sel.innerHTML = "";
         names.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o); });
         if (cur && names.includes(cur)) sel.value = cur;

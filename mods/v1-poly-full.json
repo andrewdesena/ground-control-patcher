@@ -36,7 +36,7 @@
     },
     {
       "addr": "0x8047a00",
-      "bytes": "2de9ff5f4ff6006cc1f2000c9cf80040002c48d101248cf80040002b3cd0157890f83c60876897f81f80b8f10108b8f1030f31d25feac82909ebc8195fea061ab244d1444bf2305ac1f2000ad14499f800a0baf1080f1fd8baf1000f1cd00024544519d209f1010b0beb440b9bf800609bf80170ae420dd04ff6106bc1f2000b8bf800608bf8017000268bf802605a46d9f75afe0134e3e700244ff6006cc1f2000c8cf80040bde8ff5f2de9ff47d9f74dbe",
+      "bytes": "2de9ff5f4ff6006cc1f2000c9cf80040002c43d101248cf80040157890f83c60876897f81f80b8f10108b8f1030f2ed25feac82909ebc8195fea061ab244d1444bf2305ac1f2000ad14499f800a0baf1000f1cd00024544519d209f1010b0beb440b9bf800609bf80170ae420dd04ff6106bc1f2000b8bf800608bf8017000268bf802605a46d9f75ffe0134e3e700244ff6006cc1f2000c8cf80040bde8ff5f2de9ff47d9f752be",
       "note": "cave routine"
     },
     {
@@ -63,36 +63,6 @@
       "addr": "0x801c542",
       "bytes": "2bf05dfc",
       "note": "writer f_close prep -> save poly sidecar"
-    },
-    {
-      "addr": "0x8048200",
-      "bytes": "013b84f8df3220462946d6f79fffd7f7d6bd",
-      "note": "cave routine"
-    },
-    {
-      "addr": "0x801fe2a",
-      "bytes": "28f0e9f9",
-      "note": "second key held in step record: keep step instead of advancing"
-    },
-    {
-      "addr": "0x8048400",
-      "bytes": "00291cdb2de90f5090f8e122032a13d290f8df32802b0fd25feac22c0cebc21c1a011a4494444bf23052c1f200020ceb0200642200f019f8bde80f5012e090f8e12290f8df325feac22c0cebc21c1a011a4494444bf23052c1f20002944400228cf8002080f8f512704770b50378082b01d90023037000249c4209d200f1010505eb44052e788e4201d00134f4e709e0082b07d200f1010505eb430529706a700133037070bd",
-      "note": "cave routine"
-    },
-    {
-      "addr": "0x801f32e",
-      "bytes": "29f067f8",
-      "note": "rest/clear commit also clears the step's poly record"
-    },
-    {
-      "addr": "0x8048600",
-      "bytes": "ffb5acf8384048f23020c0f602000068002150f8212092f82e3040f2941603fb0626664503d001310429f2d11fe04bf23050c1f20000ca0202ebc112104400210278002393420ed200f1010606eb430637782f44002f00da00277f2f00dd7f2737700133eee7113001318029e8d1ffbd",
-      "note": "cave routine"
-    },
-    {
-      "addr": "0x8028224",
-      "bytes": "20f0ecf9",
-      "note": "after successful mono transpose, shift the same track's chord notes"
     }
   ]
 }
