@@ -208,6 +208,12 @@ def test_stock_save_disk_read_changed():
     assert m.sb.r(META+20,1) == b'\0'
     assert m.files[m.path(1,1)] == chord(60,67)
     assert not any(e[0] == 'write' and '/poly' in e[1] for e in m.events)
+    # Boot autosave can see empty RAM before patterns load; without an explicit
+    # clear mask it must not delete an existing sidecar.
+    m.sb.w(m.pattern(1,1) + 4, b'\0')
+    m.sb.call(0x0801C450, regs={UC_ARM_REG_R0:0x2000B250,
+              UC_ARM_REG_R1:m.pattern(1,1), UC_ARM_REG_R2:1}, max_steps=2000000)
+    assert m.files[m.path(1,1)] == chord(60,67)
 
 
 def test_stock_copy_destination_changed():
