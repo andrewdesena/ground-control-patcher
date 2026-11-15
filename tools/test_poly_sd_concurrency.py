@@ -200,14 +200,12 @@ def test_stock_save_concurrent_edit():
 
 def test_stock_save_disk_read_changed():
     m = Module(); m.seed(1, chord(60,64)); m.seed(1, chord(60,67), 1); m.worker()
-    def save():
-        m.sb.call(0x0801C450, regs={UC_ARM_REG_R0:0x2000B250,
-                  UC_ARM_REG_R1:m.pattern(1,1), UC_ARM_REG_R2:1}, max_steps=2000000)
-    context = suspend_io(m, F_READ, save, poly_io(m))
-    edit_task(m, 1, chord(60,72))
-    resume_io(m, context)
-    assert m.bank(1) == chord(60,72)
-    assert m.sb.r(META+20,1) == b'\1'
+    # Saving a non-active letter with an untagged cache must preserve that file,
+    # not read it back and overwrite it with the active bank.
+    m.sb.call(0x0801C450, regs={UC_ARM_REG_R0:0x2000B250,
+              UC_ARM_REG_R1:m.pattern(1,1), UC_ARM_REG_R2:1}, max_steps=2000000)
+    assert m.bank(1) == chord(60,64)
+    assert m.sb.r(META+20,1) == b'\0'
     assert m.files[m.path(1,1)] == chord(60,67)
     assert not any(e[0] == 'write' and '/poly' in e[1] for e in m.events)
 
