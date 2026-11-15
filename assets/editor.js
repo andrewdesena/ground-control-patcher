@@ -793,7 +793,8 @@
       });
       window.addEventListener("pointermove", ev => {
         if (!state.drag) return;
-        const el = document.elementFromPoint(ev.clientX, ev.clientY);
+        const root = $("rollWrap").getRootNode();
+        const el = root.elementFromPoint ? root.elementFromPoint(ev.clientX, ev.clientY) : document.elementFromPoint(ev.clientX, ev.clientY);
         const c = el && el.closest && el.closest(".cell");
         if (!c || c.dataset.s === undefined) return;
         state.drag.moved = true;
