@@ -728,6 +728,7 @@
             await wrJSON(sdDir, [name, 'track' + t, 'TrackSettings.txt'], { direction: 0, slide: 50, shuffle: 50, humanize: 0, ratchet: 0, ArpEngaged: 0, gatelength: 50, patternChain: ["A"] });
             const steps = []; for (let i = 0; i < 16; i++) steps.push({ note: "", velocity: 0, modifier: 0, ratchet: 0 });
             await wrJSON(sdDir, [name, 'track' + t, 'patternA.txt'], { step_limit: 16, count: 16, duration: 2, Polyrhythm: { From: 4, To: 4 }, steps: steps });
+            await wrBytes(sdDir, [name, 'track' + t, 'polyA'], new Uint8Array(2176));
           }
           await wrJSON(sdDir, [name, 'trackD', 'TrackSettings.txt'], { direction: 0, slide: 50, shuffle: 50, humanize: [0, 0, 0, 0, 0, 0, 0, 0, 0], ratchet: [0, 0, 0, 0, 0, 0, 0, 0, 0], ArpEngaged: 0, triggerlength: [10, 10, 10, 10, 10, 10, 10, 10, 50], patternChain: ["A"] });
           const dsteps = [], drats = []; for (let p = 0; p < 8; p++) { dsteps.push(Array(16).fill(128)); drats.push(Array(16).fill(0)); }
