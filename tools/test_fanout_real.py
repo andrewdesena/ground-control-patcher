@@ -165,6 +165,7 @@ class RealQueue:
         self.sb = Sandbox()
         self.original_pair = self.sb.r(PAIR, 4)
         self.original_queue = self.sb.r(QUEUE, 4)
+        self.original_tie = self.sb.r(0x0802178C, 4)
         install(self.sb, 'poly-fanout')
         cache_setup(self.sb.uc)
         if not guarded:
@@ -251,6 +252,48 @@ def test_real_queue_capacity():
     print('  real queue saturation: OK (original wrap reproduced; complete pairs and pending offs preserved)')
 
 
+def test_real_tie_capacity():
+    """Run stock lookup/cancel/replacement with one off and 126 real CC events."""
+    from fw_sandbox import STACKTOP
+    off = bytes([0x80, 7, 0, 255, 60, 1])
+    def fixture(cc_count):
+        q = RealQueue(head=113)
+        q.enqueue(off, tick=100)
+        for i in range(cc_count):
+            q.enqueue(bytes([0xB0, 7, 0, 255, i%128, 90]), tick=200+i)
+        voice, note = 0x20008000, 0x20009000
+        q.sb.w(voice+8, struct.pack('<I', q.parents[1]))
+        q.sb.w(voice+4, b'\7')
+        q.sb.w(voice+0x40, q.entries()[0][16:20])
+        q.sb.w(q.parents[1]+0x1f, b'\1')
+        q.sb.w(note, b'\x3c')
+        def tie():
+            q.sb.call(0x08021774, regs={UC_ARM_REG_R5:voice, UC_ARM_REG_R7:note,
+                      UC_ARM_REG_R6:50, UC_ARM_REG_R4:100}, stop_at=0x080217A4)
+            assert q.sb.reg(UC_ARM_REG_PC) == 0x080217A4
+            assert q.sb.reg(UC_ARM_REG_SP) == STACKTOP
+        return q, tie
+    # Negative control: reproduce the reported cancellation with the old call.
+    q, tie = fixture(126)
+    q.sb.w(0x0802178C, q.original_tie)
+    tie()
+    assert q.entries()[0][12] == 1
+    assert not any(msg[0] == 0x80 for msg, tick in q.drain())
+    # At full occupancy, preserve every byte and deliver the original off.
+    q, tie = fixture(126)
+    before = q.entries()
+    tie()
+    assert q.entries() == before
+    assert (off, 100) in q.drain()
+    # One spare usable slot still permits normal stock tie extension.
+    q, tie = fixture(125)
+    tie()
+    assert len(q.entries()) == 127
+    assert q.entries()[0][12] == 1
+    offs = [(msg,tick) for msg,tick in q.drain() if msg[0] == 0x80]
+    assert offs == [(off[:5]+b'\0',150)], offs
+
+
 def main():
     triad = [(60, 100), (64, 90), (67, 80)]
     emitted = [(64, 90), (67, 80), (60, 100)]
@@ -263,7 +306,8 @@ def main():
     check('corrupt count 255 falls back to mono', 255, triad, 1, [(60, 100)])
     check('stale primary does not fan out', 3, triad, 1, [(62, 100)], primary=62)
     test_real_queue_capacity()
-    print('PASS (8/8)')
+    test_real_tie_capacity()
+    print('PASS fanout and real queue regressions')
     return 0
 
 

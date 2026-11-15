@@ -25,15 +25,15 @@ after chord mode; capture concrete examples of what is wrong before changing beh
 
 ## Next up (after module-only lifecycle)
 
-- **EDIT-mode chord key lights:** `poly-editlights` is now integrated into the local bundle (cave
-  `0x08048A00`, hook `0x08012068`) and passes `tools/test_poly_editlights.py` for C/E/G. Still needs the
-  Codex QA gate and hardware verification before shipping.
-- **ProjectSettings JSON:** fixed the stock writer format string (`0x08036E50`) so `QuantizedMute`
-  closes with a comma before `modulationTrack`. This was corrupting ProjectSettings on every module
-  save, independent of polyphony. Needs the same Codex/hardware gate.
-- **Ratchet/publish audit:** fan-out currently re-emits the chord per stock ratchet repeat, and the
-  byte-wise publish copy can race live recording. Decide whether ratchet repetition is correct and add
-  a non-atomic-publish guard if it can lose a just-recorded chord.
+- **EDIT-mode chord key lights:** pulled from the flash bundle. The first integration used `parent+0x2DF`
+  (inside stored pattern B) instead of the input-manager cursor and omitted `active_letter*0x194`, so it
+  lit the wrong keys on non-A patterns. Source and tests remain for a correct integration.
+- **ProjectSettings JSON:** the shared-format-string comma patch was reverted; suffix callers expect
+  `"]"`, and it corrupted drum-scale JSON. Needs private punctuation or caller-specific strings plus an
+  emitted-output parsing test.
+- **Concurrency hardening:** save/flush generation validation, publication serialization against inline
+  clear/held transpose, queue-capacity-before-cancel, and 8-byte mutex stack alignment are integrated and
+  QA-passed. Per-ratchet chord retriggers are intentional and retained.
 - **Hardware bench pass:** read-only/full card, missing sidecar, project switch while playing, pattern
   copy/delete, clear then save then power-cycle.
 - **Editor transport limits:** compact JSON serialization is still pending; `patternA.txt` sits close to

@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""EDIT-mode chord key lights: OR stored chord notes into the stock LED buffer."""
+"""Test the pulled EDIT lights source in isolation; enforce bundle exclusion."""
+import json
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'tools'))
-from test_poly_module_only import Module, POLY, SIZE  # noqa: E402
+from test_poly_module_only import Module, POLY, SIZE, install, source  # noqa: E402
 
 FB = 0x20001E74
 CAVE = 0x08048A00
@@ -22,6 +23,8 @@ def has_bit(fb, bit):
 
 def run_case(track, primary_note, notes, lit_keys):
     m = Module()
+    # This optional source is intentionally absent from the flash candidate.
+    install(m.sb, 'poly-editlights')
     letter, step = 0, 0
     m.sb.w(0x2000CADA, bytes([track]))
     if track <= 3:
@@ -39,6 +42,9 @@ def run_case(track, primary_note, notes, lit_keys):
 
 
 def main():
+    installed = {int(p['addr'],0) for p in json.loads(
+        (ROOT / 'mods/v1-poly-full.json').read_text())['patches']}
+    assert not installed & {int(p['addr'],0) for p in source('poly-editlights')['patches']}
     _, out = run_case(1, 60, (60, 64, 67), (0,))
     for key in (0, 4, 7):                # C, E, G
         assert has_bit(out, BIT_FOR_KEY[key]), ('C4', key, out.hex())
@@ -53,7 +59,7 @@ def main():
     _, out = run_case(1, 60, (60, 64, 67), (0, 4))
     assert out == bytes([0, (1 << 1), (1 << 4)] + [0] * 4), ('multi-lit', out.hex())
 
-    print('PASS edit-mode chord lights: C4, C5, drum skip, multi-lit guard')
+    print('PASS isolated edit-mode source (excluded from bundle): C4, C5, drum skip, multi-lit guard')
     return 0
 
 

@@ -1,0 +1,230 @@
+{
+  "name": "Five Codex QA fixes, 2026-11-15",
+  "status": "PASS: emulator verification",
+  "scope": "Authorized source JSON, test scripts, bundle and embedded index only. Existing workspace changes preserved. No testdata changes. No commit.",
+  "fixes": [
+    {
+      "finding": 1,
+      "result": "PASS",
+      "details": "Capture all three generations, cache/request/active-letter identities, mask ownership and global project under mutex. Revalidate after source read and destination write before clearing dirty/masks or invalidating destination caches. Any change retains newer RAM and metadata."
+    },
+    {
+      "finding": 2,
+      "result": "PASS",
+      "details": "Flush independent bank snapshots using op 5. Retain the original transaction stamp across all three banks and all unlocked I/O windows. Revalidate after each write and before final reset; abort leaves banks and dirty state intact. Real caller retry persists edits and resets successfully. Write-failure abort retained."
+    },
+    {
+      "finding": 3,
+      "result": "PASS",
+      "details": "Inline clear acquires the sequencing mutex through poly clear, generation/masks/dirty updates and native present/dirty store. Held transpose alias owns the mutex across the native held-note operation and installed poly update. Already-protected vtable clear and whole-pattern transpose paths acquire no additional lock."
+    },
+    {
+      "finding": 4,
+      "result": "PASS",
+      "details": "Installed tie/slide hook checks 127-entry occupancy before canceling the old off. Full ring skips to 0x080217A4 with original off preserved; one spare usable slot retains normal replacement. Real lookup, cancel, insert, sorting and drain tested with one pending off plus 126 CC events."
+    },
+    {
+      "finding": 5,
+      "result": "PASS",
+      "details": "Save/project functions allocate 88-byte aligned frames: 84-byte transaction stamp and one result/op word in the final four bytes. This replaces all one-word stack pushes around mutex calls. Both functions reserve at least eight temporary bytes beyond the 80-byte metadata capture. Runtime checks assert SP modulo 8 equals zero at every modeled mutex and sidecar FatFS call."
+    }
+  ],
+  "preserved": {
+    "per_ratchet_fanout": true,
+    "stock_repeats": true,
+    "read_size_bytes": 2177,
+    "explicit_read_reservation": [
+      {
+        "addr": "0x1000e500",
+        "size": 2177,
+        "note": "Independent SD snapshot/read buffer, including the oversize-file detection byte at 0x1000ed80; cwd starts at 0x1000ef00."
+      }
+    ],
+    "excluded_modules": [
+      "poly-editlights",
+      "poly-json-comma"
+    ],
+    "excluded_module_tests": "Assemble/install pulled sources only in isolated emulator fixtures and assert they remain absent from the flash bundle."
+  },
+  "new_installed_hooks": [
+    {
+      "addr": "0x801f328",
+      "bytes": "2df0eab8",
+      "note": "unprotected held transpose alias holds sequencer mutex through native/poly mutation and metadata"
+    },
+    {
+      "addr": "0x802178c",
+      "bytes": "25f0f8bf",
+      "note": "tie/slide admission before off cancellation; full ring preserves original off and skips replacement"
+    }
+  ],
+  "changed_routines": [
+    {
+      "purpose": "inline clear lock and native metadata",
+      "addr": "0x0804AB40",
+      "size_bytes": 38,
+      "bytes": "2de90f504ff0ff30d8f7aafb4046fff777fe0123a8f80430d8f7aafbbde80f500123e1f7ceb9"
+    },
+    {
+      "purpose": "project snapshot, validation and abort",
+      "addr": "0x0804AF80",
+      "size_bytes": 152,
+      "bytes": "2de9ff5f96b04ff0ff30d8f789f9684601f036fa204c002504eb0506307c012822d1307d00281fd01c481d4940f6800205fb0211eaf738fa377a96f80c80d8f777f92846394642460523fff799f915904ff0ff30d8f764f91598012817d1684601f04efa012812d10135032dd4d3684601f046fa01280ad1fff7a2f8d8f758f916b0bde8ff5f2de9f041d2f7abbdd8f74ff916b0bde8ff9f"
+    },
+    {
+      "purpose": "save snapshot and validation",
+      "addr": "0x0804B200",
+      "size_bytes": 340,
+      "bytes": "2de9ff5f96b0804689464ff0ff30d8f747f84046fef7f4fe002800f096800d461646ab464b4c94f83010002908d0012900f08b80b1f1020bbbf1030f80f0858004eb0507444890f88ca0d04694f83100002801d0a0f10108684601f0d1f816980079002833d004f1180050f82500012101fa06f108422ad1387c012810d1387ab0420dd1387b50450ad10146334940f6800205fb02113248eaf7c6f8052317e0d8f706f82846314652460423fff728f815904ff0ff30d7f7f3ff684601f0e0f8012842d11598012801d1052300e003231593d7f7edff159b584649464246fff70ff815904ff0ff30d7f7daff159801282bd1684601f0c4f8012826d1c24510d104f14c0010f80b0040450ad104f1180050f82b10012202fa09f221ea020140f82b10c24506d15d4504d14e4502d1002038750ae004eb0b07387b404505d1387a484502d1002038743875d7f7b1ff16b0bde8ff9f"
+    },
+    {
+      "purpose": "capture transaction stamp",
+      "addr": "0x0804C400",
+      "size_bytes": 50,
+      "bytes": "7fb50c49502251f8043b40f8043b043af9d10949002251f8223093f82e3000f8013b0132032af6d3044991f88c3003707fbd"
+    },
+    {
+      "purpose": "validate transaction stamp",
+      "addr": "0x0804C480",
+      "size_bytes": 68,
+      "bytes": "feb51049502251f8043b50f8044ba34216d1043af7d10c49002251f8223093f82e3010f8014ba3420ad10132032af4d3064991f88c300478a34201d10120febd0020febd"
+    },
+    {
+      "purpose": "held transpose mutex wrapper",
+      "addr": "0x0804C500",
+      "size_bytes": 32,
+      "bytes": "70b504460d464ff0ff30d6f7c9fe20462946d2f77bfe0446d6f7cafe204670bd"
+    },
+    {
+      "purpose": "tie capacity before cancellation",
+      "addr": "0x08047780",
+      "size_bytes": 48,
+      "bytes": "2de90f500948d0f8001ad0f8042a521a02f07f027f2a05d2bde80f50d2f742f9d9f7f6bfbde80f50d9f7fcbf10700010"
+    }
+  ],
+  "diffs_from_previous_source": [
+    {
+      "source": "mods/poly-lifecycle.source.json",
+      "cave_address": "0x804a000",
+      "previous_cave_bytes": 8704,
+      "current_cave_bytes": 9504,
+      "different_offsets_including_extension": 1314,
+      "current_cave_sha256": "0728e92756fe82fea89d745b372976a284526315cb792e3d77e8859cd8a2b41d"
+    },
+    {
+      "source": "mods/poly-fanout.source.json",
+      "cave_address": "0x8047600",
+      "previous_cave_bytes": 368,
+      "current_cave_bytes": 432,
+      "different_offsets_including_extension": 64,
+      "current_cave_sha256": "e03405ca134310fb15179f01447dd079f7b0d85d0464b131726fedbfc0130a08"
+    }
+  ],
+  "bundle": {
+    "sites": 38,
+    "lifecycle_cave_bytes": 9504,
+    "fanout_cave_bytes": 432,
+    "embedded_index_matches": true
+  },
+  "validation": {
+    "interpreter": "./.venv/bin/python",
+    "verify.py mods/v1-poly-full.json": "PASS; in-place and new-flash bytes match; zero untouched bytes moved",
+    "test_poly_module_only.py --require-ready": "PASS; installed bytes and all required regressions",
+    "all_test_scripts": [
+      {
+        "test": "tools/test_capture.py",
+        "exit_code": 0
+      },
+      {
+        "test": "tools/test_fanout.py",
+        "exit_code": 0
+      },
+      {
+        "test": "tools/test_fanout_real.py",
+        "exit_code": 0
+      },
+      {
+        "test": "tools/test_gate.py",
+        "exit_code": 0
+      },
+      {
+        "test": "tools/test_poly_chord.py",
+        "exit_code": 0
+      },
+      {
+        "test": "tools/test_poly_clear.py",
+        "exit_code": 0
+      },
+      {
+        "test": "tools/test_poly_editlights.py",
+        "exit_code": 0
+      },
+      {
+        "test": "tools/test_poly_entry.py",
+        "exit_code": 0
+      },
+      {
+        "test": "tools/test_poly_init.py",
+        "exit_code": 0
+      },
+      {
+        "test": "tools/test_poly_json_comma.py",
+        "exit_code": 0
+      },
+      {
+        "test": "tools/test_poly_load.py",
+        "exit_code": 0
+      },
+      {
+        "test": "tools/test_poly_module_only.py",
+        "exit_code": 0
+      },
+      {
+        "test": "tools/test_poly_save.py",
+        "exit_code": 0
+      },
+      {
+        "test": "tools/test_poly_sd_concurrency.py",
+        "exit_code": 0
+      },
+      {
+        "test": "tools/test_poly_transpose.py",
+        "exit_code": 0
+      },
+      {
+        "test": "tools/test_polyrecord.py",
+        "exit_code": 0
+      },
+      {
+        "test": "tools/test_polysteps.py",
+        "exit_code": 0
+      },
+      {
+        "test": "tools/test_project_format.py",
+        "exit_code": 0
+      },
+      {
+        "test": "tools/test_thumbfix.py",
+        "exit_code": 0
+      },
+      {
+        "test": "tools/test_velhook.py",
+        "exit_code": 0
+      }
+    ],
+    "passing_scripts": 20,
+    "failing_scripts": 0,
+    "new_regressions": [
+      "test_stock_save_concurrent_edit",
+      "test_stock_save_disk_read_changed",
+      "test_stock_copy_destination_changed",
+      "test_project_flush_concurrent_edit",
+      "test_installed_mutation_publication",
+      "test_real_tie_capacity",
+      "test_read_buffer_reservation"
+    ],
+    "abi_checks": "PASS; every modeled mutex boundary and sidecar FatFS boundary checks eight-byte stack alignment",
+    "negative_controls": "Previous installed lifecycle code fails the new save/copy/project/publication checks. The queue test reproduces canceled-off loss with the original tie cancellation call.",
+    "hardware": "Not exercised; emulator results only."
+  }
+}

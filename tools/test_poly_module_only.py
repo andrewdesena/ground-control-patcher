@@ -35,8 +35,7 @@ PROJECT = 0x2001BB38
 LOAD, WRITE = 0x0801CCC4, 0x0801C450
 F_OPEN, F_READ, F_WRITE, F_CLOSE = 0x0801496C, 0x08014B30, 0x08014C92, 0x08014F18
 MODULES = ['poly-record', 'poly-velhook', 'poly-load', 'poly-save', 'poly-fanout',
-           'poly-clear', 'poly-init', 'poly-entry', 'poly-transpose', 'poly-chord', 'poly-lifecycle',
-           'poly-editlights', 'poly-json-comma']
+           'poly-clear', 'poly-init', 'poly-entry', 'poly-transpose', 'poly-chord', 'poly-lifecycle']
 
 
 @lru_cache(maxsize=None)
@@ -88,6 +87,8 @@ class Module:
         self.short_write = False
         self.interrupt = None
         self.locked = False
+        self.wait_on_contention = False
+        self.mutex_waits = []
         self.native_present = True
         for a in [F_OPEN, F_READ, F_WRITE, F_CLOSE, 0x080150B6, 0x08014F32,
                   0x08014F92, 0x08014FF8, 0x08015214, 0x08015172, 0x080232A0, 0x080232B0]:
@@ -133,7 +134,13 @@ class Module:
         regs = [u.reg_read(r) for r in [UC_ARM_REG_R0, UC_ARM_REG_R1, UC_ARM_REG_R2, UC_ARM_REG_R3]]
         r0, r1, r2, r3 = regs
         result = 0
+        if a in (0x080232A0, 0x080232B0):
+            assert u.reg_read(UC_ARM_REG_SP) % 8 == 0, f'mutex ABI alignment at {a:08x}'
         if a == 0x080232A0:
+            if self.locked and self.wait_on_contention:
+                self.mutex_waits.append(u.reg_read(UC_ARM_REG_SP))
+                u.emu_stop()
+                return
             assert not self.locked, 'nested sequencer mutex'
             self.locked = True
         elif a == 0x080232B0:
@@ -243,6 +250,20 @@ def test_sources():
     embedded = json.loads(html.split('  var V1 = ', 1)[1].split(';\n  var mods', 1)[0])
     assert embedded['patches'] == bundle['patches']
     assert 0x08028224 in actual and 0x0801FD52 in actual
+
+
+def test_read_buffer_reservation():
+    bundle = json.loads((ROOT / 'mods/v1-poly-full.json').read_text())
+    reserved = bundle['requires']['ram']
+    assert any(int(r['addr'],0) == 0x1000E500 and r['size'] == SIZE+1 for r in reserved)
+    assert source('poly-lifecycle')['requires']['ram'] == reserved
+    m = Module(); m.seed(3, chord(60,64)+b'X')
+    m.sb.w(0x1000ED81, b'canary')
+    m.worker()
+    assert m.bank(3) == bytes(SIZE), '2177-byte file was accepted'
+    assert m.sb.r(0x1000ED80,1) == b'X', 'oversize detection byte was not read'
+    assert m.sb.r(0x1000ED81,6) == b'canary'
+    assert all(e[2] == SIZE+1 for e in m.events if e[0] == 'read')
 
 
 def test_boot():
@@ -653,7 +674,7 @@ def test_clear_track_stock_caller():
 REQUIRED_READINESS_HOOKS = frozenset({
     0x0801A4D0, 0x0801C16E, 0x0801C542, 0x0801CCC4, 0x0801D300,
     0x0801DB60, 0x0801F32E, 0x0801FD52, 0x08020706, 0x080215E8,
-    0x080217F4, 0x08028224, 0x08029C8E, 0x08019A92, 0x08019840,
+    0x080217F4, 0x0802178C, 0x0801F328, 0x0802BEFC, 0x08028224, 0x08029C8E, 0x08019A92, 0x08019840,
 })
 REQUIRED_READINESS_TESTS = frozenset({
     'test_sources', 'test_boot', 'test_native_load', 'test_copy_stock_caller',
@@ -662,6 +683,10 @@ REQUIRED_READINESS_TESTS = frozenset({
     'test_real_queue_capacity', 'test_readiness_gate',
     'test_stale_read_generation', 'test_edit_during_flush_generation',
     'test_clear_during_read_generation', 'test_project_clear_during_read_generation',
+    'test_stock_save_concurrent_edit', 'test_stock_save_disk_read_changed',
+    'test_stock_copy_destination_changed',
+    'test_project_flush_concurrent_edit', 'test_installed_mutation_publication',
+    'test_real_tie_capacity', 'test_read_buffer_reservation',
 })
 
 
@@ -718,12 +743,15 @@ def test_readiness_gate():
 def main():
     from test_poly_sd_concurrency import (test_delayed_io_competing_task,
         test_stale_read_generation, test_edit_during_flush_generation,
-        test_clear_during_read_generation, test_project_clear_during_read_generation)
+        test_clear_during_read_generation, test_project_clear_during_read_generation,
+        test_stock_save_concurrent_edit, test_stock_save_disk_read_changed,
+        test_stock_copy_destination_changed,
+        test_project_flush_concurrent_edit, test_installed_mutation_publication)
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--require-ready',action='store_true')
     parser.add_argument('--export')
     args=parser.parse_args()
-    tests=[test_sources,test_boot,test_banks_save,test_load_validation,test_switch_dirty_and_failure,
+    tests=[test_sources,test_read_buffer_reservation,test_boot,test_banks_save,test_load_validation,test_switch_dirty_and_failure,
            test_clear_delete_copy,test_native_load,test_creation,test_transpose,
            test_copy_stock_caller,test_requests_during_io,test_project_switch,test_playback_switch,
            test_inline_clear_and_entry,test_held_octave,test_project_save_destination,test_sd_task_receive,
@@ -731,14 +759,18 @@ def main():
            test_import_source_identity,test_foreign_project_delete,
            test_delayed_io_competing_task,test_stale_read_generation,
            test_edit_during_flush_generation,test_clear_during_read_generation,
-           test_project_clear_during_read_generation,test_readiness_gate]
+           test_project_clear_during_read_generation,test_stock_save_concurrent_edit,
+           test_stock_save_disk_read_changed,test_stock_copy_destination_changed,test_project_flush_concurrent_edit,
+           test_installed_mutation_publication,test_readiness_gate]
     completed = set()
     for test in tests:
         test();completed.add(test.__name__);print('PASS',test.__name__)
     if args.require_ready:
-        from test_fanout_real import test_real_queue_capacity
+        from test_fanout_real import test_real_queue_capacity, test_real_tie_capacity
         test_real_queue_capacity()
         completed.add('test_real_queue_capacity')
+        test_real_tie_capacity()
+        completed.add('test_real_tie_capacity')
         assert_ready(completed)
         print('PASS module-only readiness: installed bytes and all required QA regressions')
     if args.export:

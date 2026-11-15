@@ -125,6 +125,23 @@
       "pop {r0-r3, r12, lr}",
       "movs r0, #0",
       "bx lr",
+      ".ltorg",
+      ".org 0x180",
+      "@ A tie/slide must reserve replacement capacity BEFORE canceling its old off.",
+      "push {r0-r3, r12, lr}",
+      "ldr r0, =0x10007010",
+      "ldr r1, [r0, #0xa00]",
+      "ldr r2, [r0, #0xa04]",
+      "subs r2, r2, r1",
+      "and r2, r2, #127",
+      "cmp r2, #127",
+      "bhs tie_full",
+      "pop {r0-r3, r12, lr}",
+      "bl 0x08019a24",
+      "b.w 0x08021790",
+      "tie_full:",
+      "pop {r0-r3, r12, lr}",
+      "b.w 0x080217a4",
       ".ltorg"
     ]
   },
@@ -149,6 +166,13 @@
         "b.w 0x08047740"
       ],
       "note": "full scheduler ring rejects new insertions without overwriting pending events"
+    },
+    {
+      "addr": "0x0802178C",
+      "asm": [
+        "b.w 0x08047780"
+      ],
+      "note": "tie/slide admission before off cancellation; full ring preserves original off and skips replacement"
     }
   ],
   "requires": {
