@@ -272,8 +272,8 @@
   var hex = null, fileName = '', lastOutput = null, fsDir = null;
   // Ground Control — Polyphony v1.1 (clock + poly + entry + step-record + clear + transpose + SD persistence); embedded
   var V1 = {
-    name: 'Core + fanout (test)', version: 'test', status: 'experimental', enabled: true,
-    description: 'Stable core plus player-step chord fan-out only.',
+    name: 'Core only (MIDI bisect)', version: 'test', status: 'experimental', enabled: true,
+    description: 'Clock, capture, velocity, load, save. No fanout.',
     patches: [
       { addr: '0x8046810', bytes: '0fb5c1b2f82906d0fa2904d0fc2902d0fb2900d014e0bde80f40d5f8007a013f07f07f07d5f804ca67450cd009fb07560fc6c6f800a0c5f8007a5046d3f761b8bde80f40ffe7d5f8047ad5f800ba09fb0756d3f715b8' },
       { addr: '0x8019884', bytes: '2cf0c4ff00bf00bf00bf00bf' },
@@ -284,9 +284,7 @@
       { addr: '0x8047c00', bytes: 'ec462de9f04164466569032d34d094f83f604ef20047c1f20007702038706f2078706c20b8707920f8703e71002078714ef20000c1f2000039460122ccf796fed0b94bf23051c1f2000140f6800205fb02f001444ef20000c1f2000040f680024ef20033c1f20003ccf762ff4ef20000c1f20000cdf750f94ff0ff33bde8f0417047' },
       { addr: '0x801cd96', bytes: '2af033ff' },
       { addr: '0x8047e00', bytes: 'ec462de9f0416446032f30d0e67b702020726f2060726c20a0727920e0722673002060734ef20000c1f2000004f108010a22ccf79bfdd0b94bf23051c1f2000140f6800207fb02f001444ef20000c1f2000040f680024ef20033c1f20003ccf718ff4ef20000c1f20000cdf755f804f11800cdf751f8bde8f0417047' },
-      { addr: '0x801c542', bytes: '2bf05dfc' },
-      { addr: '0x8047600', bytes: '2de9ff5f84f83c0098f81f506d1e032d2dd2ee0206ebc516070107443e444bf23057c1f200073e443778082f1fd8002f1dd05ff00009b94519d206f1010101eb490191f800c04a78d4450dd084b0cdf800c0019205f1010302930020002164226368d2f716fa04b019f10109e3e7bde8ff5fdaf7feb9' },
-      { addr: '0x8021a6e', bytes: '25f0c7bd' }
+      { addr: '0x801c542', bytes: '2bf05dfc' }
     ]
   };
   var mods = [V1];
