@@ -573,6 +573,10 @@ def test_playback_switch():
     m.sb.w(PROJECT+0x8c,b'\1')
     assert play()==[60]
     m.worker();assert play()==[60]
+    # Untagged boot cache: bank is authoritative until the worker stamps it.
+    m.sb.w(META+16,b'\0'*3)
+    m.sb.w(POLY,chord(60,64))
+    assert play()==[64,60]
 
 
 def test_inline_clear_and_entry():
