@@ -272,14 +272,14 @@
   var hex = null, fileName = '', lastOutput = null, fsDir = null;
   // Ground Control — Polyphony v1.1 (clock + poly + entry + step-record + clear + transpose + SD persistence); embedded
   var V1 = {
-    name: 'Polyphony v1.1 (clean loader)', version: '1.1', status: 'experimental', enabled: true,
-    description: 'Loader zeroes the poly buffer before open, so cleared/missing sidecars cannot leave stale chords. Fanout is track-scoped.',
+    name: 'Polyphony v1.1 (track-scoped)', version: '1.1', status: 'experimental', enabled: true,
+    description: 'Fanout is scoped to the owning track via table 0x08038370; empty tracks are skipped; loader uses the same table.',
     patches: [
       { addr: '0x8047400', bytes: '2fb55977224b1878c0b202281cd86279802a19d20346db0203ebc01303eb021313444bf23050c1f20000184429467f290ad84ff60052c1f200020a441278002a00d1642200f004f8bde82f40def7d4b970b50378082b01d90023037000249c420ad200f1010505eb44052e788e4201d00134f4e76a7009e0082b07d200f1010505eb430529706a7001330370184670bddaca0020' },
       { addr: '0x8025814', bytes: '21f0f4bd' },
       { addr: '0x8047800', bytes: '01b548790b794ff6005cc1f2000c9c448cf800000b794a79bde80140d7f7e6bc' },
       { addr: '0x801f1e8', bytes: '28f00abb' },
-      { addr: '0x8049000', bytes: 'ec462de9f041644654f8187c34480025032d60d250f82510a7eb0102002a03db40f2f0439a4201db0135f1e74bf23056c1f2000640f6800205fb02f0064400205ff0000846f8080018f10408b8f5086ff8d194f83f604ef20047c1f20007702038706f2078706c20b8707920f8703e71002078714ef20000c1f2000039460122cbf774fc002840f026804ef20000c1f20000314640f680024ef20033c1f20003cbf746fd4ef20000c1f20000cbf734ff4ef20037c1f20007386840f68001884209d000205ff0000846f8080018f10408b8f5086ff8d14ff0ff33bde8f041704770830308' },
+      { addr: '0x8049000', bytes: 'ec462de9f041644654f8187c34480025032d60d250f82510a7eb0102002a03db40f2f0439a4201db0135f1e794f83f604ef20047c1f20007702038706f2078706c20b8707920f8703e71002078714ef20000c1f2000039460122cbf787fc002840f039804bf23056c1f2000640f6800205fb02f0064400205ff0000846f8080018f10408b8f5086ff8d14ef20000c1f20000314640f680024ef20033c1f20003cbf746fd4ef20000c1f20000cbf734ff4ef20037c1f20007386840f68001884209d000205ff0000846f8080018f10408b8f5086ff8d14ff0ff33bde8f041704770830308' },
       { addr: '0x801cd96', bytes: '2cf033f9' },
       { addr: '0x8047e00', bytes: 'ec462de9f0416446032f30d0e67b702020726f2060726c20a0727920e0722673002060734ef20000c1f2000004f108010a22ccf79bfdd0b94bf23051c1f2000140f6800207fb02f001444ef20000c1f2000040f680024ef20033c1f20003ccf718ff4ef20000c1f20000cdf755f804f11800cdf751f8bde8f0417047' },
       { addr: '0x801c542', bytes: '2bf05dfc00bf' },
@@ -550,7 +550,7 @@
   window.GCModder = { HexFile: HexFile, identify: identify, applyBundle: applyBundle, loadHex: loadHex, takeFile: takeFile, getOutput: function () { return lastOutput; }, connectSD: connectSD, getSD: function () { return fsDir; }, ready: true };
 })();
 </script>
-<script src="assets/editor.js?v=814"></script>
+<script src="assets/editor.js?v=813"></script>
 <script>
 (function () {
   function showView(v) {
