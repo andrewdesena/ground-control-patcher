@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """EDIT-mode chord key lights: OR stored chord notes into the stock LED buffer."""
-import struct
 import sys
 from pathlib import Path
 
@@ -21,24 +20,40 @@ def has_bit(fb, bit):
     return bool(fb[bit // 8] & (1 << (bit % 8)))
 
 
-def main():
+def run_case(track, primary_note, notes, lit_keys):
     m = Module()
-    track, letter, step = 1, 0, 0
+    letter, step = 0, 0
     m.sb.w(0x2000CADA, bytes([track]))
-    parent = m.parents[track]
-    m.sb.w(parent + 0x2DF, bytes([step]))
-    p = m.pattern(track, letter)
-    m.sb.w(p + 8 + step * 3, bytes([60, 90, 0]))
-    m.sb.w(POLY + (track - 1) * SIZE + step * 17,
-           bytes([3, 60, 90, 64, 90, 67, 90] + [0] * 10))
+    if track <= 3:
+        m.sb.w(m.parents[track] + 0x2DF, bytes([step]))
+        p = m.pattern(track, letter)
+        m.sb.w(p + 8 + step * 3, bytes([primary_note, 90, 0]))
+        m.sb.w(POLY + (track - 1) * SIZE + step * 17,
+               bytes([len(notes)] + [v for n in notes for v in (n, 90)] + [0] * (16 - 2 * len(notes))))
     fb = bytearray(7)
-    set_bit(fb, BIT_FOR_KEY[0])          # stock lights C
+    for key in lit_keys:
+        set_bit(fb, BIT_FOR_KEY[key])
     m.sb.w(FB, bytes(fb))
     m.call(CAVE)
-    out = m.sb.r(FB, 7)
+    return m, m.sb.r(FB, 7)
+
+
+def main():
+    _, out = run_case(1, 60, (60, 64, 67), (0,))
     for key in (0, 4, 7):                # C, E, G
-        assert has_bit(out, BIT_FOR_KEY[key]), (key, out.hex())
-    print('PASS edit-mode chord lights C/E/G')
+        assert has_bit(out, BIT_FOR_KEY[key]), ('C4', key, out.hex())
+
+    _, out = run_case(1, 72, (72, 76, 79), (0,))
+    for key in (0, 4, 7):                # same pitch classes one octave up
+        assert has_bit(out, BIT_FOR_KEY[key]), ('C5', key, out.hex())
+
+    _, out = run_case(4, 60, (60, 64, 67), (0,))
+    assert out == bytes([0] * 2 + [1 << 4] + [0] * 4), ('drum', out.hex())
+
+    _, out = run_case(1, 60, (60, 64, 67), (0, 4))
+    assert out == bytes([0, (1 << 1), (1 << 4)] + [0] * 4), ('multi-lit', out.hex())
+
+    print('PASS edit-mode chord lights: C4, C5, drum skip, multi-lit guard')
     return 0
 
 
