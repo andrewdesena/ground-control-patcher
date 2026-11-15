@@ -51,6 +51,16 @@
       "addr": "0x80217f4",
       "bytes": "25f004ff",
       "note": "real pair call -> chord fan-out cave"
+    },
+    {
+      "addr": "0x8048400",
+      "bytes": "002912da90f8e12290f8df325feac22c0cebc21c1a011a4494444bf23052c1f20002944400228cf8002080f8f5127047",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x801f32e",
+      "bytes": "29f067f8",
+      "note": "rest/clear commit also clears the step's poly record"
     }
   ]
 }
