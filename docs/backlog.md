@@ -23,9 +23,24 @@ Idea from Drew, 2026-11-13. Not started.
 Drew finds the stock generators not very musically useful and is open to tuning them. Deferred until
 after chord mode; capture concrete examples of what is wrong before changing behavior.
 
+## Next up (after module-only lifecycle)
+
+- **EDIT-mode chord key lights:** `poly-editlights` source exists and passes emulator tests, but it is
+  not in the shipped bundle. Integrate, run the Codex QA gate, then verify on hardware.
+- **Ratchet/publish audit:** fan-out currently re-emits the chord per stock ratchet repeat, and the
+  byte-wise publish copy can race live recording. Decide whether ratchet repetition is correct and add
+  a non-atomic-publish guard if it can lose a just-recorded chord.
+- **Hardware bench pass:** read-only/full card, missing sidecar, project switch while playing, pattern
+  copy/delete, clear then save then power-cycle.
+- **Editor transport limits:** compact JSON serialization is still pending; `patternA.txt` sits close to
+  the 10,200-byte loader cap when pretty-printed.
+- **Chord mode:** one key triggers a stored chord shape over MIDI, entered with a long-press of `GEN`.
+  Not started; design notes above.
+- **Per-note ties:** stock format stores TIE at the step level, so independent chord-note ties need a
+  new per-note field and firmware support.
+
 ## Editor UX pass (v1.1)
-Shipped: drag-select rectangle + Delete/Backspace, auto-load project/pattern on dropdown change, unsaved-change prompt with browser draft, save/load toasts, Clear Track moved into the track toolbar, backup pruning.
+Shipped: drag-select rectangle + Delete/Backspace, auto-load project/pattern, unsaved-change prompt with browser draft, save/load toasts, Clear Track in the track toolbar, backup pruning, Project → Track → Pattern collapsible navigator, drag-copy between tracks/projects, note-clear, CC lanes, velocity shading.
 
 Still open:
-- Left sidebar as a real file navigator (projects > tracks > patterns) instead of dropdowns.
 - Per-note ties: the stock pattern format stores TIE as a step-level modifier, so one chord note cannot tie independently of others. Doing this needs a new per-note field and firmware support.
