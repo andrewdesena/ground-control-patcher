@@ -72,7 +72,7 @@ def run(count, notes, track_id, step=0, primary=60, start=1000, dur=50,
     u.mem_write(CAVE, cave)
     u.mem_write(QUEUE, b'\x70\x47')  # sole stub: bx lr
     u.mem_write(BASEARR, struct.pack('<I', TRACKBASE))
-    for i in range(3): u.mem_write(0x20000450 + i*4, struct.pack('<I', TRACKBASE + i*STRIDE))
+    for i in range(3): u.mem_write(0x08038370 + i*4, struct.pack('<I', TRACKBASE + i*STRIDE))
 
     voice = TRACKBASE + (track_id - 1) * STRIDE
     parent = voice
