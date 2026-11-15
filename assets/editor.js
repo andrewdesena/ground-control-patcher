@@ -604,7 +604,7 @@
         }
         const arr = ensureMelodic(t), steps = [];
         for (let s = 0; s < N; s++) { const st = arr[s]; const n = st.notes && st.notes.length ? st.notes[0] : null; steps.push({ note: n ? nativeNote(n[0]) : "", velocity: n ? n[1] : 0, modifier: st.modifier || 0, ratchet: st.ratchet || 0 }); }
-        return Object.assign({}, base, { step_limit: N, count: N, steps: steps });
+        return Object.assign({}, base, { step_limit: N, count: steps.length, steps: steps });
       }
       function encodePoly(t) {
         const arr = ensureMelodic(t), out = new Uint8Array(2176);
