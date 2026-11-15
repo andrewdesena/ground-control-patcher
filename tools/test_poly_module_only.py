@@ -35,7 +35,8 @@ PROJECT = 0x2001BB38
 LOAD, WRITE = 0x0801CCC4, 0x0801C450
 F_OPEN, F_READ, F_WRITE, F_CLOSE = 0x0801496C, 0x08014B30, 0x08014C92, 0x08014F18
 MODULES = ['poly-record', 'poly-velhook', 'poly-load', 'poly-save', 'poly-fanout',
-           'poly-clear', 'poly-init', 'poly-entry', 'poly-transpose', 'poly-chord', 'poly-lifecycle']
+           'poly-clear', 'poly-init', 'poly-entry', 'poly-transpose', 'poly-chord', 'poly-lifecycle',
+           'poly-editlights']
 
 
 @lru_cache(maxsize=None)

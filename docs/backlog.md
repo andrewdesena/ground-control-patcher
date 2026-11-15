@@ -25,8 +25,9 @@ after chord mode; capture concrete examples of what is wrong before changing beh
 
 ## Next up (after module-only lifecycle)
 
-- **EDIT-mode chord key lights:** `poly-editlights` source exists and passes emulator tests, but it is
-  not in the shipped bundle. Integrate, run the Codex QA gate, then verify on hardware.
+- **EDIT-mode chord key lights:** `poly-editlights` is now integrated into the local bundle (cave
+  `0x08048A00`, hook `0x08012068`) and passes `tools/test_poly_editlights.py` for C/E/G. Still needs the
+  Codex QA gate and hardware verification before shipping.
 - **Ratchet/publish audit:** fan-out currently re-emits the chord per stock ratchet repeat, and the
   byte-wise publish copy can race live recording. Decide whether ratchet repetition is correct and add
   a non-atomic-publish guard if it can lose a just-recorded chord.

@@ -64,7 +64,7 @@ flashes a `gc-*.hex` found at the card root.
 - Captured velocity falls back to 100 if a note-on velocity wasn't seen.
 - Up to 8 notes per step.
 - Overlapping keys in step record now build a chord; they no longer create `SLIDE`.
-- EDIT-mode chord key lights are **not in the current bundle**; `poly-editlights` is built and emulator-tested but still needs integration and QA.
+- EDIT-mode chord key lights are integrated in the local build (`poly-editlights`) and emulator-tested; hardware validation is still pending.
 - Module pattern copy/rename may not carry the `poly<letter>` sidecar yet.
 
 ## Hardware validation checklist (v1.1)
