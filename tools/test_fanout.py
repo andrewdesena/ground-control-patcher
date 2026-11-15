@@ -36,6 +36,9 @@ def run(count, notes, selector, step=0, primary=60):
     u.mem_write(BASE + (selector - 1) * 0x880 + step * 17, rec)
     voice = 0x20008000
     u.mem_write(voice + 0x3c, bytes([step]))
+    par = 0x20009000
+    u.mem_write(par + 0x1f, bytes([selector]))
+    u.mem_write(voice + 8, struct.pack('<I', par))
     sp = 0x20010000
     u.mem_write(sp, struct.pack('<III', primary, 100, selector))
     for r, v in ((UC_ARM_REG_SP, sp), (UC_ARM_REG_R0, 0), (UC_ARM_REG_R1, 1000),
