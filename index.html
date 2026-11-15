@@ -272,15 +272,11 @@
   var hex = null, fileName = '', lastOutput = null, fsDir = null;
   // Ground Control — Polyphony v1.1 (clock + poly + entry + step-record + clear + transpose + SD persistence); embedded
   var V1 = {
-    name: 'No-save bisect (6 sites)', version: 'test', status: 'experimental', enabled: true,
-    description: 'Capture, velocity, load only. Save hook removed: it resumed mid-instruction and crashes.',
+    name: 'Capture only (2 sites)', version: 'test', status: 'experimental', enabled: true,
+    description: 'Capture cave only. No velocity, no load/save, no playback changes.',
     patches: [
       { addr: '0x8047400', bytes: '2fb55977214b1878c0b202281ad86279802a17d20346db0203ebc01303eb021313444bf23050c1f20000184429464ff60052c1f200020a441278002a00d1642200f004f8bde82f40def7d6b970b50378082b01d90023037000249c420ad200f1010505eb44052e788e4201d00134f4e76a7009e0082b07d200f1010505eb430529706a7001330370184670bddaca0020' },
-      { addr: '0x8025814', bytes: '21f0f4bd' },
-      { addr: '0x8047800', bytes: '01b548790b794ff6005cc1f2000c9c448cf800000b794a79bde80140d7f7e6bc' },
-      { addr: '0x801f1e8', bytes: '28f00abb' },
-      { addr: '0x8047c00', bytes: 'ec462de9f04164466569032d34d094f83f604ef20047c1f20007702038706f2078706c20b8707920f8703e71002078714ef20000c1f2000039460122ccf796fed0b94bf23051c1f2000140f6800205fb02f001444ef20000c1f2000040f680024ef20033c1f20003ccf762ff4ef20000c1f20000cdf750f94ff0ff33bde8f0417047' },
-      { addr: '0x801cd96', bytes: '2af033ff' }
+      { addr: '0x8025814', bytes: '21f0f4bd' }
     ]
   };
   var mods = [V1];
