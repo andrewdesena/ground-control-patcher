@@ -33,7 +33,7 @@ def run(count, notes, selector, step=0, primary=60):
     rec = bytes([count])
     for n, v in notes:
         rec += bytes([n, v])
-    u.mem_write(BASE + selector * 0x880 + step * 17, rec)
+    u.mem_write(BASE + (selector - 1) * 0x880 + step * 17, rec)
     voice = 0x20008000
     u.mem_write(voice + 0x3c, bytes([step]))
     sp = 0x20010000
@@ -68,27 +68,27 @@ def main():
     ok = 0
     total = 0
 
-    calls, err = run(3, [(60, 100), (64, 90), (67, 80)], 0)
+    calls, err = run(3, [(60, 100), (64, 90), (67, 80)], 1)
     total += 1; ok += check('triad extras first', calls,
-                            [(64, 90, 0, 1000, 50, 7), (67, 80, 0, 1000, 50, 7),
-                             (60, 100, 0, 1000, 50, 7)], err)
+                            [(64, 90, 1, 1000, 50, 7), (67, 80, 1, 1000, 50, 7),
+                             (60, 100, 1, 1000, 50, 7)], err)
 
-    calls, err = run(1, [(60, 100)], 0)
-    total += 1; ok += check('single note no extras', calls, [(60, 100, 0, 1000, 50, 7)], err)
+    calls, err = run(1, [(60, 100)], 1)
+    total += 1; ok += check('single note no extras', calls, [(60, 100, 1, 1000, 50, 7)], err)
 
-    calls, err = run(3, [(60, 100), (64, 90), (67, 80)], 3)
-    total += 1; ok += check('drums selector skip', calls, [(60, 100, 3, 1000, 50, 7)], err)
+    calls, err = run(3, [(60, 100), (64, 90), (67, 80)], 0)
+    total += 1; ok += check('invalid selector skip', calls, [(60, 100, 0, 1000, 50, 7)], err)
 
-    calls, err = run(3, [(62, 100), (64, 90), (67, 80)], 0)
-    total += 1; ok += check('primary absent skip', calls, [(60, 100, 0, 1000, 50, 7)], err)
+    calls, err = run(3, [(62, 100), (64, 90), (67, 80)], 1)
+    total += 1; ok += check('primary absent skip', calls, [(60, 100, 1, 1000, 50, 7)], err)
 
     calls, err = run(3, [(60, 100), (64, 90), (67, 80)], 2, step=127)
     total += 1; ok += check('track2 step127', calls,
                             [(64, 90, 2, 1000, 50, 7), (67, 80, 2, 1000, 50, 7),
                              (60, 100, 2, 1000, 50, 7)], err)
 
-    calls, err = run(9, [(60, 100), (64, 90)], 0)
-    total += 1; ok += check('count>8 rejected', calls, [(60, 100, 0, 1000, 50, 7)], err)
+    calls, err = run(9, [(60, 100), (64, 90)], 1)
+    total += 1; ok += check('count>8 rejected', calls, [(60, 100, 1, 1000, 50, 7)], err)
 
     print(f'{"PASS" if ok == total else "FAIL"} ({ok}/{total})')
     return 0 if ok == total else 1
