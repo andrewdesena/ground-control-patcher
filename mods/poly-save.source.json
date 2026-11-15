@@ -53,7 +53,8 @@
     {
       "addr": "0x0801C542",
       "asm": [
-        "bl 0x08047E00"
+        "bl 0x08047E00",
+        "nop"
       ],
       "note": "writer f_close prep -> save poly sidecar"
     }

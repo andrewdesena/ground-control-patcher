@@ -24,6 +24,8 @@
       "movt r0, #0x1000",
       "add r0, r0, r3",
       "mov r1, r5",
+      "cmp r1, #127",
+      "bhi 9f",
       "movw r2, #0xfd00",
       "movt r2, #0x1000",
       "add r2, r2, r1",

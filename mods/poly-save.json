@@ -16,7 +16,7 @@
     },
     {
       "addr": "0x801c542",
-      "bytes": "2bf05dfc",
+      "bytes": "2bf05dfc00bf",
       "note": "writer f_close prep -> save poly sidecar"
     }
   ]
