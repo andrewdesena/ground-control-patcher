@@ -55,36 +55,6 @@
       "note": "writer f_close prep -> save poly sidecar"
     },
     {
-      "addr": "0x8048000",
-      "bytes": "95f8040095f8051094f8e12294f8df324bf2305cc1f2000cd60206ebc2161a011a441644664432780023934209d206f1010c0ceb430c9cf800c084450ed00133f3e7082a10d206f1010c0ceb420c8cf800008cf801100132327005e006f1010c0ceb430c8cf8011094f820617047",
-      "note": "cave routine"
-    },
-    {
-      "addr": "0x801fd52",
-      "bytes": "28f055f9",
-      "note": "note-on -> append chord note to step poly"
-    },
-    {
-      "addr": "0x8048400",
-      "bytes": "002912da90f8e12290f8df325feac22c0cebc21c1a011a4494444bf23052c1f20002944400228cf8002080f8f5127047",
-      "note": "cave routine"
-    },
-    {
-      "addr": "0x801f32e",
-      "bytes": "29f067f8",
-      "note": "rest/clear commit also clears the step's poly record"
-    },
-    {
-      "addr": "0x8048600",
-      "bytes": "ffb5acf8384048f23020c0f602000068002150f8212092f82e3040f2941603fb0626664503d001310429f2d11fe04bf23050c1f20000ca0202ebc112104400210278002393420ed200f1010606eb430637782f44002f00da00277f2f00dd7f2737700133eee7113001318029e8d1ffbd",
-      "note": "cave routine"
-    },
-    {
-      "addr": "0x8028224",
-      "bytes": "20f0ecf9",
-      "note": "after successful mono transpose, shift the same track's chord notes"
-    },
-    {
       "addr": "0x8047600",
       "bytes": "2de9ff5f84f83c0098f81f506d1e032d2dd2ee0206ebc516070107443e444bf23057c1f200073e443778082f1fd8002f1dd05ff00009b94519d206f1010101eb490191f800c04a78d4450dd084b0cdf800c0019205f1010302930020002164226368d2f716fa04b019f10109e3e7bde8ff5fdaf7feb9",
       "note": "cave routine"
