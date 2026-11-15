@@ -35,9 +35,10 @@ def run(count, notes, selector, step=0, primary=60):
         rec += bytes([n, v])
     u.mem_write(BASE + max(selector - 1, 0) * 0x880 + step * 17, rec)
     u.mem_write(0x08028230, struct.pack('<I', 0x20008000))
+    for i in range(3): u.mem_write(0x20000450 + i*4, struct.pack('<I', 0x20008000 + i*0x194))
     voice = 0x20008000 + max(selector - 1, 0) * 0x194
     u.mem_write(voice + 0x3c, bytes([step]))
-    par = 0x20009000
+    par = 0x20008000 + (selector - 1) * 0x194
     u.mem_write(par + 0x1f, bytes([selector]))
     u.mem_write(voice + 8, struct.pack('<I', par))
     sp = 0x20010000
@@ -83,8 +84,10 @@ def main():
     calls, err = run(0, [], 1)
     total += 1; ok += check('empty poly skip', calls, [(60, 100, 1, 1000, 50, 7)], err)
 
-    calls, err = run(3, [(62, 100), (64, 90), (67, 80)], 1)
-    total += 1; ok += check('primary absent skip', calls, [(60, 100, 1, 1000, 50, 7)], err)
+    calls, err = run(3, [(60, 100), (64, 90), (67, 80)], 1, step=5)
+    total += 1; ok += check('step5 exact', calls,
+                            [(64, 90, 1, 1000, 50, 7), (67, 80, 1, 1000, 50, 7),
+                             (60, 100, 1, 1000, 50, 7)], err)
 
     calls, err = run(3, [(60, 100), (64, 90), (67, 80)], 2, step=127)
     total += 1; ok += check('track2 step127', calls,

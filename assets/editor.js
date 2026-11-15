@@ -4,9 +4,11 @@
 (function () {
   "use strict";
   const NAME = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+  const NOTE_RE = /^([A-G])(#?)(-?\d)(#?)$/;
   const isBlack = n => NAME[n % 12].includes("#");
-  const noteName = n => NAME[n % 12] + (Math.floor(n / 12) - 1);
-  const nameToMidi = s => s ? (parseInt(s.slice(-1), 10) + 1) * 12 + NAME.indexOf(s.slice(0, -1)) : null;
+  const noteName = n => NAME[n % 12] + (Math.floor(n / 12) - 2);
+  const noteToMidi = s => { const m = NOTE_RE.exec(String(s == null ? '' : s).trim()); if (!m) return null; const v = (parseInt(m[3], 10) + 2) * 12 + NAME.indexOf(m[1]) + ((m[2] || m[4]) ? 1 : 0); return v >= 0 && v <= 127 ? v : null; };
+  const nameToMidi = s => noteToMidi(s);
 
   const CSS = `
   :host{display:block;color:#e7e9ec;font:13px/1.4 ui-monospace,Menlo,monospace;
@@ -541,9 +543,9 @@
       let sdDir = window.__gcSD || null;
       const native = { global: null, project: null, projectName: null, tracks: {}, patterns: {}, pattern: 'A', letters: ['A'], len: {} };
       const sdstat = $("sdstat");
-      const NOTE_RE = /^([A-G])(-?\d)(#?)$/;
-      function parseNativeNote(s) { const m = NOTE_RE.exec(String(s == null ? '' : s).trim()); if (!m) return null; return (parseInt(m[2], 10) + 1) * 12 + NAME.indexOf(m[1]) + (m[3] ? 1 : 0); }
-      function nativeNote(midi) { if (midi == null || midi < 0 || midi > 127) return ""; const n = NAME[midi % 12], oct = Math.floor(midi / 12) - 1; return n.endsWith('#') ? n[0] + oct + '#' : n + oct; }
+      const NOTE_RE = /^([A-G])(#?)(-?\d)(#?)$/;
+      function parseNativeNote(s) { const m = NOTE_RE.exec(String(s == null ? '' : s).trim()); if (!m) return null; const v = (parseInt(m[3], 10) + 2) * 12 + NAME.indexOf(m[1]) + ((m[2] || m[4]) ? 1 : 0); return v >= 0 && v <= 127 ? v : null; }
+      function nativeNote(midi) { if (midi == null || midi < 0 || midi > 127) return ""; const n = NAME[midi % 12], oct = Math.floor(midi / 12) - 2; return n.endsWith('#') ? n[0] + oct + '#' : n + oct; }
       async function rd(dir, parts) { let d = dir; for (let i = 0; i < parts.length - 1; i++) d = await d.getDirectoryHandle(parts[i]); const fh = await d.getFileHandle(parts[parts.length - 1]); return await (await fh.getFile()).text(); }
       function lenientJSON(txt) {
         let t = String(txt).replace(/^\uFEFF/, '');
@@ -641,7 +643,7 @@
           if (!usedL) usedL = L;
           let pat = null; try { pat = await rdJSON(sdDir, [name, 'track' + t, 'pattern' + L + '.txt']); } catch (e) { try { pat = await rdJSON(sdDir, [name, 'track' + t, 'patternA.txt']); } catch (e2) {} }
           native.patterns[t] = pat; applyPattern(t, pat);
-          if (t !== 'D') { try { const pb = await rdBytes(sdDir, [name, 'track' + t, 'poly' + L]); if (pb.length >= 2176) decodePoly(t, pb); } catch (e) {} }
+          if (t !== 'D') { try { const pb = await rdBytes(sdDir, [name, 'track' + t, 'poly' + L]); if (pb.length >= 2176) { decodePoly(t, pb); migratePolyOffset(t); } } catch (e) {} }
         }
         if (native.project && typeof native.project.BPM === 'number') state.global.BPM = native.project.BPM;
         state.track = '1';
@@ -674,6 +676,18 @@
           for (let k = 0; k < ns.length; k++) { out[s * 17 + 1 + k * 2] = ns[k][0] & 0x7f; out[s * 17 + 2 + k * 2] = ns[k][1] & 0x7f; }
         }
         return out;
+      }
+      function migratePolyOffset(t) {
+        const arr = ensureMelodic(t), pat = native.patterns[t];
+        if (!pat || !Array.isArray(pat.steps)) return;
+        for (let s = 0; s < 128 && s < pat.steps.length; s++) {
+          const ns = arr[s].notes; if (!ns.length) continue;
+          const want = parseNativeNote(pat.steps[s].note);
+          const d = want == null ? 0 : want - ns[0][0];
+          if (!d || Math.abs(d) > 24 || Math.abs(d) % 12) continue;
+          const moved = ns.map(n => [n[0] + d, n[1]]).filter(n => n[0] >= 0 && n[0] <= 127);
+          if (moved.length === ns.length) arr[s].notes = moved;
+        }
       }
       function decodePoly(t, u8) {
         const arr = ensureMelodic(t);
