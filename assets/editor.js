@@ -27,8 +27,10 @@
   #side .nav{display:flex;flex-direction:column;gap:2px;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:4px}
   #side .navproj{text-align:left;font-size:11px;padding:5px 6px;border:1px solid transparent;background:transparent;color:var(--fg)}
   #side .navproj.active{border-color:var(--accent);color:var(--accent)}
-  #side .navpat{text-align:left;font-size:10px;padding:3px 6px 3px 16px;border:1px solid transparent;background:transparent;color:var(--muted)}
+  #side .navpat{text-align:left;font-size:10px;padding:3px 6px 3px 28px;border:1px solid transparent;background:transparent;color:var(--muted)}
   #side .navpat.active{color:var(--accent2);border-color:var(--accent2)}
+  #side .navtrack{text-align:left;font-size:10px;padding:4px 6px 4px 16px;border:1px solid transparent;background:transparent;color:var(--fg);opacity:.85}
+  .grp[hidden]{display:none}
   #side .ttab{text-align:left;padding:8px 7px;font-size:11px;line-height:1.1}
   #side .ttab.active{border-color:var(--accent2);color:var(--accent2);background:#16262b}
   #side .ttab.d.active{border-color:var(--drum);color:var(--drum);background:#2a2118}
@@ -369,20 +371,31 @@
             const pb = document.createElement("button"); pb.className = "navproj" + (native.projectName === p ? " active" : ""); pb.textContent = p;
             pb.onclick = async () => { await maybeSave("project"); await loadProject(p, "A"); };
             nav.appendChild(pb);
-            (native.patMap[p] || ["A"]).forEach(L => {
-              const b = document.createElement("button");
-              b.className = "navpat" + (native.projectName === p && (native.pattern || "A") === L ? " active" : "");
-              b.textContent = "Pattern " + L;
-              b.onclick = async () => { await maybeSave("pattern"); await loadProject(p, L); };
-              nav.appendChild(b);
+            const open = async (tr, L) => {
+              await maybeSave("pattern"); await loadProject(p, L || "A");
+              state.track = tr; state.sel = new Set();
+              if (native.len[tr]) state.steps = native.len[tr];
+              const sn = $("stepsNum"); if (sn) sn.value = state.steps;
+              paint();
+            };
+            ["1", "2", "3", "D"].forEach(tr => {
+              const letters = (native.tree[p] && native.tree[p][tr]) || [];
+              const tb = document.createElement("button");
+              tb.className = "navtrack" + (native.projectName === p && state.track === tr ? " active" : "");
+              tb.textContent = "Track " + tr + (letters.length ? "" : " (empty)");
+              tb.onclick = () => open(tr, letters[0]);
+              nav.appendChild(tb);
+              letters.forEach(L => {
+                const b = document.createElement("button");
+                b.className = "navpat" + (native.projectName === p && state.track === tr && (native.pattern || "A") === L ? " active" : "");
+                b.textContent = "Pattern " + L;
+                b.onclick = () => open(tr, L);
+                nav.appendChild(b);
+              });
             });
           });
           t.appendChild(nav);
         }
-        [[ "1", "Track 1"], ["2", "Track 2"], ["3", "Track 3"], ["D", "Track D"]].forEach(([v, label]) => {
-          const b = document.createElement("button"); b.className = "ttab" + (state.track === v ? " active" : "") + (v === "D" ? " d" : "");
-          b.textContent = label; b.onclick = () => { state.track = v; state.sel = new Set(); if (native.len[v]) state.steps = native.len[v]; const sn = $("stepsNum"); if (sn) sn.value = state.steps; paint(); }; t.appendChild(b);
-        });
         const g = document.createElement("div"); g.style.cssText = "margin-top:auto;color:#8b93a1;font-size:10px;padding:6px 2px"; g.textContent = "128 steps · MIDI 0–127"; t.appendChild(g);
       }
       function paint() {
@@ -513,6 +526,11 @@
       async function listDirs(root) { const out = []; for await (const e of root.values()) if (e.kind === 'directory') out.push(e.name); return out; }
       async function listFiles(dir) { const out = []; for await (const e of dir.values()) if (e.kind === 'file') out.push(e.name); return out; }
       async function projectNames() { return (await listDirs(sdDir)).filter(n => /^project/i.test(n)).sort(); }
+      async function trackLetters(project, t) {
+        const set = new Set();
+        try { const td = await (await sdDir.getDirectoryHandle(project)).getDirectoryHandle('track' + t); (await listFiles(td)).forEach(f => { const m = /^pattern([A-Z])\.txt$/i.exec(f); if (m) set.add(m[1].toUpperCase()); }); } catch (e) {}
+        return [...set].sort();
+      }
       async function patternLetters(project) {
         const set = new Set();
         for (const t of ['1', '2', '3', 'D']) {
@@ -522,8 +540,12 @@
       }
       async function refreshProjects(keep) {
         const names = await projectNames();
-        native.projects = names; native.patMap = native.patMap || {};
-        for (const n of names) { try { native.patMap[n] = await patternLetters(n); } catch (e) { native.patMap[n] = ['A']; } }
+        native.projects = names; native.patMap = native.patMap || {}; native.tree = {};
+        for (const n of names) {
+          native.tree[n] = {};
+          for (const t of ['1', '2', '3', 'D']) { try { native.tree[n][t] = await trackLetters(n, t); } catch (e) { native.tree[n][t] = []; } }
+          native.patMap[n] = [...new Set(Object.values(native.tree[n]).flat())].sort();
+        }
         const sel = $("projSel"); const cur = keep || native.projectName || sel.value; sel.innerHTML = "";
         names.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o); });
         if (cur && names.includes(cur)) sel.value = cur;
