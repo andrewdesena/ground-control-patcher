@@ -1,0 +1,12 @@
+{
+  "name": "ProjectSettings JSON comma",
+  "status": "experimental",
+  "description": "Fix the stock ProjectSettings writer format string: the QuantizedMute array closes as `\" ]` with no comma before `modulationTrack`, producing invalid JSON on every module save. Patch turns the tail into `\"],` without changing string length.",
+  "patches": [
+    {
+      "addr": "0x08036E50",
+      "bytes": "5d2c00",
+      "note": "format tail: space + ] + NUL -> ] + , + NUL"
+    }
+  ]
+}

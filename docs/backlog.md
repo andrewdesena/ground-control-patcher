@@ -28,6 +28,9 @@ after chord mode; capture concrete examples of what is wrong before changing beh
 - **EDIT-mode chord key lights:** `poly-editlights` is now integrated into the local bundle (cave
   `0x08048A00`, hook `0x08012068`) and passes `tools/test_poly_editlights.py` for C/E/G. Still needs the
   Codex QA gate and hardware verification before shipping.
+- **ProjectSettings JSON:** fixed the stock writer format string (`0x08036E50`) so `QuantizedMute`
+  closes with a comma before `modulationTrack`. This was corrupting ProjectSettings on every module
+  save, independent of polyphony. Needs the same Codex/hardware gate.
 - **Ratchet/publish audit:** fan-out currently re-emits the chord per stock ratchet repeat, and the
   byte-wise publish copy can race live recording. Decide whether ratchet repetition is correct and add
   a non-atomic-publish guard if it can lose a just-recorded chord.
