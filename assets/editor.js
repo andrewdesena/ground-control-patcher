@@ -30,6 +30,7 @@
   #side .navpat{text-align:left;font-size:10px;padding:3px 6px 3px 28px;border:1px solid transparent;background:transparent;color:var(--muted)}
   #side .navpat.active{color:var(--accent2);border-color:var(--accent2)}
   #side .navtrack{text-align:left;font-size:10px;padding:4px 6px 4px 16px;border:1px solid transparent;background:transparent;color:var(--fg);opacity:.85}
+  #side .navtrack.drop{border-color:var(--accent2);background:#16262b}
   .grp[hidden]{display:none}
   #side .ttab{text-align:left;padding:8px 7px;font-size:11px;line-height:1.1}
   #side .ttab.active{border-color:var(--accent2);color:var(--accent2);background:#16262b}
@@ -47,6 +48,8 @@
   .scell{flex:0 0 20px;width:20px;text-align:center;font-size:9px;color:var(--muted);border-right:1px solid #191c22;padding:2px 0}
   .scell.beat{color:var(--accent2);font-weight:700}
   .cell{flex:0 0 20px;width:20px;height:16px;border-right:1px solid #191c22;border-bottom:1px solid #191c22;background:var(--key);cursor:pointer}
+  .cell.sel{outline:1px solid var(--accent);outline-offset:-1px}
+  #rollWrap{user-select:none;-webkit-user-select:none}
   .cell.beat{border-left:1px solid #343b47}.cell.bar{background:#0f1217}.cell.blackrow{background:#0a0c0f}
   .cell:hover{outline:1px solid var(--accent2);outline-offset:-1px}
   .cell.on{background:var(--accent)!important}
@@ -174,7 +177,8 @@
         for (let s = sLo; s <= sHi; s++) for (let p = pLo; p <= pHi; p++) {
           if (a[s] && a[s].notes.find(q => q[0] === p)) state.sel.add(s + ":" + p);
         }
-        const r = this._r;
+        const r = $("rollWrap");
+        if (!r) return;
         r.querySelectorAll(".cell").forEach(c => {
           const s = +c.dataset.s, p = +c.dataset.p;
           c.classList.toggle("sel", state.sel.has(s + ":" + p));
@@ -275,8 +279,6 @@
             c.className = "cell" + (isBlack(pitch) ? " blackrow" : "") + (s % 4 === 0 ? " beat" : "") + (s % 16 === 0 ? " bar" : "") + (isSel(s, pitch) ? " sel" : "") + (f.modifier & 1 ? " tie" : "") + (f.modifier & 2 ? " slide" : "") + (f.ratchet ? " ratchet" : "");
             if (nv) c.style.background = velColor(nv[1]);
             c.dataset.s = s; c.dataset.p = pitch;
-            c.addEventListener("pointerdown", ev => { if (ev.button !== 0) return; state.drag = { s, p: pitch, moved: false }; ev.preventDefault(); });
-            c.addEventListener("pointerenter", () => { if (!state.drag) return; state.drag.moved = true; dragApply(state.drag.s, state.drag.p, s, pitch); });
             c.addEventListener("click", ev => { if (state.suppressClick) { state.suppressClick = false; return; } selectOrToggle(s, pitch, ev); });
             c.addEventListener("contextmenu", ev => { ev.preventDefault(); removeNote(s, pitch); });
             row.appendChild(c);
@@ -363,14 +365,39 @@
       }
 
       // ---- left track bar ----
+      async function copyTrackPattern(sp, st, L, dp, dt) {
+        if (sp === dp && st === dt) return;
+        const srcDir = [sp, 'track' + st], dstDir = [dp, 'track' + dt];
+        const srcPat = srcDir.concat('pattern' + L + '.txt'), dstPat = dstDir.concat('pattern' + L + '.txt');
+        try {
+          if (!(await existsFile(sdDir, srcPat))) return toast('No pattern ' + L + ' on that track');
+          await backup(sdDir, dstPat);
+          await wr(sdDir, dstPat, await rd(sdDir, srcPat));
+          if (st !== 'D' && dt !== 'D') {
+            const srcPoly = srcDir.concat('poly' + L), dstPoly = dstDir.concat('poly' + L);
+            if (await existsFile(sdDir, srcPoly)) { await backupBytes(sdDir, dstPoly); await wrBytes(sdDir, dstPoly, await rdBytes(sdDir, srcPoly)); }
+          }
+          toast('Copied ' + sp + ' Track ' + st + ' Pattern ' + L + ' → ' + dp + ' Track ' + dt);
+          await refreshProjects(dp); paint();
+        } catch (e) { toast('Copy failed: ' + e.message); }
+      }
       function buildTrackbar() {
         const t = $("side"); t.innerHTML = "";
         if (native.projects && native.projects.length) {
           const nav = document.createElement("div"); nav.className = "nav";
           native.projects.forEach(p => {
-            const pb = document.createElement("button"); pb.className = "navproj" + (native.projectName === p ? " active" : ""); pb.textContent = p;
-            pb.onclick = async () => { await maybeSave("project"); await loadProject(p, "A"); };
+            const openMap = state.navOpen || (state.navOpen = {});
+            const pKey = 'p:' + p, pOpen = openMap[pKey] !== false;
+            const pb = document.createElement("button");
+            pb.className = "navproj" + (native.projectName === p ? " active" : "");
+            pb.textContent = (pOpen ? "▾ " : "▸ ") + p;
+            pb.onclick = async () => {
+              openMap[pKey] = !pOpen;
+              if (!pOpen) { await maybeSave("project"); await loadProject(p, "A"); }
+              paint();
+            };
             nav.appendChild(pb);
+            if (!pOpen) return;
             const open = async (tr, L) => {
               await maybeSave("pattern"); await loadProject(p, L || "A");
               state.track = tr; state.sel = new Set();
@@ -380,15 +407,26 @@
             };
             ["1", "2", "3", "D"].forEach(tr => {
               const letters = (native.tree[p] && native.tree[p][tr]) || [];
+              const tKey = p + ':' + tr, tOpen = !!openMap[tKey];
               const tb = document.createElement("button");
               tb.className = "navtrack" + (native.projectName === p && state.track === tr ? " active" : "");
-              tb.textContent = "Track " + tr + (letters.length ? "" : " (empty)");
-              tb.onclick = () => open(tr, letters[0]);
+              tb.textContent = (tOpen ? "▾ " : "▸ ") + "Track " + tr + (letters.length ? "" : " (empty)");
+              tb.onclick = () => { openMap[tKey] = !tOpen; paint(); };
+              tb.ondragover = e => { e.preventDefault(); tb.classList.add('drop'); };
+              tb.ondragleave = () => tb.classList.remove('drop');
+              tb.ondrop = async e => {
+                e.preventDefault(); tb.classList.remove('drop');
+                let d; try { d = JSON.parse(e.dataTransfer.getData('text/plain')); } catch (x) { return; }
+                if (d && d.project && d.track && d.L) await copyTrackPattern(d.project, d.track, d.L, p, tr);
+              };
               nav.appendChild(tb);
+              if (!tOpen) return;
               letters.forEach(L => {
                 const b = document.createElement("button");
                 b.className = "navpat" + (native.projectName === p && state.track === tr && (native.pattern || "A") === L ? " active" : "");
                 b.textContent = "Pattern " + L;
+                b.draggable = true;
+                b.ondragstart = e => e.dataTransfer.setData('text/plain', JSON.stringify({ project: p, track: tr, L }));
                 b.onclick = () => open(tr, L);
                 nav.appendChild(b);
               });
@@ -746,6 +784,21 @@
           clip.forEach(([ds, p, v]) => { const s = dest + ds; if (s >= 0 && s < state.steps) { if (!arr[s].notes.find(q => q[0] === p) && arr[s].notes.length < 8) arr[s].notes.push([p, v]); } });
           paint(); ev.preventDefault();
         }
+      });
+      $("rollWrap").addEventListener("pointerdown", ev => {
+        const c = ev.target.closest && ev.target.closest(".cell");
+        if (!c || c.dataset.s === undefined) return;
+        state.drag = { s: +c.dataset.s, p: +c.dataset.p, moved: false };
+        ev.preventDefault();
+      });
+      window.addEventListener("pointermove", ev => {
+        if (!state.drag) return;
+        const el = document.elementFromPoint(ev.clientX, ev.clientY);
+        const c = el && el.closest && el.closest(".cell");
+        if (!c || c.dataset.s === undefined) return;
+        state.drag.moved = true;
+        dragApply(state.drag.s, state.drag.p, +c.dataset.s, +c.dataset.p);
+        ev.preventDefault();
       });
       window.addEventListener("pointerup", () => {
         if (!state.drag) return;
