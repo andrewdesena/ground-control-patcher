@@ -139,3 +139,34 @@ neighbouring bank holding a different chord must not leak (added as a case).
 Known cosmetic caveat: `+0x2DC` is the step-editor-open flag and `+0x2DB` selects the sub-page, so
 the cave can also light chord keys on the editor's non-step sub-pages. It never writes outside
 `0x20001E74` and stock rebuilds that buffer every frame.
+
+## Correction: v1.3 was a no-op, and track 3 had no polyphony (2026-11-15)
+
+Two facts established by executing the stock constructors in the sandbox, then corrected:
+
+1. **Track type byte `+0x2D` is 1 for the drum and 0 for melodic tracks.** Every cave in
+   v1.3/v1.4/v1.5 tested `== 1` for "melodic", so they matched the drum and skipped every real
+   track. v1.3's hardware pass was therefore not caused by its patch; the same-letter project
+   switch it tested never disturbed the chord bank. `index.html` is rolled back to v1.1 until a
+   corrected build passes hardware.
+2. **Table `0x08038370` is ordered `[drum, track1, track2, track3]`** and the chord bank index
+   equals the table index, so the drum owns bank 0 and tracks 1-3 own banks 1-3. The v1.1 fan-out
+   and sidecar loader both stopped at index 3 (`cmp ... #3`), so **track 3 never received chord
+   fan-out or a sidecar load**. `0x20013DEC` is the drum: its constructor builds 9 lanes.
+
+### v1.7 (unproven)
+
+- `mods/v1-poly-base4.json` — v1.1 base with the fan-out bound (`0x08047634`) and the loader bound
+  (`0x08049010`) widened to 4, so bank 3 is reachable. The 4th-bank region
+  `0x1000CEB0..0x1000D730` has zero references in stock, so it is free.
+- `mods/poly-commit-reload.source.json` — corrected: melodic is type 0, indices 1-3, directory
+  digit == track number, bank == index.
+- `mods/poly-editlights6.source.json` — contributed by Codex after a full trace of the display
+  path (`0x080207B4 -> 0x0802AE20 -> 0x08027D24 -> 0x0801ECFC -> 0x0801227C`); reads the real
+  editor state at `0x2001C230` (`+7` cursor, `+0xC` track pointer), handles the 7-byte frame, and
+  skips the drum via `+0x2D == 1`.
+- `mods/v1-poly-track3.json` / `gc-v3.26_poly-v1.7.hex` / `GCV326U.HEX`, sha256
+  `c7e3c450ad1526947c464151580931a7ae58fad540100fbcf2c95a53bc95088f`, 15 sites.
+- `tools/test_poly_track3.py` proves it with stock-accurate seeds: track1 -> bank 1, track2 ->
+  bank 2, track3 -> bank 3, drum untouched, no SD I/O on an ordinary play press.
+- Hardware gate still required, and the switch test must use projects holding **different** chords.

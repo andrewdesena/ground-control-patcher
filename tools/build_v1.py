@@ -21,7 +21,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-BASE = os.path.join(ROOT, 'mods', 'v1-poly-known-good.json')
+BASE = os.environ.get('GC_BASE') or os.path.join(ROOT, 'mods', 'v1-poly-known-good.json')
 HTML = os.path.join(ROOT, 'index.html')
 # Extra source bundles merged on top of the base, keyed by patch address.
 EXTRA = [os.path.join(ROOT, 'mods', 'poly-commit-reload.source.json')]

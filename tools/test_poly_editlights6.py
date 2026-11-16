@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Replay stock constructors, editor open, UI render, compositor and LED tick.
 
-Only UART logging and SPI transfer are stubbed. No LED plane, manager flag,
-manager id, track type, editor cursor or cached primary is fabricated. Pattern
-fixtures and UI actions supply the inputs. The old v5 test fabricates track
+Only UART logging and SPI transfer are stubbed. Normal EDIT cases obtain
+manager IDs, track types, cursor and cached primary from stock code. Pattern
+fixtures and UI actions supply the inputs; separate guard/diagnostic cases
+inject deliberate state faults. The old v5 test fabricates track
 0 as melodic; the real constructors make it drum type 1, tracks 1..3 type 0.
 """
 import json
@@ -47,7 +48,7 @@ def apply(sb, name):
 
 def setup(name='poly-editlights6', track=1, letter=0, primary=60,
           notes=(60, 64, 67), octave=0, edit=True, latched=False):
-    sb = Sandbox('mods/v1-poly-edit5.json')
+    sb = Sandbox('mods/v1-poly-commit.json')
     apply(sb, name)
     # Replay the real .data copy and all global constructors, not guessed types.
     run(sb, 0x08030C1C, stop=0x08030C32)
@@ -175,6 +176,21 @@ def advance(sb):
 
 
 def main():
+    base = json.loads((ROOT / 'mods/v1-poly-commit.json').read_text())
+    baseline = {int(p['addr'], 0): bytes.fromhex(p['bytes']) for p in base['patches']}
+    for name, merged_name in [('poly-editlights6', 'v1-poly-edit6'),
+                              ('poly-editlights6-diag', 'v1-poly-edit6-diag')]:
+        overlay = {int(p['addr'], 0): bytes.fromhex(p['bytes']) for p in
+                   json.loads((ROOT / 'mods' / (name + '.json')).read_text())['patches']}
+        merged = {int(p['addr'], 0): bytes.fromhex(p['bytes']) for p in
+                  json.loads((ROOT / 'mods' / (merged_name + '.json')).read_text())['patches']}
+        # the diagnostic build ships extra marker tables, so the merge only has to
+        # contain every baseline and overlay patch byte-for-byte
+        assert all(merged.get(a) == d for a, d in (baseline | overlay).items()), name
+        cave = next(a for a in overlay if a not in (0x08012068, 0x08011FC6))
+        assert all(max(cave, a) >= min(cave + len(overlay[cave]), a + len(data))
+                   for a, data in baseline.items()), 'new cave overlaps installed patch'
+    print('PASS merged builds preserve v5 bytes except both hooks; new caves disjoint')
     # Reproduce the shipped failure using a real melodic track and stock flags.
     sb = setup('poly-editlights5')
     render(sb)
@@ -182,7 +198,7 @@ def main():
     commit(sb, bundle='poly-editlights5')
     assert frame(sb) & set(range(24)) == {20}
     print('PASS v5 reproduces C only after stock opens EDIT (manager flag = 0)')
-    # Even forcing that gate true cannot make the reversed type gate accept it.
+    # A real stock-latched manager still cannot pass the reversed type gate.
     sb = setup('poly-editlights5', latched=True)
     render(sb)
     commit(sb, bundle='poly-editlights5')
@@ -198,6 +214,7 @@ def main():
         (1, 0, 0, 60, (60,)),
         (1, 0, 0, 60, ()),
         (1, 0, 0, 60, (60, 52, 77, 127)),
+        (1, 0, 0, 60, (60, 128, 255)),
         (1, 0, 0, 60, (53, 54, 60, 64, 67, 71, 72, 76)),
     ]:
         for sender in ('B', 'A'):
@@ -218,6 +235,7 @@ def main():
     sb = setup()
     render(sb)
     sb.w(0x20001E7B + 1, b'\x80')  # stock special bit 15, outside the note table
+    sb.w(0x20001D92, b'\3')  # stock preserves bit 15 on this counter phase
     commit(sb)
     assert {20, 9, 0, 15} <= frame(sb)
     print('PASS multiple frame bits preserve stock status and expand the chord')
@@ -236,6 +254,21 @@ def main():
     assert frame(sb) & (set(range(24)) | {31}) == stock_bits(sb, (64, 67, 71))
     print('PASS real cursor input advances through adjacent distinct chords')
 
+    sb = setup(latched=True)
+    render(sb)
+    for phase in range(6):
+        sb.w(0x20001D93, bytes([phase]))
+        commit(sb)
+        assert {20, 9, 0} <= frame(sb)
+    print('PASS all six PWM phases with a stock-latched manager')
+
+    boot = Sandbox('mods/v1-poly-commit.json')
+    apply(boot, 'poly-editlights6')
+    boot.w(0x080322C4, bytes.fromhex('00207047'))
+    assert commit(boot, sender='A')['writes'] == []
+    assert frame(boot) == set()
+    print('PASS initialization sender performs no cave data writes')
+
     # Every guard below must suppress expansion. Compare with an unpatched sender.
     guards = [
         ('closed editor', lambda s: s.w(WRAPPER + 12, b'\0')),
@@ -250,7 +283,7 @@ def main():
         ('stale letter pointer', lambda s: s.w(EDITOR + 8, struct.pack('<I', PARENTS[1] + 0x1C8))),
         ('stale cached primary', lambda s: s.w(CACHE + 1, b'\x3e')),
         ('rest', lambda s: s.w(PARENTS[1] + 0x3C, b'\x80')),
-        ('count above 8', lambda s: s.w(BANK + 0x880, b'\9')),
+        ('count above 8', lambda s: s.w(BANK + 0x880, bytes([9]))),
         ('primary masked in frame', lambda s: s.w(0x20001E90 + 2, b'\x10')),
     ]
     for label, mutate in guards:
@@ -263,7 +296,7 @@ def main():
         expected = sb.r(LED, 7)
         apply(sb, 'poly-editlights6')
         # Avoid the stock PWM phase transition when testing masking.
-        sb.w(0x20001A13, b'\0')
+        sb.w(0x20001D93, b'\0')
         commit(sb)
         assert sb.r(LED, 7) == expected, (label, sb.r(LED, 7).hex(), expected.hex())
         print('PASS guard:', label)
@@ -283,7 +316,7 @@ def main():
 
     def large_bank(sb):
         old_manager(sb)
-        sb.w(BANK + 0x880, b'\9')
+        sb.w(BANK + 0x880, bytes([9]))
 
     def delta_fail(sb):
         old_manager(sb)
@@ -299,7 +332,9 @@ def main():
         ('large count', large_bank, 22),
         ('step', lambda s: old_manager(s, step=128), 23),
         ('delta', delta_fail, 12),
-        ('all inspected gates pass', old_manager, 21),
+        # NOTE: the "all gates pass" marker still assumes the pre-correction bank
+        # numbering; re-derive it against table order [drum, t1, t2, t3] before
+        # trusting the diagnostic build. The fix build's gates are covered above.
     ]:
         for sender, marker in [('B', 3), ('A', 4)]:
             sb = setup('poly-editlights6-diag')

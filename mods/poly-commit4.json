@@ -1,0 +1,23 @@
+{
+  "name": "poly-commit-reload",
+  "status": "experimental",
+  "description": "Publish each melodic track's chord bank from its committed playback identity instead of from the pattern loader. Hook 0x08021528, the per-track call to 0x08023158 inside the playback-start loop over the track table: call the stock letter select first, then read the track's now-final letter at [track+0x2e] and load /project<letter>/track<n>/poly<letter> into bank 0x1000B530 + n*0x880, where n is the track's index in the same table the fan-out uses (0x08038370). This runs after the switch commit (0x08021338) has installed the incoming project's patterns and letters. Melodic tracks are recognised by [track+0x2d] == 1 (the test stock uses at 0x080213D8 and the player at 0x0801F544), so the drum is skipped wherever it sits; banks 0..2 only are written because that is the range the fan-out can resolve. To keep SD traffic off ordinary play presses the publish is gated on 'the letter changed during this pass' or on the switch flag at 0x2000C5D8. FR_NO_FILE zeroes the bank because the sidecar is genuinely absent; FR_NO_PATH and every other FRESULT leave the bank untouched, so a misresolved directory can never silence a track that plays today.",
+  "requires": {
+    "blank": [
+      "0x08046810",
+      "0x0804A000"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x8047a00",
+      "bytes": "2de9f04f81b094f82ea0dbf7a5fb94f82eb0444a12780ab9d3457fd094f82d20002a7bd14048002550f82510a14203d00135042df8d371e0042d6fd2bbf1180f6cd23a4850f82b000678394890f84972182f63d2354850f8270007784ef22048c1f2000833480021425c08f8012001311029f9d388f8087030222a4488f80f202f2288f81020702288f811206f2288f812206c2288f81320792288f8142088f81560002288f816204bf23059c1f200092a46d20202ebc51291444ef20000c1f2000041460122ccf751ffe0b94ef20000c1f20000494640f680024ef20033c1f20003cdf725f84ef20000c1f20000cdf713fa4ef20030c1f20000006840f6800188420bd001e0042808d10020002149f80100043140f680029142f8d101b0bde8f08f0000d8c50020708303081083030850b200201b700308",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8021528",
+      "bytes": "26f06afa",
+      "note": "playback-start per-track letter select -> publish from the committed letter"
+    }
+  ]
+}
