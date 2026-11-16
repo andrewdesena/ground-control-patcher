@@ -45,7 +45,7 @@ def build(out_path=None, hex_path=None):
     patches.sort(key=lambda p: int(p['addr'], 16))
 
     out = {
-        'name': 'v1-poly-full',
+        'name': 'Polyphony',
         'version': os.environ.get('GC_VERSION', '1.2'),
         'status': 'experimental',
         'description': ('Known-good v1.1 polyphony build plus a post-switch reload: after the commit '

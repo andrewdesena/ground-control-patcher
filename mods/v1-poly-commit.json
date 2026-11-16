@@ -1,6 +1,6 @@
 {
-  "name": "v1-poly-full",
-  "version": "1.2",
+  "name": "Polyphony",
+  "version": "1.3",
   "status": "experimental",
   "description": "Known-good v1.1 polyphony build plus a post-switch reload: after the commit installs the incoming patterns and letters, each melodic track republishes its own poly sidecar into the chord bank. FR_NO_FILE zeroes the bank; any other FRESULT leaves it untouched.",
   "requires": {
