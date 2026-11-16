@@ -1,0 +1,56 @@
+{
+  "name": "v1-poly-full",
+  "version": "1.1",
+  "patches": [
+    {
+      "addr": "0x8047400",
+      "bytes": "2fb55977224b1878c0b202281cd86279802a19d20346db0203ebc01303eb021313444bf23050c1f20000184429467f290ad84ff60052c1f200020a441278002a00d1642200f004f8bde82f40def7d4b970b50378082b01d90023037000249c420ad200f1010505eb44052e788e4201d00134f4e76a7009e0082b07d200f1010505eb430529706a7001330370184670bddaca0020",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8025814",
+      "bytes": "21f0f4bd",
+      "note": "armed step store -> cave (store+poly capture)"
+    },
+    {
+      "addr": "0x8047800",
+      "bytes": "01b548790b794ff6005cc1f2000c9c448cf800000b794a79bde80140d7f7e6bc",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x801f1e8",
+      "bytes": "28f00abb",
+      "note": "note-on add -> stash velocity by note"
+    },
+    {
+      "addr": "0x8049000",
+      "bytes": "ec462de9f041644654f8187c34480025032d60d250f82510a7eb0102002a03db40f2f0439a4201db0135f1e794f83f604ef20047c1f20007702038706f2078706c20b8707920f8703e71002078714ef20000c1f2000039460122cbf787fc002840f039804bf23056c1f2000640f6800205fb02f0064400205ff0000846f8080018f10408b8f5086ff8d14ef20000c1f20000314640f680024ef20033c1f20003cbf746fd4ef20000c1f20000cbf734ff4ef20037c1f20007386840f68001884209d000205ff0000846f8080018f10408b8f5086ff8d14ff0ff33bde8f041704770830308",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x801cd96",
+      "bytes": "2cf033f9",
+      "note": "after f_close -> load poly sidecar"
+    },
+    {
+      "addr": "0x8047e00",
+      "bytes": "ec462de9f0416446032f30d0e67b702020726f2060726c20a0727920e0722673002060734ef20000c1f2000004f108010a22ccf79bfdd0b94bf23051c1f2000140f6800207fb02f001444ef20000c1f2000040f680024ef20033c1f20003ccf718ff4ef20000c1f20000cdf755f804f11800cdf751f8bde8f0417047",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x801c542",
+      "bytes": "2bf05dfc00bf",
+      "note": "writer f_close prep -> save poly sidecar"
+    },
+    {
+      "addr": "0x8047600",
+      "bytes": "2de9ff5f84b0ddf84890ddf84ca0ddf850b0cdf80090cdf804a0cdf808b0cdf80cb0099db9f1000f52d0aa682b485ff0000bbbf1030f4bd250f82b10914202d01bf1010bf5e795f83c60802e40d24bf23054c1f200045f46ff0207ebcb173046360106443c4434442678002e30d0082e2ed85ff00008b0452ad204f1010707eb480797f800c0cc4502d018f10108f2e75ff00008b0451bd204f1010707eb480797f800c07878bcf17f0f0ed800280cd0cc450ad0cdf800c00190039b029300200599069a079bd2f7e4f918f10108e1e704b0bde8ff5fd2f7dcb9000070830308",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x80217f4",
+      "bytes": "25f004ff",
+      "note": "real pair call -> chord fan-out cave"
+    }
+  ]
+}

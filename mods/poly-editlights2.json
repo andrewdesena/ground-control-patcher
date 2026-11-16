@@ -1,0 +1,28 @@
+{
+  "name": "EDIT chord key lights v2",
+  "status": "experimental",
+  "description": "EDIT mode: when stock lights exactly one key in the LED buffer, OR the remaining stored chord notes' key bits. Reads the real edit cursor from the manager, scales by active_letter*0x194, and uses the correct track pointer table base. Set-only, never clears.",
+  "requires": {
+    "blank": [
+      "0x08048B00",
+      "0x08048C00"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x8048b30",
+      "bytes": "f0b5394d95f8e142013c032c66d295f8df62364d55f8245095f82e704ff4ca7307fb035306eb4602134493f83c30304d28786978aa78090212040843104300284cd0010001390140002947d1c1b20022002905d011f0010f16d149080132f9e7c0f307210822002905d011f0010f0bd149080132f9e7c0f30741102211f0010f02d149080132f9e71a4dad5c5b1b1a4d4ff4086104fb015506eb06121544297800291bd0082900d9082100248c4215da04eb04022a445678f61a0dd4172e0bdc0e4a905dc60800f0070001278740084a32441078384310700134e7e704490848bde8f040704700000060002070830308741e0020008b040830b50010188b04082c2b0020",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8012068",
+      "bytes": "36f062fd",
+      "note": "OR chord key bits before SPI shift-out"
+    },
+    {
+      "addr": "0x8048b00",
+      "bytes": "1315170c0e100d0f110416141203010608050702000b090a140e130d09110f12101617150306040705080c000b010a02",
+      "note": "bit->keyIdx (24 bytes) then keyIdx->bit (24 bytes)"
+    }
+  ]
+}
