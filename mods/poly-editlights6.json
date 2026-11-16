@@ -1,0 +1,23 @@
+{
+  "name": "EDIT chord key lights v6",
+  "status": "experimental",
+  "description": "Display-only chord expansion from the stock step editor at 0x2001C230, gated by active page 6, open editor, edit mode, cached note and visible primary. Uses editor +7 cursor and +12 track, stock signed octave and note-to-LED table. Preserves the installed bank index convention (indices 0..2); skips drum type 1, invalid counts and off-screen notes. OR-only writes into the seven-byte SPI frame at 0x20001E74 (stock key bit 31 uses byte 3). No input changes or SD calls. Hardware validation pending.",
+  "requires": {},
+  "patches": [
+    {
+      "addr": "0x8048000",
+      "bytes": "2de9f0413e4800683e49884273d13e48017b00296fd084683c498c426bd12079012868d13a49487c022864d1e268394b002003285fd253f82010914201d00130f7e792f82d10012955d092f82e10182951d24ff4ca7301fb03223432a3689a4249d1e179802946d201eb41031a44127a802a40d2264b5b789a423cd1264d4ff4086300fb035501eb01131d442e78002e31d0082e2fd8214890f900700c2007fb00f7d21b353a172a25d81d48805cc10800f00700012282401a4b595c11421ad04ff00008b04516d205eb4800407880280ed2c01b353817280ad81149085cc10800f00700012282400e4b585c1043585408f10108e6e70b490b48bde8f081000080c301209005002088c3012030c20120fbcd01207083030830b50010e8cd012090860308741e00202c2b0020",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8012068",
+      "bytes": "35f0caff",
+      "note": "Replace both stock literal loads; cave restores r0/r1."
+    },
+    {
+      "addr": "0x8011fc6",
+      "bytes": "36f01bf8",
+      "note": "Replace both stock literal loads; cave restores r0/r1."
+    }
+  ]
+}

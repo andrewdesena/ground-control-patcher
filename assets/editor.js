@@ -492,7 +492,9 @@
       }
       function buildDrawer() {
         const tabs = $("drawerTabs"); tabs.innerHTML = "";
-        const names = ["Global", "Track", "CV"]; if (native.global || native.project) names.push("Card");
+        // The firmware writes this note with velocity 0 for "no note" in a step.
+      const NO_NOTE = "G8#";
+      const names = ["Global", "Track", "CV"]; if (native.global || native.project) names.push("Card");
         names.forEach(name => { const b = document.createElement("button"); b.className = "drawerTab" + (state.drawerTab === name ? " active" : ""); b.textContent = name; b.onclick = () => { state.drawerTab = name; buildDrawer(); }; tabs.appendChild(b); });
         const body = $("drawerBody"); body.innerHTML = "";
         if (state.drawerTab === "Global") { const sec = document.createElement("div"); sec.className = "sec"; sec.innerHTML = "<h3>Project / Global</h3>"; sec.appendChild(renderFields(GLOBAL_FIELDS, state.global)); body.appendChild(sec); }
@@ -662,11 +664,17 @@
           const dm = ensureDrum(), steps = [], rats = [];
           for (let pad = 0; pad < 8; pad++) { const row = [], rrow = []; for (let s = 0; s < N; s++) { const v = dm[s] && dm[s].pads[pad + 1]; row.push(v ? v : 128); rrow.push((dm[s] && dm[s].ratchet) || 0); } steps.push(row); rats.push(rrow); }
           const lim = Array.isArray(base.step_limit) ? base.step_limit : [N, 16, 16, 16, 16, 16, 16, 16, 16];
-          return Object.assign({}, base, { step_limit: lim, count: N, steps: steps, ratchets: rats });
+          const used = steps.some(row => row.some(v => v !== 128));
+          return Object.assign({}, base, { step_limit: lim, count: used ? N : 0, steps: steps, ratchets: rats });
         }
         const arr = ensureMelodic(t), steps = [];
-        for (let s = 0; s < N; s++) { const st = arr[s]; const n = st.notes && st.notes.length ? st.notes[0] : null; steps.push({ note: n ? nativeNote(n[0]) : "", velocity: n ? n[1] : 0, modifier: st.modifier || 0, ratchet: st.ratchet || 0 }); }
-        return Object.assign({}, base, { step_limit: N, count: steps.length, steps: steps });
+        for (let s = 0; s < N; s++) { const st = arr[s]; const n = st.notes && st.notes.length ? st.notes[0] : null; steps.push({ note: n ? nativeNote(n[0]) : NO_NOTE, velocity: n ? n[1] : 0, modifier: st.modifier || 0, ratchet: st.ratchet || 0 }); }
+        // The firmware runs `count` steps and treats 0 as "nothing programmed". Writing
+        // count = N on an empty pattern makes the module run N steps of silence, which
+        // lights the track LED on every step with no MIDI. Empty steps must also carry
+        // the firmware's own sentinel note, not an empty string.
+        const used = steps.some(s => s.velocity > 0);
+        return Object.assign({}, base, { step_limit: N, count: used ? N : 0, steps: steps });
       }
       function encodePoly(t) {
         const arr = ensureMelodic(t), out = new Uint8Array(2176);

@@ -1,0 +1,23 @@
+{
+  "name": "EDIT v5 gate diagnostic",
+  "status": "experimental",
+  "description": "Alternative to editlights6, active editor page 6 only. Classifies v5 first-three-byte singleton guard, manager flag/id/type, cursor and count before adding LEDs. Sender B adds high C; A adds high D. Status: low C# empty frame, low D multiple bits, low D# no manager flag, low F invalid manager id, low G rejected type, low G# zero count, low A count above 8, low A# cursor above 127, high F# no chord delta in 0..23, low B at least one chord delta in range. Key labels follow the supplied hardware map, not inferred note numbers. OR-only first-three-byte writes, no input change or SD calls. Hardware validation pending.",
+  "requires": {},
+  "patches": [
+    {
+      "addr": "0x8048400",
+      "bytes": "2de9f041494800684949884240f08980484d2878697840ea0120a97840ea014000285fd0411e01425ed190faa0f8b8fa88f8414d00240027042c4dd255f824600134002ef8d096f8dc120029f4d047f0010796f8e1020328eed847f00207374951f8201091f82d100129e5d196f8df12802943d2324d4ff4086200fb025501eb01110d442878002834d0082834d8044696f8e102294951f8201091f82e004ff4ca7200fb021196f8df0200eb4000014491f83c30234911f808001b1a002205eb42004078c01a172804d90132a242f6d30c2014e0152012e0002f07d0012f07d012200ce00e200ae0132008e00d2006e0112004e0102002e0162000e01720c10800f00700012282400a4b585c104358540d48059a82420cbf0821102118780843187004490948bde8f081000080c3012090050020741e0020500400207083030830b50010008b04086d2001082c2b0020",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8012068",
+      "bytes": "36f0caf9",
+      "note": "Replace both stock literal loads; cave restores r0/r1."
+    },
+    {
+      "addr": "0x8011fc6",
+      "bytes": "36f01bfa",
+      "note": "Replace both stock literal loads; cave restores r0/r1."
+    }
+  ]
+}

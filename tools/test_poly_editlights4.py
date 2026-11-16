@@ -27,7 +27,8 @@ MGR_STRIDE = 0x2FC
 TRACK_TABLE = 0x08038370
 BANK = 0x1000B530
 PARENTS = (0x20013DEC, 0x200117C8, 0x2000F1A4, 0x2000CB80)
-LED_ENTRY = 0x08012008          # stock LED commit; reaches the hook at 0x08012068
+LED_ENTRY = 0x08012008          # stock LED commit B; reaches the hook at 0x08012068
+LED_ENTRY_A = 0x08011FB8        # stock LED commit A; reaches the hook at 0x08011FC6
 
 KEY_TO_BIT = [20, 14, 19, 13, 9, 17, 15, 18, 16, 22, 23, 21,
               3, 6, 4, 7, 5, 8, 12, 0, 11, 1, 10, 2]
@@ -45,7 +46,7 @@ def lit(buf):
 
 def main():
     sb = Sandbox()
-    for p in source('poly-editlights4')['patches']:
+    for p in source('poly-editlights5')['patches']:
         sb.w(int(p['addr'], 0), bytes.fromhex(p['bytes']))
     sb.w(0x080322C4, bytes.fromhex('00207047'))   # SPI shift-out stub
     sb.w(TRACK_TABLE, struct.pack('<4I', *PARENTS))
@@ -68,11 +69,12 @@ def main():
         seen['r1'] = uc.reg_read(UC_ARM_REG_R1)
 
     sb.uc.hook_add(UC_HOOK_CODE, spy, begin=0x0801206E, end=0x0801206E)
+    sb.uc.hook_add(UC_HOOK_CODE, spy, begin=0x08011FCA, end=0x08011FCA)
 
     fails = []
 
     def case(label, track_idx, letter, step, primary, notes, prelit,
-             expect, edit=True, drum=False):
+             expect, edit=True, drum=False, entry=LED_ENTRY):
         # reset state
         sb.w(LED, bytes(3))
         sb.w(0x20001E7B, bytes(3))
@@ -100,7 +102,7 @@ def main():
         seen.clear()
         before = (sb.r(BANK, 0x880 * 3), sb.r(MGR_BASE, MGR_STRIDE * 4),
                   sb.r(TRACK_TABLE, 16))
-        sb.call(LED_ENTRY, regs={UC_ARM_REG_R0: 0x40020000}, max_steps=50000)
+        sb.call(entry, regs={UC_ARM_REG_R0: 0x40020000}, max_steps=50000)
         assert sb.reg(UC_ARM_REG_PC) == SENTINEL, f"{label}: runaway"
         out = sb.r(LED, 3)
         after = (sb.r(BANK, 0x880 * 3), sb.r(MGR_BASE, MGR_STRIDE * 4),
@@ -121,6 +123,11 @@ def main():
     print('poly-editlights4 tests (through the installed hook)')
     # chord in EDIT, letter A / step 0 / track 1
     case('track1 letter A step0 C-E-G', 0, 0, 0, 60, (60, 64, 67), [60], [60, 64, 67])
+    # the same chord through the twin LED sender (hook at 0x08011FC6)
+    case('sender A: track1 letter A step0 C-E-G', 0, 0, 0, 60, (60, 64, 67), [60],
+         [60, 64, 67], entry=LED_ENTRY_A)
+    case('sender A: playback adds nothing', 0, 0, 0, 60, (60, 64, 67), [60], [60],
+         edit=False, entry=LED_ENTRY_A)
     # letter X proves the active_letter*0x194 stride is applied
     case('track2 letter X step2 E-G-B', 1, 23, 2, 64, (64, 67, 71), [64], [64, 67, 71])
     # adjacent step, different chord: cursor must decide which one

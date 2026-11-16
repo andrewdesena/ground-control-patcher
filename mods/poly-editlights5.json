@@ -1,0 +1,28 @@
+{
+  "name": "EDIT chord key lights v5",
+  "status": "experimental",
+  "description": "EDIT mode: OR the edited step's stored chord notes into the LED buffer next to the primary key stock already lit. Finds the track from the manager table at 0x20000450 (4 slots, stock initialises each with its own 0-based id at +0x2E1 via 0x0801F26C, and 0x0801FF26 proves the table is indexed that way), requires that manager's EDIT flag at +0x2DC, takes the step cursor from +0x2DF, and scales the stored pattern by active_letter*0x194. No track selector global is consulted. Set-only, never clears, no SD I/O.",
+  "requires": {},
+  "patches": [
+    {
+      "addr": "0x8048c00",
+      "bytes": "f0b5404d2878697809020843a97809040843002871d001000139014000296cd1c1b20022002905d011f0010f16d149080132f9e7c0f307210822002905d011f0010f0bd149080132f9e7c0f30741102211f0010f02d149080132f9e72a4d0024042c4ada55f82460013406b9f8e796f8dc120029f4d096f8e1020328f0d896f8df12224e56f8207097f82d60012ee7d197f82e604ff4ca7306fb037301eb4106334493f83c301a4eb65c9b1b194d4ff4086600fb065501eb01163544297800291bd0082900d9082100248c4215da04eb04062e447678f61a0dd4172e0bdc0e48805dc60800f00700012787400548304406783e4306700134e7e702490748bde8f0407047741e00205004002070830308008b040830b50010188b04082c2b0020",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8012068",
+      "bytes": "36f0cafd",
+      "note": "LED frame sender B; displaces ldr r1,=0x20001E74 / ldr r0,=0x20002B2C, which the cave restores"
+    },
+    {
+      "addr": "0x8011fc6",
+      "bytes": "36f01bfe",
+      "note": "LED frame sender A (the twin, same two literals, resume at 0x08011FCA movs r2,#7 / bl 0x080322C4)"
+    },
+    {
+      "addr": "0x8048b00",
+      "bytes": "1315170c0e100d0f110416141203010608050702000b090a140e130d09110f12101617150306040705080c000b010a02",
+      "note": "bit->keyIdx (24 bytes) then keyIdx->bit (24 bytes)"
+    }
+  ]
+}
