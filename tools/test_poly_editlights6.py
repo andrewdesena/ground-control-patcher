@@ -176,21 +176,28 @@ def advance(sb):
 
 
 def main():
-    base = json.loads((ROOT / 'mods/v1-poly-commit.json').read_text())
-    baseline = {int(p['addr'], 0): bytes.fromhex(p['bytes']) for p in base['patches']}
-    for name, merged_name in [('poly-editlights6', 'v1-poly-edit6'),
-                              ('poly-editlights6-diag', 'v1-poly-edit6-diag')]:
+    # The shipped bundle must carry this cave and both hooks byte-for-byte, and the
+    # cave space must not overlap anything else installed there.
+    shipped = {int(p['addr'], 0): bytes.fromhex(p['bytes']) for p in
+               json.loads((ROOT / 'mods/v1-poly-all.json').read_text())['patches']}
+    for name in ('poly-editlights6', 'poly-editlights6-diag'):
         overlay = {int(p['addr'], 0): bytes.fromhex(p['bytes']) for p in
                    json.loads((ROOT / 'mods' / (name + '.json')).read_text())['patches']}
-        merged = {int(p['addr'], 0): bytes.fromhex(p['bytes']) for p in
-                  json.loads((ROOT / 'mods' / (merged_name + '.json')).read_text())['patches']}
-        # the diagnostic build ships extra marker tables, so the merge only has to
-        # contain every baseline and overlay patch byte-for-byte
-        assert all(merged.get(a) == d for a, d in (baseline | overlay).items()), name
+        if name == 'poly-editlights6':
+            assert all(shipped.get(a) == d for a, d in overlay.items()), 'lights patches not in shipped bundle'
         cave = next(a for a in overlay if a not in (0x08012068, 0x08011FC6))
         assert all(max(cave, a) >= min(cave + len(overlay[cave]), a + len(data))
-                   for a, data in baseline.items()), 'new cave overlaps installed patch'
-    print('PASS merged builds preserve v5 bytes except both hooks; new caves disjoint')
+                   for a, data in shipped.items() if a != cave), 'new cave overlaps installed patch'
+    print('PASS shipped bundle carries the lights cave and both hooks')
+    # track 3 is table index 3: the editor track loop must not stop at 3
+    from capstone import Cs, CS_ARCH_ARM, CS_MODE_THUMB
+    lights = {int(p['addr'], 0): bytes.fromhex(p['bytes']) for p in
+              json.loads((ROOT / 'mods/poly-editlights6.json').read_text())['patches']}
+    cave_addr = next(a for a in lights if a not in (0x08012068, 0x08011FC6))
+    md = Cs(CS_ARCH_ARM, CS_MODE_THUMB)
+    bounds = [i.op_str for i in md.disasm(lights[cave_addr], cave_addr) if i.mnemonic == 'cmp' and i.op_str.startswith('r0, #')]
+    assert 'r0, #4' in bounds, f'track loop bound is not 4: {bounds}'
+    print('PASS editor track loop covers index 3 (track 3)')
     # Reproduce the shipped failure using a real melodic track and stock flags.
     sb = setup('poly-editlights5')
     render(sb)

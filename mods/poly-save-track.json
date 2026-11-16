@@ -1,0 +1,13 @@
+{
+  "name": "Save poly sidecar from the track's own bank",
+  "status": "experimental",
+  "description": "Replaces the save-time sidecar writer. The previous cave opened poly<letter> and wrote bank = letter*0x880, so saving letter A flushed bank 0 (the drum's buffer, never populated for melody) into whichever track was being saved. This version recovers the track from the pattern pointer (track = pattern - 0x34 - letter*0x194), finds its index in 0x08038370, skips the drum by its type byte, and writes bank = index*0x880. File name, mode, 2176-byte length and the caller's own f_close are unchanged.",
+  "requires": {},
+  "patches": [
+    {
+      "addr": "0x8047e00",
+      "bytes": "ec462de9f041e04698f80f60412e4cdbb6f1410740f2941207fb02f2a4eb0204343c94f82d20012a3fd0234b0025042d3bd253f82510a14201d00135f7e7702088f808006f2088f809006c2088f80a00792088f80b0088f80c60002088f80d004ef20000c1f2000008f108010a22ccf77dfdd0b94bf23051c1f2000140f6800205fb02f001444ef20000c1f2000040f680024ef20033c1f20003ccf7fafe4ef20000c1f20000cdf737f808f11800cdf733f8bde8f041704770830308",
+      "note": "cave routine"
+    }
+  ]
+}

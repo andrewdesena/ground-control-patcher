@@ -8,50 +8,8 @@
  },
  "steps": [
   {
-   "note": "G8#",
-   "velocity": 0,
-   "modifier": 0,
-   "ratchet": 0
-  },
-  {
-   "note": "G8#",
-   "velocity": 0,
-   "modifier": 0,
-   "ratchet": 0
-  },
-  {
-   "note": "A2",
-   "velocity": 100,
-   "modifier": 0,
-   "ratchet": 0
-  },
-  {
-   "note": "G8#",
-   "velocity": 0,
-   "modifier": 0,
-   "ratchet": 0
-  },
-  {
-   "note": "G8#",
-   "velocity": 0,
-   "modifier": 0,
-   "ratchet": 0
-  },
-  {
-   "note": "G8#",
-   "velocity": 0,
-   "modifier": 0,
-   "ratchet": 0
-  },
-  {
-   "note": "F2",
-   "velocity": 100,
-   "modifier": 0,
-   "ratchet": 0
-  },
-  {
-   "note": "G8#",
-   "velocity": 0,
+   "note": "D2",
+   "velocity": 110,
    "modifier": 0,
    "ratchet": 0
   },
@@ -69,7 +27,13 @@
   },
   {
    "note": "D2",
-   "velocity": 100,
+   "velocity": 110,
+   "modifier": 0,
+   "ratchet": 0
+  },
+  {
+   "note": "A2#",
+   "velocity": 110,
    "modifier": 0,
    "ratchet": 0
   },
@@ -86,20 +50,56 @@
    "ratchet": 0
   },
   {
+   "note": "A2#",
+   "velocity": 110,
+   "modifier": 0,
+   "ratchet": 0
+  },
+  {
+   "note": "G2",
+   "velocity": 110,
+   "modifier": 0,
+   "ratchet": 0
+  },
+  {
    "note": "G8#",
    "velocity": 0,
    "modifier": 0,
    "ratchet": 0
   },
   {
-   "note": "E2",
-   "velocity": 100,
+   "note": "G8#",
+   "velocity": 0,
+   "modifier": 0,
+   "ratchet": 0
+  },
+  {
+   "note": "G2",
+   "velocity": 110,
+   "modifier": 0,
+   "ratchet": 0
+  },
+  {
+   "note": "A2",
+   "velocity": 110,
    "modifier": 0,
    "ratchet": 0
   },
   {
    "note": "G8#",
    "velocity": 0,
+   "modifier": 0,
+   "ratchet": 0
+  },
+  {
+   "note": "G8#",
+   "velocity": 0,
+   "modifier": 0,
+   "ratchet": 0
+  },
+  {
+   "note": "A2",
+   "velocity": 110,
    "modifier": 0,
    "ratchet": 0
   }

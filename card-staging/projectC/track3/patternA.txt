@@ -26,18 +26,6 @@
    "ratchet": 0
   },
   {
-   "note": "A3",
-   "velocity": 100,
-   "modifier": 0,
-   "ratchet": 0
-  },
-  {
-   "note": "G8#",
-   "velocity": 0,
-   "modifier": 0,
-   "ratchet": 0
-  },
-  {
    "note": "G8#",
    "velocity": 0,
    "modifier": 0,
@@ -51,7 +39,7 @@
   },
   {
    "note": "F3",
-   "velocity": 100,
+   "velocity": 88,
    "modifier": 0,
    "ratchet": 0
   },
@@ -74,8 +62,8 @@
    "ratchet": 0
   },
   {
-   "note": "D3",
-   "velocity": 100,
+   "note": "G8#",
+   "velocity": 0,
    "modifier": 0,
    "ratchet": 0
   },
@@ -99,7 +87,19 @@
   },
   {
    "note": "E3",
-   "velocity": 100,
+   "velocity": 88,
+   "modifier": 0,
+   "ratchet": 0
+  },
+  {
+   "note": "G8#",
+   "velocity": 0,
+   "modifier": 0,
+   "ratchet": 0
+  },
+  {
+   "note": "G8#",
+   "velocity": 0,
    "modifier": 0,
    "ratchet": 0
   }
