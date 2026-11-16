@@ -170,3 +170,32 @@ Two facts established by executing the stock constructors in the sandbox, then c
 - `tools/test_poly_track3.py` proves it with stock-accurate seeds: track1 -> bank 1, track2 ->
   bank 2, track3 -> bank 3, drum untouched, no SD I/O on an ordinary play press.
 - Hardware gate still required, and the switch test must use projects holding **different** chords.
+
+## v1.9 — HARDWARE CONFIRMED (2026-11-16)
+
+All four tests passed on hardware, with the dub techno project C loaded:
+
+1. Playback: three melodic tracks with chords plus drums.
+2. **Save + power cycle + reload: chords survive on all three tracks** (the save cave now
+   writes the saving track's own bank).
+3. Step edit on a track 3 chord step shows the full chord.
+4. Project switch while playing returns with the chords.
+
+Bundle `mods/v1-poly-dub.json` (15 sites), image `gc-v3.26_poly-v1.9.hex` / `GCV326W.HEX`,
+sha256 `38a87fb6d9c43ec6de47dd40d964aba19de86cc7cc4ddae5c8de404c3906f661`, 715,290 bytes.
+Composition of the bundle:
+
+- `mods/v1-poly-base4.json` — v1.1 base with the fan-out and loader bounds widened to 4, so
+  bank 3 (track 3) is reachable.
+- `mods/poly-commit-reload.source.json` — post-switch republish at `0x08021528`; melodic type 0,
+  indices 1-3, directory digit == track number, bank == table index.
+- `mods/poly-editlights6.source.json` — EDIT-mode chord lights from the real editor state
+  (`0x2001C230`, `+7` cursor, `+0xC` track), 7-byte frame, drum skipped by type, track loop to 4.
+- `mods/poly-save-track.source.json` — save-time sidecar writer picks the bank from the track,
+  not the pattern letter; drum only closes.
+
+This supersedes the earlier "v1.3 hardware confirmed" claim, which was a no-op (its type test
+matched only the drum).
+
+Still open: chord records are capped at 8 notes per step; the patcher still offers Write to SD;
+cards written by older builds can hold garbage sidecars (restore from a card backup).
