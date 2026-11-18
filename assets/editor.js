@@ -51,6 +51,16 @@
       patternChain: ["A"],
     };
   }
+  const DURATIONS = [
+    "1/4",
+    "1/8",
+    "1/16",
+    "1/32",
+    "1/4 triplet",
+    "1/8 triplet",
+    "1/16 triplet",
+    "1/32 triplet",
+  ];
   const CC_NAMES = {
     1: "Mod wheel",
     2: "Breath",
@@ -64,9 +74,9 @@
   const CSS = `
   :host{--bg:#101318;--panel:#191e25;--line:#303844;--muted:#9ba9ba;--fg:#e9eef5;--accent:#74dac1;display:block;background:var(--bg);color:var(--fg);font:13px/1.45 system-ui,sans-serif;min-height:78vh}
   *{box-sizing:border-box}button,input,select{font:inherit;color:inherit}button,select,input[type=number],input[type=text]{border:1px solid var(--line);background:#222a34;border-radius:5px;padding:6px 9px}button{cursor:pointer;white-space:nowrap}button:hover{background:#303c49}button:disabled{opacity:.4;cursor:default}button.active{background:#294b45;border-color:var(--accent);color:var(--accent)}button.primary{background:var(--accent);color:#11251f;border-color:var(--accent);font-weight:650}:focus-visible{outline:2px solid var(--accent);outline-offset:2px}input[type=number]{width:67px}label{display:inline-flex;align-items:center;gap:5px;color:var(--muted);font-size:12px}label input{color:var(--fg)}
-  .top{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--line)}.brand{font-weight:700;font-size:14px;letter-spacing:.02em;margin-right:12px}.spacer{flex:1}.status{font-size:12px;color:var(--muted)}.lane-toolbar .status{font-size:10px}.dirty{color:#ffd184}.shell{display:grid;grid-template-columns:210px minmax(0,1fr)}aside{background:#141920;border-right:1px solid var(--line);padding:14px 10px;max-height:calc(100vh - 180px);overflow:auto}aside h2{font-size:10px;color:var(--muted);letter-spacing:.13em;margin:0 6px 12px}aside button{width:100%;text-align:left;margin-bottom:4px}details{margin:4px 0}summary{cursor:pointer;color:var(--muted);padding:5px}.pattern{padding-left:22px;font-size:12px}.work{min-width:0;padding:14px 18px 20px}.title{display:flex;align-items:center;gap:10px;margin-bottom:12px}.title strong{font-size:16px}.track-tabs{display:flex;gap:5px;margin:10px 0}.tools{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:10px 0}.tools .split{border-left:1px solid var(--line);height:20px;margin:0 3px}.help{color:var(--muted);font-size:11px;margin:9px 0}.warning{padding:10px;border:1px solid #765c2d;background:#30281a;color:#ffe0a2;border-radius:6px;margin-bottom:8px}.warning[hidden]{display:none}
+  .top{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--line)}.brand{font-weight:700;font-size:14px;letter-spacing:.02em;margin-right:12px}.spacer{flex:1}.status{font-size:12px;color:var(--muted)}.lane-toolbar .status{font-size:11px}.lane-tabs,.cc-controls{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.lane-tabs{width:100%}.cc-controls[hidden]{display:none}.dirty{color:#ffd184}.shell{display:grid;grid-template-columns:210px minmax(0,1fr)}aside{background:#141920;border-right:1px solid var(--line);padding:14px 10px;max-height:calc(100vh - 180px);overflow:auto}aside h2{font-size:10px;color:var(--muted);letter-spacing:.13em;margin:0 6px 12px}aside button{width:100%;text-align:left;margin-bottom:4px}details{margin:4px 0}summary{cursor:pointer;color:var(--muted);padding:5px}.pattern{padding-left:22px;font-size:12px}.work{min-width:0;padding:14px 18px 20px}.title{display:flex;align-items:center;gap:10px;margin-bottom:12px}.title strong{font-size:16px}.track-tabs{display:flex;gap:5px;margin:10px 0}.tools{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:10px 0}.tools .split{border-left:1px solid var(--line);height:20px;margin:0 3px}.help{color:var(--muted);font-size:11px;margin:9px 0}.warning{padding:10px;border:1px solid #765c2d;background:#30281a;color:#ffe0a2;border-radius:6px;margin-bottom:8px}.warning[hidden]{display:none}
   .viewport{height:48vh;min-height:230px;overflow:auto;border:1px solid var(--line);border-radius:6px;position:relative;overscroll-behavior:contain;background:#11161d;touch-action:none;user-select:none}.sheet{position:relative;min-height:100%}.ruler{height:27px;position:sticky;top:0;z-index:5;background:#222a34;display:flex;margin-left:58px;border-bottom:1px solid #465263}.tick{position:absolute;top:4px;font:10px ui-monospace,monospace;color:var(--muted);padding-left:5px}.ruler .insert{height:27px;background:#74dac130;position:absolute;top:0;border-left:2px solid var(--accent)}.keyboard{position:sticky;left:0;z-index:4;width:58px;background:#252e3a}.key{width:58px;border-bottom:1px solid #45505f;text-align:right;padding-right:7px;font:10px ui-monospace,monospace;display:flex;align-items:center;justify-content:flex-end;cursor:pointer}.key.black{background:#111820;color:#9daabd}.key.c{color:#fff;background:#3b4655}.grid{position:absolute;top:27px;left:58px;right:0;bottom:0;background-image:linear-gradient(to right,#53637466 1px,transparent 1px),linear-gradient(to bottom,#39455577 1px,transparent 1px);cursor:default}.blackrow{position:absolute;left:0;right:0;background:#0003;pointer-events:none}.beatline{position:absolute;top:0;bottom:0;border-left:1px solid #8398b044;pointer-events:none}.note{position:absolute;border:1px solid #a4e8d0a0;border-radius:3px;min-height:8px;background:#5bbca3;color:#0b2720;font:10px ui-monospace,monospace;overflow:hidden;padding-left:4px;cursor:grab;display:flex;align-items:center;user-select:none}.note.selected{outline:2px solid #fff;outline-offset:-2px;color:#fff}.note.ghost{opacity:.5}.marquee{position:absolute;border:1px solid var(--accent);background:#74dac125;pointer-events:none;z-index:7}.playhead{position:absolute;top:27px;bottom:0;border-left:2px solid #fff;z-index:6;pointer-events:none}.loop-region{position:absolute;top:0;height:27px;background:#d6bc7530;border-top:3px solid #d6bc75;pointer-events:none}
-  .inspector{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--line)}.inspector span{font-size:12px;color:var(--muted)}.automation{margin-top:10px;min-height:110px;height:170px;resize:vertical;overflow:auto;border:1px solid var(--line);border-radius:6px}.lane-toolbar{display:flex;align-items:center;gap:7px;position:sticky;top:0;background:var(--panel);padding:8px;z-index:3;flex-wrap:wrap}.lane-scroll{overflow-x:auto;overflow-y:hidden}.lane{height:105px;position:relative;margin-left:58px;background:repeating-linear-gradient(to bottom,transparent 0,transparent 25px,#303c4955 25px,#303c4955 26px);cursor:crosshair}.value{position:absolute;bottom:0;min-width:4px;background:#74dac180;border-top:3px solid var(--accent);cursor:ns-resize}.value.selected{background:#74dac1bd;border-color:#fff}.value span{position:absolute;bottom:4px;left:2px;font-size:10px;color:#eafbf6}.lane-info{font-size:11px;color:var(--muted);padding:6px 12px}.settings{margin-top:12px;background:var(--panel);padding:12px;border-radius:6px}.settings[hidden]{display:none}.settings h3{margin:0 0 10px;font-size:12px}.settings .fields{display:flex;gap:12px;flex-wrap:wrap}.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:100;background:#283b39;border:1px solid var(--accent);padding:10px 18px;border-radius:7px;max-width:90vw;box-shadow:0 8px 30px #0008}.toast[hidden]{display:none}.modal{border:1px solid var(--line);border-radius:10px;background:#1c242e;color:var(--fg);max-width:500px;padding:24px}.modal::backdrop{background:#0009}.modal h2{margin-top:0}.modal .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}.modal p{color:var(--muted)}
+  .inspector{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--line)}.inspector span{font-size:12px;color:var(--muted)}.automation{margin-top:10px;min-height:260px;height:auto;resize:vertical;overflow:auto;border:1px solid var(--line);border-radius:6px}.lane-toolbar{display:flex;align-items:center;gap:7px;position:sticky;top:0;background:var(--panel);padding:8px;z-index:3;flex-wrap:wrap}.lane-scroll{overflow-x:auto;overflow-y:hidden}.lane{height:105px;position:relative;margin-left:58px;background:repeating-linear-gradient(to bottom,transparent 0,transparent 25px,#303c4955 25px,#303c4955 26px);cursor:crosshair}.value{position:absolute;bottom:0;min-width:4px;background:#74dac180;border-top:3px solid var(--accent);cursor:ns-resize}.value.selected{background:#74dac1bd;border-color:#fff}.value span{position:absolute;bottom:4px;left:2px;font-size:10px;color:#eafbf6}.lane-info{font-size:11px;color:var(--muted);padding:6px 12px}.settings{margin-top:12px;background:var(--panel);padding:12px;border-radius:6px}.settings[hidden]{display:none}.settings h3{margin:0 0 10px;font-size:12px}.settings .fields{display:flex;gap:12px;flex-wrap:wrap}.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:100;background:#283b39;border:1px solid var(--accent);padding:10px 18px;border-radius:7px;max-width:90vw;box-shadow:0 8px 30px #0008}.toast[hidden]{display:none}.modal{border:1px solid var(--line);border-radius:10px;background:#1c242e;color:var(--fg);max-width:500px;padding:24px}.modal::backdrop{background:#0009}.modal h2{margin-top:0}.modal .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}.modal p{color:var(--muted)}
   @media(max-width:850px){.shell{grid-template-columns:150px minmax(0,1fr)}.work{padding:12px 10px}.top{padding:10px}.brand{width:100%}aside{padding:10px 6px}}@media(max-width:620px){.shell{grid-template-columns:1fr}aside{max-height:170px;border-bottom:1px solid var(--line)}.viewport{height:48vh}.title{flex-wrap:wrap}.top .status{width:100%}}`;
   const TPL = `
   <div class="top"><span class="brand">GROUND CONTROL <span style="color:var(--muted);font-weight:400">/ PATTERN EDITOR</span></span>
@@ -77,10 +87,10 @@
   <div class="shell"><aside><h2>PROJECTS & PATTERNS</h2><div id="browser"></div><button id="newProject">+ New project</button><button id="import">Import file</button><input id="file" type="file" accept=".txt,.json" hidden><button id="export">Export editor project</button><button id="exportPattern">Export pattern file</button><button id="exportNotes">Export notes only</button><a class="help" href="docs/reference/editor.html" target="_blank" style="display:block;padding:6px;color:var(--accent)">Controls &amp; instructions ↗</a><button id="restore" hidden>Recover browser draft</button></aside>
   <main class="work"><div class="title"><strong id="title"></strong><span class="spacer"></span><button id="newPattern">+ Pattern</button><button id="copyPattern">Copy pattern</button><button id="settingsBtn">Settings</button></div>
   <div id="tracks" class="track-tabs"></div><div id="warning" class="warning" role="status" hidden></div>
-  <div class="tools"><button id="pointer" class="active" title="Select and move notes">↖ Select</button><button id="draw" title="Draw / erase (B)">✎ Draw</button><span class="split"></span><button id="undo" title="Undo (Cmd/Ctrl Z)">↶ Undo</button><button id="redo" title="Redo (Cmd/Ctrl Shift Z)">↷ Redo</button><button id="duplicate" title="Duplicate selection (Cmd/Ctrl D)">Duplicate</button><button id="delete">Delete</button><span class="split"></span><label>Steps <input id="length" type="number" min="1" max="128"></label><label>New velocity <input id="velocity" type="number" min="1" max="127" value="100"></label><span class="spacer"></span><label>Time <input id="zoomX" type="range" min="18" max="80" value="36" aria-label="Horizontal zoom" style="width:65px"></label><label>Pitch <input id="zoomY" type="range" min="12" max="30" value="20" aria-label="Vertical zoom" style="width:55px"></label><button id="fit">Fit notes</button><button id="fitTime">Fit pattern</button></div>
+  <div class="tools"><button id="pointer" class="active" title="Select and move notes">↖ Select</button><button id="draw" title="Draw / erase (B)">✎ Draw</button><span class="split"></span><button id="undo" title="Undo (Cmd/Ctrl Z)">↶ Undo</button><button id="redo" title="Redo (Cmd/Ctrl Shift Z)">↷ Redo</button><button id="duplicate" title="Duplicate selection (Cmd/Ctrl D)">Duplicate</button><button id="delete">Delete</button><span class="split"></span><label>Steps <input id="length" type="number" min="1" max="128"></label><label>Step duration <select id="duration" aria-label="Step duration" title="Duration of every step in this pattern">${DURATIONS.map((name, i) => `<option value="${i}">${name}</option>`).join("")}</select></label><label>New velocity <input id="velocity" type="number" min="1" max="127" value="100"></label><span class="spacer"></span><label>Time zoom <input id="zoomX" type="range" min="18" max="80" value="36" aria-label="Horizontal zoom" style="width:65px"></label><label>Pitch <input id="zoomY" type="range" min="12" max="30" value="20" aria-label="Vertical zoom" style="width:55px"></label><button id="fit">Fit notes</button><button id="fitTime">Fit pattern</button></div>
   <div class="viewport" id="viewport" tabindex="0" aria-label="Piano roll. Double-click to insert. Drag notes to move. B toggles draw mode."><div class="sheet" id="sheet"></div></div>
   <div class="inspector"><span id="selection">No notes selected</span><label>Velocity <input id="selectedVel" type="number" min="1" max="127" disabled></label><button id="tie" title="Tie applies to every note on selected steps">Tie</button><button id="slide">Slide</button><button id="ratchet">Ratchet</button><button id="clear">Clear pattern</button></div>
-  <div class="automation"><div class="lane-toolbar"><select id="lane" aria-label="Automation lane"><option value="velocity">Velocity</option></select><label>CC <input id="ccNumber" type="number" min="0" max="127" value="74"></label><button id="addCC">+ CC lane</button><button id="removeCC">Remove lane</button><label>Source <select id="ccSource" aria-label="CC recording source"><option value="0">MIDI / editor</option><option value="1">CV input 1</option><option value="2">CV input 2</option><option value="3">CV input 3</option><option value="4">CV input 4</option></select></label><label>Min <input id="ccMin" type="number" min="0" max="127" value="0" style="width:52px"></label><label>Max <input id="ccMax" type="number" min="0" max="127" value="127" style="width:52px"></label><label>Value <input id="ccValue" type="number" min="0" max="127" value="0" style="width:52px"></label><span class="spacer"></span><span class="status" id="laneStatus"></span></div><div id="laneScroll" class="lane-scroll"><div class="lane" id="laneGraph"></div></div><div class="lane-info">Drag to set values · Shift-drag velocity for a relative adjustment · Right-click to remove a CC point · Values are quantized to steps</div></div>
+  <div class="automation"><div class="lane-toolbar"><div id="lane" class="lane-tabs" role="group" aria-label="Automation lanes"></div><label>CC <input id="ccNumber" type="number" min="0" max="127" value="74"></label><button id="addCC">+ Add CC lane</button><span class="status" id="laneCount"></span><div id="ccControls" class="cc-controls" hidden><button id="removeCC">Remove CC lane</button><label>Record on module from <select id="ccSource" aria-label="CC recording source"><option value="0">MIDI / editor</option><option value="1">CV input 1</option><option value="2">CV input 2</option><option value="3">CV input 3</option><option value="4">CV input 4</option></select></label><label>Min <input id="ccMin" type="number" min="0" max="127" value="0" style="width:52px"></label><label>Max <input id="ccMax" type="number" min="0" max="127" value="127" style="width:52px"></label><label>Value <input id="ccValue" type="number" min="0" max="127" value="0" style="width:52px"></label></div></div><div class="lane-info" id="laneStatus" role="status"></div><div class="lane-info" id="laneHelp"></div><div id="laneScroll" class="lane-scroll"><div class="lane" id="laneGraph"></div></div></div>
   <div class="settings" id="settings" hidden><h3>Pattern and track settings</h3><div id="settingsFields" class="fields"></div><p class="help">Tie, slide and ratchet belong to the whole step. Notes use fixed steps; independent note lengths are not stored by the module.</p><p class="help">Preview uses a simple browser instrument with straight step timing. Hardware shuffle, generators, CV outputs and modulation behavior are not simulated.</p></div>
   <div class="help" id="help">Double-click: insert/remove · Drag note: move · Drag empty space: select · Shift-click: add to selection · Option/Alt-drag: copy · B: draw · Space: play</div>
   </main></div><div id="toast" class="toast" role="status" hidden></div>
@@ -724,6 +734,7 @@
         !this.store || this.busy || (!this.model.dirty && !settingsDirty);
       this.$("open").disabled = this.busy;
       this.$("length").value = this.p.length;
+      this.$("duration").value = this.p.base.duration ?? 2;
       this.$("bpm").value =
         this.model.settings[project + "/ProjectSettings.txt"]?.BPM || 120;
       this.$("undo").disabled = !this.model.undoStack.length;
@@ -946,28 +957,46 @@
       ]);
       if (this.lane !== "velocity" && !nums.has(+this.lane))
         this.lane = "velocity";
-      this.$("lane").innerHTML =
-        '<option value="velocity">Velocity</option>' +
-        [...nums]
+      this.$("lane").innerHTML = [
+        ["velocity", "Velocity"],
+        ...[...nums]
           .sort((a, b) => a - b)
-          .map(
-            (n) =>
-              '<option value="' +
-              n +
-              '">CC ' +
-              n +
-              (CC_NAMES[n] ? " · " + CC_NAMES[n] : "") +
-              "</option>",
-          )
-          .join("");
-      this.$("lane").value = this.lane;
+          .map((n) => [
+            String(n),
+            "CC " + n + (CC_NAMES[n] ? " · " + CC_NAMES[n] : ""),
+          ]),
+      ]
+        .map(
+          ([value, label]) =>
+            '<button type="button" data-lane="' +
+            value +
+            '" aria-pressed="' +
+            (this.lane === value) +
+            '" class="' +
+            (this.lane === value ? "active" : "") +
+            '">' +
+            label +
+            "</button>",
+        )
+        .join("");
+      this.$("laneCount").textContent = this.p.drum
+        ? "CC lanes are available on melodic tracks 1–3"
+        : nums.size + " / 4 CC lanes";
+      this.$("ccControls").hidden = this.lane === "velocity";
       this.$("removeCC").disabled = this.lane === "velocity";
       this.$("addCC").disabled = this.p.drum;
       this.$("ccNumber").disabled = this.p.drum;
       this.$("laneStatus").textContent =
         this.lane === "velocity"
-          ? "Per-note values"
-          : "Requires v0.10.0-alpha.1";
+          ? "Velocity controls note strength. Choose a CC number, then Add CC lane to automate a controller. Velocity stays available above."
+          : "Editing CC " +
+            this.lane +
+            (CC_NAMES[this.lane] ? " (" + CC_NAMES[this.lane] + ")" : "") +
+            ". Controller playback and recording require experimental v0.10.0-alpha.1 firmware. Velocity is unchanged.";
+      this.$("laneHelp").textContent =
+        this.lane === "velocity"
+          ? "Drag existing bars to change note velocity. Shift-drag adjusts selected notes relatively."
+          : "Click or drag the graph to create step values (0–127). Right-click removes a point; an empty step sends nothing. Source configures recording on the module, not in the browser.";
       const source = this.p.ccSources?.[this.lane];
       for (const id of ["ccSource", "ccMin", "ccMax", "ccValue"])
         this.$(id).disabled = this.lane === "velocity";
@@ -1031,31 +1060,6 @@
       if (this.$("settings").hidden) return;
       const fields = this.$("settingsFields");
       fields.innerHTML = "";
-      const durationLabel = document.createElement("label");
-      durationLabel.textContent = "Step duration ";
-      const duration = document.createElement("select");
-      [
-        "1/4",
-        "1/8",
-        "1/16",
-        "1/32",
-        "1/4 triplet",
-        "1/8 triplet",
-        "1/16 triplet",
-        "1/32 triplet",
-      ].forEach((name, i) => {
-        const option = document.createElement("option");
-        option.value = i;
-        option.textContent = name;
-        duration.append(option);
-      });
-      duration.value = this.p.base.duration ?? 2;
-      duration.onchange = () =>
-        this.action("Set step duration", () => {
-          this.p.base.duration = +duration.value;
-        });
-      durationLabel.append(duration);
-      fields.append(durationLabel);
       const [project, track] = this.parts,
         key = project + "/track" + track + "/TrackSettings.txt",
         ts = this.model.settings[key] || {};
@@ -1939,8 +1943,17 @@
             }
           }),
         );
-      this.$("lane").onchange = () => {
-        this.lane = this.$("lane").value;
+      this.$("duration").onchange = () => {
+        const duration = +this.$("duration").value;
+        this.action("Set step duration", () => {
+          this.p.base.duration = duration;
+        });
+      };
+      this.$("lane").onclick = (ev) => {
+        const button = ev.target.closest("[data-lane]");
+        if (!button) return;
+        this.lane = button.dataset.lane;
+        this.ccSelection = new Set();
         this.renderLanes();
       };
       on("addCC", () => {

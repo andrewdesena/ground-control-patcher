@@ -41,6 +41,8 @@ Public versions are pre-1.0: **1.0.0 is reserved for the complete, hardware-test
 - Clear distinction between writing a firmware file and flashing it on the module.
 - Ableton-style note selection and movement, marquee selection, double-click insertion/removal and Alt/Option-drag duplication.
 - Draw/erase mode, clipboard operations, keyboard nudging, semitone/octave transposition and undo/redo.
+- Visible pattern step-duration control for 1/4 through 1/32 and triplets, saved in the native pattern file.
+- Persistent Velocity and CC lane buttons, with recorded controller lanes loaded from module-saved patterns.
 - Per-note velocity lane and inspector, with relative velocity adjustment for selections.
 - Horizontal/vertical zoom, fit controls, shared timeline scrolling and a responsive layout.
 - Simple browser sound preview with play/stop, looping and a moving playhead.

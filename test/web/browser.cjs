@@ -60,6 +60,22 @@ const { chromium } = playwright;
   await page.click("#editorTab");
   const e = page.locator("gc-editor");
   await e.locator("#viewport").waitFor({ state: "visible" });
+  // The main timing control must update native bytes and follow undo/redo.
+  assert.equal(await e.locator("#duration").inputValue(), "2");
+  for (let rate = 0; rate < 8; rate++) {
+    await e.locator("#duration").selectOption(String(rate));
+    assert.equal(
+      await e.evaluate(
+        (el) => GCFormat.decode(GCFormat.encode(el.p)).base.duration,
+      ),
+      rate,
+    );
+  }
+  await e.locator("#undo").click();
+  assert.equal(await e.locator("#duration").inputValue(), "6");
+  await e.locator("#redo").click();
+  assert.equal(await e.locator("#duration").inputValue(), "7");
+  await e.locator("#duration").selectOption("2");
   const pos = async (s, n) =>
     page.evaluate(
       ({ s, n }) => {
@@ -114,16 +130,53 @@ const { chromium } = playwright;
     await e.evaluate((el) => el.model.pattern.steps[6].notes[0][0]),
     60,
   );
+  const velocityBeforeCC = await e.evaluate((el) =>
+    el.p.steps.map((s) => s.notes),
+  );
   await e.locator("#addCC").click();
+  assert.equal(await e.locator('[data-lane="velocity"]').isVisible(), true);
+  assert.equal(
+    await e.locator('[data-lane="74"]').getAttribute("aria-pressed"),
+    "true",
+  );
+  assert.deepEqual(
+    await e.evaluate((el) => el.p.steps.map((s) => s.notes)),
+    velocityBeforeCC,
+  );
+  await e.locator('[data-lane="velocity"]').click();
+  assert.equal(await e.locator("#ccControls").isHidden(), true);
+  await e.locator('[data-lane="74"]').click();
+  assert.equal(await e.locator("#ccControls").isVisible(), true);
   await e.locator("#laneGraph").scrollIntoViewIfNeeded();
   const lane = await e.locator("#laneGraph").boundingBox();
   await page.mouse.click(lane.x + 36 * 2 + 10, lane.y + 80);
   assert.ok(await e.evaluate((el) => el.model.pattern.steps[2].cc.length));
   assert.equal(await e.evaluate((el) => el.model.dirty), true);
+  // Firmware-emulator-generated recording must expose its lanes and zero values.
+  await e.locator("#file").setInputFiles({
+    name: "A.txt",
+    mimeType: "application/octet-stream",
+    buffer: require("node:fs").readFileSync("testdata/cc-pattern.fixture.txt"),
+  });
+  await page.waitForFunction(
+    () => document.querySelector("gc-editor").p.steps[2].cc[0]?.[1] === 127,
+  );
+  assert.equal(await e.locator('[data-lane="74"]').isVisible(), true);
+  await e.locator('[data-lane="74"]').click();
+  assert.equal(await e.locator("#ccSource").inputValue(), "2");
+  assert.equal(
+    await e.locator('#laneGraph [data-step="1"]').getAttribute("title"),
+    "Step 2 · CC 74 = 0",
+  );
+  assert.equal(
+    await e.locator('#laneGraph [data-step="2"]').getAttribute("title"),
+    "Step 3 · CC 74 = 127",
+  );
   await page.screenshot({ path: "/tmp/gc-editor.png", fullPage: true });
   assert.deepEqual(errors, []);
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({ path: "/tmp/gc-editor-mobile.png", fullPage: true });
+  await e.locator("#lane").scrollIntoViewIfNeeded();
+  await page.screenshot({ path: "/tmp/gc-editor-mobile.png" });
   assert.equal(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
