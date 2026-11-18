@@ -170,7 +170,8 @@
         doc.format !== "gc-editor" ||
         doc.version !== 2 ||
         !doc.documents ||
-        !doc.documents[doc.active]
+        (!doc.documents[doc.active] &&
+          (doc.active !== "" || Object.keys(doc.documents).length !== 0))
       )
         throw new Error("Choose a Ground Control editor project (version 2)");
       for (const [key, p] of Object.entries(doc.documents)) {

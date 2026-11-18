@@ -122,6 +122,14 @@ class Dir {
     }
     return this.entries.get(n);
   }
+  async removeEntry(n, { recursive = false } = {}) {
+    if (this.failDelete) throw new Error("Simulated permission failure");
+    const entry = this.entries.get(n);
+    if (!entry) throw Object.assign(new Error(n), { name: "NotFoundError" });
+    if (entry.kind === "directory" && entry.entries.size && !recursive)
+      throw new Error("Directory is not empty");
+    this.entries.delete(n);
+  }
   async *values() {
     yield* this.entries.values();
   }
@@ -268,4 +276,71 @@ test("metadata preflight reads do not erase the original conflict baseline", asy
     () => s.writeJSON(parts, { BPM: 133 }),
     /changed since opening/,
   );
+});
+
+test("pattern deletion removes primary and backup, preserves neighbors, and permits reuse", async () => {
+  const root = new Dir(),
+    store = new Store(root),
+    bytes = F.encode(F.blank());
+  await store.write(Store.path("projectA/1/A"), bytes);
+  await store.write(Store.path("projectA/1/A"), bytes);
+  await store.write(Store.path("projectA/1/B"), bytes);
+  const plan = await store.prepareDeletion("projectA/1/A");
+  await store.deletePlanned(plan);
+  assert.equal(await store.optional(Store.path("projectA/1/A")), null);
+  assert.equal(
+    await store.optional(["projectA", "track1", "patternA.txt.bak"]),
+    null,
+  );
+  assert.deepEqual(await store.read(Store.path("projectA/1/B")), bytes);
+  await store.write(Store.path("projectA/1/A"), bytes);
+  assert.deepEqual(await store.read(Store.path("projectA/1/A")), bytes);
+});
+test("deletion rejects stale contents, confirmation-time changes and unsafe project paths", async () => {
+  const root = new Dir(),
+    store = new Store(root),
+    path = Store.path("projectA/1/A");
+  await store.write(path, F.encode(F.blank()));
+  (await store.handle(path)).bytes[0] ^= 1;
+  await assert.rejects(
+    () => store.prepareDeletion("projectA/1/A"),
+    /changed since opening/,
+  );
+  await store.read(path);
+  const plan = await store.prepareDeletion("projectA", true);
+  await store.rawWrite(["projectA", "new-file.txt"], new Uint8Array([1]));
+  await assert.rejects(
+    () => store.deletePlanned(plan),
+    /changed while confirming/,
+  );
+  assert.ok(await store.optional(path));
+  for (const name of ["..", "projectA/../projectB", "", "GlobalSettings.txt"])
+    await assert.rejects(() => store.prepareDeletion(name, true), /Invalid/);
+});
+test("project deletion removes all contents, and denied deletion preserves the card", async () => {
+  const root = new Dir(),
+    store = new Store(root),
+    bytes = F.encode(F.blank());
+  for (const project of ["projectA", "projectB"])
+    await store.write(Store.path(project + "/1/A"), bytes);
+  await store.rawWrite(["projectA", "other", "extra.txt"], new Uint8Array([2]));
+  const plan = await store.prepareDeletion("projectA", true);
+  root.failDelete = true;
+  await assert.rejects(() => store.deletePlanned(plan), /permission/);
+  assert.ok(await store.optional(Store.path("projectA/1/A")));
+  root.failDelete = false;
+  await store.deletePlanned(plan);
+  assert.equal(root.entries.has("projectA"), false);
+  assert.deepEqual(await store.read(Store.path("projectB/1/A")), bytes);
+});
+
+test("an empty project retains settings through export and recovery after its last pattern is deleted", () => {
+  const m = new Model();
+  m.settings["projectA/ProjectSettings.txt"] = { BPM: 123 };
+  m.key = "";
+  const n = new Model();
+  n.import(m.export());
+  assert.equal(n.key, "");
+  assert.deepEqual(n.documents, {});
+  assert.deepEqual(n.settings["projectA/ProjectSettings.txt"], { BPM: 123 });
 });

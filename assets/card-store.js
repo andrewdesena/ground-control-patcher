@@ -91,6 +91,96 @@
     async writeJSON(parts, obj) {
       await this.write(parts, enc.encode(JSON.stringify(obj) + "\n"));
     }
+    async deletionSnapshot(plan) {
+      const entries = new Map();
+      const visit = async (parts, directory) => {
+        try {
+          if (!directory) {
+            const handle = await this.handle(parts);
+            entries.set(
+              parts.join("/"),
+              new Uint8Array(await (await handle.getFile()).arrayBuffer()),
+            );
+            return;
+          }
+          let dir = this.dir;
+          for (const part of parts) dir = await dir.getDirectoryHandle(part);
+          entries.set(parts.join("/"), "directory");
+          for await (const entry of dir.values())
+            await visit(parts.concat(entry.name), entry.kind === "directory");
+        } catch (error) {
+          if (error.name !== "NotFoundError") throw error;
+          entries.set(parts.join("/"), null);
+        }
+      };
+      for (const target of plan.targets)
+        await visit(target.parts, target.directory);
+      return entries;
+    }
+    async prepareDeletion(target, project = false) {
+      if (project && !/^project[A-Z0-9_-]*$/i.test(target))
+        throw new Error("Invalid card project path");
+      const parts = project ? [target] : CardStore.path(target);
+      const plan = {
+        target,
+        project,
+        targets: project
+          ? [{ parts, directory: true }]
+          : [
+              { parts, directory: false },
+              {
+                parts: parts.slice(0, -1).concat(parts.at(-1) + ".bak"),
+                directory: false,
+              },
+            ],
+      };
+      plan.entries = await this.deletionSnapshot(plan);
+      for (const [path, current] of plan.entries) {
+        if (!this.originals.has(path) || current === "directory") continue;
+        if (!CardStore.sameBytes(this.originals.get(path), current))
+          throw new Error(
+            "The card file changed since opening: " +
+              path +
+              ". Reopen the card before deleting.",
+          );
+      }
+      return plan;
+    }
+    static sameBytes(a, b) {
+      return (
+        a === b ||
+        (a instanceof Uint8Array &&
+          b instanceof Uint8Array &&
+          a.length === b.length &&
+          a.every((v, i) => v === b[i]))
+      );
+    }
+    async deletePlanned(plan) {
+      const current = await this.deletionSnapshot(plan);
+      if (
+        current.size !== plan.entries.size ||
+        [...plan.entries].some(
+          ([path, bytes]) => !CardStore.sameBytes(bytes, current.get(path)),
+        )
+      )
+        throw new Error(
+          "The card changed while confirming deletion. Review it and try again.",
+        );
+      // Remove a pattern's backup first, so a failed backup deletion preserves its primary file.
+      for (const { parts, directory } of [...plan.targets].reverse()) {
+        if (plan.entries.get(parts.join("/")) === null) continue;
+        let parent = this.dir;
+        for (const part of parts.slice(0, -1))
+          parent = await parent.getDirectoryHandle(part);
+        await parent.removeEntry(parts.at(-1), { recursive: directory });
+      }
+      const remaining = await this.deletionSnapshot(plan);
+      if ([...remaining.values()].some((value) => value !== null))
+        throw new Error(
+          "Deletion could not be verified. Reopen the card to inspect it.",
+        );
+      for (const path of plan.entries.keys()) this.originals.delete(path);
+    }
     async tree() {
       const projects = {};
       for await (const entry of this.dir.values()) {

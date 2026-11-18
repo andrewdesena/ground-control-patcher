@@ -62,6 +62,23 @@ try {
             }
             return this.items.get(n);
           }
+          async removeEntry(n, { recursive = false } = {}) {
+            if (window.__failDeletes)
+              throw new Error("Simulated delete denied");
+            if (window.__partialDelete && n === "projectB") {
+              this.items
+                .get(n)
+                .items.get("track2")
+                .items.delete("patternA.txt");
+              window.__partialDelete = false;
+              throw new Error("Simulated interrupted project deletion");
+            }
+            const entry = this.items.get(n);
+            if (!entry) throw new DOMException(n, "NotFoundError");
+            if (entry.kind === "directory" && entry.items.size && !recursive)
+              throw new Error("Directory not empty");
+            this.items.delete(n);
+          }
           async *values() {
             yield* this.items.values();
           }
@@ -205,6 +222,128 @@ try {
       (await page.evaluate(() => __bytes("projectB/trackD/TrackSettings.txt")))
         .length,
     );
+    // Tree navigation replaces the duplicate track row; deletions are immediate and scoped.
+    assert.equal(await e.locator("#tracks").count(), 0);
+    await e.locator('[data-delete-pattern="projectB/1/A"]').click();
+    await e
+      .locator("#dialog")
+      .getByRole("button", { name: "Cancel", exact: true })
+      .click();
+    assert.ok(
+      await page.evaluate(() => __bytes("projectB/track1/patternA.txt")),
+    );
+    await page.evaluate(async () => {
+      const track = __card.items.get("projectB").items.get("track1");
+      const backup = await track.getFileHandle("patternA.txt.bak", {
+        create: true,
+      });
+      backup.data = track.items.get("patternA.txt").data.slice();
+      window.__failDeletes = true;
+    });
+    const confirmDelete = async () => {
+      await e
+        .locator("#dialog")
+        .getByRole("button", { name: "Delete from SD card", exact: true })
+        .click();
+      await page.waitForFunction(
+        () => !document.querySelector("gc-editor").busy,
+      );
+    };
+    await e.locator('[data-delete-pattern="projectB/1/A"]').click();
+    await confirmDelete();
+    assert.ok(
+      await page.evaluate(() => __bytes("projectB/track1/patternA.txt.bak")),
+    );
+    assert.ok(await e.evaluate((el) => el.model.documents["projectB/1/A"]));
+    await page.evaluate(() => (window.__failDeletes = false));
+    await e.locator('[data-delete-pattern="projectB/1/A"]').click();
+    await confirmDelete();
+    assert.equal(
+      await page.evaluate(() =>
+        __card.items
+          .get("projectB")
+          .items.get("track1")
+          .items.has("patternA.txt"),
+      ),
+      false,
+    );
+    assert.equal(
+      await page.evaluate(() =>
+        __card.items
+          .get("projectB")
+          .items.get("track1")
+          .items.has("patternA.txt.bak"),
+      ),
+      false,
+    );
+    assert.equal(
+      await e.evaluate((el) => !!el.model.documents["projectB/1/A"]),
+      false,
+    );
+    assert.equal(await e.evaluate((el) => el.model.undoStack.length), 0);
+    // Empty tracks still allow creation through the tree, with the correct destination.
+    await e.locator('[data-new-pattern="projectB/1"]').click();
+    await e
+      .locator("#dialog")
+      .getByRole("button", { name: "Create", exact: true })
+      .click();
+    assert.equal(await e.evaluate((el) => el.model.key), "projectB/1/A");
+    await e.locator("#undo").click();
+    // Keep an unrelated edit while deleting the other project, including partial failure.
+    await e.evaluate((el) =>
+      el.action(
+        "Other project edit",
+        () => (el.model.documents["projectA/1/E"].steps[0].notes[0][1] = 55),
+      ),
+    );
+    await page.evaluate(() => (window.__partialDelete = true));
+    await e.locator('[data-delete-project="projectB"]').click();
+    await confirmDelete();
+    assert.equal(
+      await e.evaluate((el) => !!el.model.documents["projectB/2/A"]),
+      false,
+    );
+    assert.equal(
+      await e.evaluate(
+        (el) => el.model.documents["projectA/1/E"].steps[0].notes[0][1],
+      ),
+      55,
+    );
+    await e.locator('[data-delete-project="projectB"]').click();
+    await confirmDelete();
+    assert.equal(
+      await page.evaluate(() => __card.items.has("projectB")),
+      false,
+    );
+    assert.equal(
+      await e.locator('[data-delete-project="projectB"]').count(),
+      0,
+    );
+    assert.equal(
+      await e.evaluate((el) =>
+        Object.keys(el.model.documents).some((k) => k.startsWith("projectB/")),
+      ),
+      false,
+    );
+    const recoveryAfterDelete = await page.evaluate(() =>
+      localStorage.getItem("gc-editor-v2-draft"),
+    );
+    assert.equal(recoveryAfterDelete.includes("projectB/"), false);
+    await e.locator("#save").click();
+    await page.waitForFunction(() => !document.querySelector("gc-editor").busy);
+    assert.equal(
+      await page.evaluate(() => __card.items.has("projectB")),
+      false,
+    );
+    assert.equal(
+      F.decode(
+        Uint8Array.from(
+          await page.evaluate(() => __bytes("projectA/track1/patternE.txt")),
+        ),
+      ).steps[0].notes[0][1],
+      55,
+    );
+
     // An imported offline pattern gets missing project/track scaffolding when attached.
     const offline = F.blank();
     offline.steps[0].notes = [[72, 90]];
@@ -239,6 +378,77 @@ try {
         .length,
     );
 
+    // Removing all card projects leaves a usable empty workspace, with no fabricated A.
+    await e.locator('[data-delete-project="projectC"]').click();
+    await confirmDelete();
+    await e.locator('[data-delete-project="projectA"]').click();
+    await confirmDelete();
+    assert.equal(await page.evaluate(() => __card.items.size), 0);
+    assert.equal(await e.locator("#emptyWorkspace").isVisible(), true);
+    assert.equal(await e.evaluate((el) => el.model.key), "");
+    assert.equal(await e.locator("#save").isDisabled(), true);
+    await page.keyboard.press("Meta+z");
+    assert.deepEqual(
+      await e.evaluate((el) => Object.keys(el.model.documents)),
+      [],
+    );
+    await e.locator("#newProject").click();
+    await e.locator("#projectName").fill("projectD");
+    await e
+      .locator("#dialog")
+      .getByRole("button", { name: "Create", exact: true })
+      .click();
+    assert.equal(await e.locator("#patternWork").isVisible(), true);
+    assert.equal(await e.evaluate((el) => el.model.key), "projectD/1/A");
+
+    // Offline deletion discards unsaved projects without touching the card.
+    await e.evaluate((el) => {
+      el.store = null;
+      el.tree = {};
+      el.render();
+    });
+    for (const track of ["1", "2", "3", "D"]) {
+      const item = e.locator(
+        '[data-delete-pattern="projectD/' + track + '/A"]',
+      );
+      await item.evaluate((button) => {
+        for (let node = button.parentElement; node; node = node.parentElement)
+          if (node.tagName === "DETAILS") node.open = true;
+      });
+      await item.click();
+      await e
+        .locator("#dialog")
+        .getByRole("button", { name: "Delete from editor", exact: true })
+        .click();
+      await page.waitForFunction(
+        () => !document.querySelector("gc-editor").busy,
+      );
+    }
+    assert.equal(await e.locator("#emptyWorkspace").isVisible(), true);
+    assert.equal(
+      await e.locator('[data-delete-project="projectD"]').count(),
+      1,
+    );
+    assert.equal(await e.locator("#export").isEnabled(), true);
+    await e.evaluate((el) => {
+      const recovered = new GCEditorModel();
+      recovered.import(JSON.parse(localStorage.getItem("gc-editor-v2-draft")));
+      if (!recovered.settings["projectD/ProjectSettings.txt"])
+        throw new Error("Empty project recovery lost settings");
+    });
+    await e.locator('[data-delete-project="projectD"]').click();
+    await e
+      .locator("#dialog")
+      .getByRole("button", { name: "Delete from editor", exact: true })
+      .click();
+    await page.waitForFunction(() => !document.querySelector("gc-editor").busy);
+    assert.equal(await e.locator("#emptyWorkspace").isVisible(), true);
+    assert.equal(await page.evaluate(() => __card.items.size), 0);
+    assert.equal(
+      await page.evaluate(() => localStorage.getItem("gc-editor-v2-draft")),
+      null,
+    );
+
     // Both release choices build from the same verified stock input; switching invalidates output.
     await page.click("#firmwareTab");
     await page
@@ -270,7 +480,7 @@ try {
     );
     assert.deepEqual(errors, []);
     console.log(
-      "PASS browser card read/edit/CC save/backup/failure/recovery and release invalidation",
+      "PASS tree navigation, pattern/project deletion, cancel/failure/partial/empty/offline flows, card read/edit/CC save/backup/recovery and release invalidation",
     );
   } finally {
     await b.close();

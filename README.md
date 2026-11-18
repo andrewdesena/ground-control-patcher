@@ -43,6 +43,8 @@ Public versions are pre-1.0: **1.0.0 is reserved for the complete, hardware-test
 - Draw/erase mode, clipboard operations, keyboard nudging, semitone/octave transposition and undo/redo.
 - Visible pattern step-duration control for 1/4 through 1/32 and triplets, saved in the native pattern file.
 - Persistent Velocity and CC lane buttons, with recorded controller lanes loaded from module-saved patterns.
+- Project, track and pattern navigation in the sidebar tree, with Add pattern actions on empty tracks.
+- Confirmed pattern and project deletion from the editor and connected SD card, including pattern backups or the complete project folder.
 - Per-note velocity lane and inspector, with relative velocity adjustment for selections.
 - Horizontal/vertical zoom, fit controls, shared timeline scrolling and a responsive layout.
 - Simple browser sound preview with play/stop, looping and a moving playhead.

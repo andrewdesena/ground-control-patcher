@@ -74,7 +74,7 @@
   const CSS = `
   :host{--bg:#101318;--panel:#191e25;--line:#303844;--muted:#9ba9ba;--fg:#e9eef5;--accent:#74dac1;display:block;background:var(--bg);color:var(--fg);font:13px/1.45 system-ui,sans-serif;min-height:78vh}
   *{box-sizing:border-box}button,input,select{font:inherit;color:inherit}button,select,input[type=number],input[type=text]{border:1px solid var(--line);background:#222a34;border-radius:5px;padding:6px 9px}button{cursor:pointer;white-space:nowrap}button:hover{background:#303c49}button:disabled{opacity:.4;cursor:default}button.active{background:#294b45;border-color:var(--accent);color:var(--accent)}button.primary{background:var(--accent);color:#11251f;border-color:var(--accent);font-weight:650}:focus-visible{outline:2px solid var(--accent);outline-offset:2px}input[type=number]{width:67px}label{display:inline-flex;align-items:center;gap:5px;color:var(--muted);font-size:12px}label input{color:var(--fg)}
-  .top{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--line)}.brand{font-weight:700;font-size:14px;letter-spacing:.02em;margin-right:12px}.spacer{flex:1}.status{font-size:12px;color:var(--muted)}.lane-toolbar .status{font-size:11px}.lane-tabs,.cc-controls{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.lane-tabs{width:100%}.cc-controls[hidden]{display:none}.dirty{color:#ffd184}.shell{display:grid;grid-template-columns:210px minmax(0,1fr)}aside{background:#141920;border-right:1px solid var(--line);padding:14px 10px;max-height:calc(100vh - 180px);overflow:auto}aside h2{font-size:10px;color:var(--muted);letter-spacing:.13em;margin:0 6px 12px}aside button{width:100%;text-align:left;margin-bottom:4px}details{margin:4px 0}summary{cursor:pointer;color:var(--muted);padding:5px}.pattern{padding-left:22px;font-size:12px}.work{min-width:0;padding:14px 18px 20px}.title{display:flex;align-items:center;gap:10px;margin-bottom:12px}.title strong{font-size:16px}.track-tabs{display:flex;gap:5px;margin:10px 0}.tools{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:10px 0}.tools .split{border-left:1px solid var(--line);height:20px;margin:0 3px}.help{color:var(--muted);font-size:11px;margin:9px 0}.warning{padding:10px;border:1px solid #765c2d;background:#30281a;color:#ffe0a2;border-radius:6px;margin-bottom:8px}.warning[hidden]{display:none}
+  .top{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--line)}.brand{font-weight:700;font-size:14px;letter-spacing:.02em;margin-right:12px}.spacer{flex:1}.status{font-size:12px;color:var(--muted)}.lane-toolbar .status{font-size:11px}.lane-tabs,.cc-controls{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.lane-tabs{width:100%}.cc-controls[hidden]{display:none}.dirty{color:#ffd184}.shell{display:grid;grid-template-columns:210px minmax(0,1fr)}aside{background:#141920;border-right:1px solid var(--line);padding:14px 10px;max-height:calc(100vh - 180px);overflow:auto}aside h2{font-size:10px;color:var(--muted);letter-spacing:.13em;margin:0 6px 12px}aside button{width:100%;text-align:left;margin-bottom:4px}details{margin:4px 0}summary{cursor:pointer;color:var(--muted);padding:5px}.pattern{padding-left:22px;font-size:12px}.work{min-width:0;padding:14px 18px 20px}.title{display:flex;align-items:center;gap:10px;margin-bottom:12px}.title strong{font-size:16px}.tree-row{display:flex;gap:4px;align-items:center}.tree-row>button:first-child{flex:1;min-width:0}.tree-delete{width:auto;text-align:center;padding:4px 7px;color:#efa5a5}.tree-project{display:inline-flex;align-items:center;gap:4px;width:calc(100% - 14px);vertical-align:middle}.tree-project>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}.tree-project button{margin:0}.tree-add{font-size:11px;color:var(--muted)}[hidden]{display:none!important}.tools{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:10px 0}.tools .split{border-left:1px solid var(--line);height:20px;margin:0 3px}.help{color:var(--muted);font-size:11px;margin:9px 0}.warning{padding:10px;border:1px solid #765c2d;background:#30281a;color:#ffe0a2;border-radius:6px;margin-bottom:8px}.warning[hidden]{display:none}
   .viewport{height:48vh;min-height:230px;overflow:auto;border:1px solid var(--line);border-radius:6px;position:relative;overscroll-behavior:contain;background:#11161d;touch-action:none;user-select:none}.sheet{position:relative;min-height:100%}.ruler{height:27px;position:sticky;top:0;z-index:5;background:#222a34;display:flex;margin-left:58px;border-bottom:1px solid #465263}.tick{position:absolute;top:4px;font:10px ui-monospace,monospace;color:var(--muted);padding-left:5px}.ruler .insert{height:27px;background:#74dac130;position:absolute;top:0;border-left:2px solid var(--accent)}.keyboard{position:sticky;left:0;z-index:4;width:58px;background:#252e3a}.key{width:58px;border-bottom:1px solid #45505f;text-align:right;padding-right:7px;font:10px ui-monospace,monospace;display:flex;align-items:center;justify-content:flex-end;cursor:pointer}.key.black{background:#111820;color:#9daabd}.key.c{color:#fff;background:#3b4655}.grid{position:absolute;top:27px;left:58px;right:0;bottom:0;background-image:linear-gradient(to right,#53637466 1px,transparent 1px),linear-gradient(to bottom,#39455577 1px,transparent 1px);cursor:default}.blackrow{position:absolute;left:0;right:0;background:#0003;pointer-events:none}.beatline{position:absolute;top:0;bottom:0;border-left:1px solid #8398b044;pointer-events:none}.note{position:absolute;border:1px solid #a4e8d0a0;border-radius:3px;min-height:8px;background:#5bbca3;color:#0b2720;font:10px ui-monospace,monospace;overflow:hidden;padding-left:4px;cursor:grab;display:flex;align-items:center;user-select:none}.note.selected{outline:2px solid #fff;outline-offset:-2px;color:#fff}.note.ghost{opacity:.5}.marquee{position:absolute;border:1px solid var(--accent);background:#74dac125;pointer-events:none;z-index:7}.playhead{position:absolute;top:27px;bottom:0;border-left:2px solid #fff;z-index:6;pointer-events:none}.loop-region{position:absolute;top:0;height:27px;background:#d6bc7530;border-top:3px solid #d6bc75;pointer-events:none}
   .inspector{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--line)}.inspector span{font-size:12px;color:var(--muted)}.automation{margin-top:10px;min-height:260px;height:auto;resize:vertical;overflow:auto;border:1px solid var(--line);border-radius:6px}.lane-toolbar{display:flex;align-items:center;gap:7px;position:sticky;top:0;background:var(--panel);padding:8px;z-index:3;flex-wrap:wrap}.lane-scroll{overflow-x:auto;overflow-y:hidden}.lane{height:105px;position:relative;margin-left:58px;background:repeating-linear-gradient(to bottom,transparent 0,transparent 25px,#303c4955 25px,#303c4955 26px);cursor:crosshair}.value{position:absolute;bottom:0;min-width:4px;background:#74dac180;border-top:3px solid var(--accent);cursor:ns-resize}.value.selected{background:#74dac1bd;border-color:#fff}.value span{position:absolute;bottom:4px;left:2px;font-size:10px;color:#eafbf6}.lane-info{font-size:11px;color:var(--muted);padding:6px 12px}.settings{margin-top:12px;background:var(--panel);padding:12px;border-radius:6px}.settings[hidden]{display:none}.settings h3{margin:0 0 10px;font-size:12px}.settings .fields{display:flex;gap:12px;flex-wrap:wrap}.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:100;background:#283b39;border:1px solid var(--accent);padding:10px 18px;border-radius:7px;max-width:90vw;box-shadow:0 8px 30px #0008}.toast[hidden]{display:none}.modal{border:1px solid var(--line);border-radius:10px;background:#1c242e;color:var(--fg);max-width:500px;padding:24px}.modal::backdrop{background:#0009}.modal h2{margin-top:0}.modal .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}.modal p{color:var(--muted)}
   @media(max-width:850px){.shell{grid-template-columns:150px minmax(0,1fr)}.work{padding:12px 10px}.top{padding:10px}.brand{width:100%}aside{padding:10px 6px}}@media(max-width:620px){.shell{grid-template-columns:1fr}aside{max-height:170px;border-bottom:1px solid var(--line)}.viewport{height:48vh}.title{flex-wrap:wrap}.top .status{width:100%}}`;
@@ -85,15 +85,15 @@
     <span class="spacer"></span><span id="dirty" class="status" role="status">Saved locally</span><button id="open">Open SD card</button><button id="save" class="primary" disabled>Save changes</button>
   </div>
   <div class="shell"><aside><h2>PROJECTS & PATTERNS</h2><div id="browser"></div><button id="newProject">+ New project</button><button id="import">Import file</button><input id="file" type="file" accept=".txt,.json" hidden><button id="export">Export editor project</button><button id="exportPattern">Export pattern file</button><button id="exportNotes">Export notes only</button><a class="help" href="docs/reference/editor.html" target="_blank" style="display:block;padding:6px;color:var(--accent)">Controls &amp; instructions ↗</a><button id="restore" hidden>Recover browser draft</button></aside>
-  <main class="work"><div class="title"><strong id="title"></strong><span class="spacer"></span><button id="newPattern">+ Pattern</button><button id="copyPattern">Copy pattern</button><button id="settingsBtn">Settings</button></div>
-  <div id="tracks" class="track-tabs"></div><div id="warning" class="warning" role="status" hidden></div>
+  <main class="work"><div id="emptyWorkspace" hidden><h2>No pattern selected</h2><p class="help">Choose a pattern in the tree, add a pattern to an empty track, or create a new project.</p></div><div id="patternWork"><div class="title"><strong id="title"></strong><span class="spacer"></span><button id="newPattern">+ Pattern</button><button id="copyPattern">Copy pattern</button><button id="settingsBtn">Settings</button></div>
+  <div id="warning" class="warning" role="status" hidden></div>
   <div class="tools"><button id="pointer" class="active" title="Select and move notes">↖ Select</button><button id="draw" title="Draw / erase (B)">✎ Draw</button><span class="split"></span><button id="undo" title="Undo (Cmd/Ctrl Z)">↶ Undo</button><button id="redo" title="Redo (Cmd/Ctrl Shift Z)">↷ Redo</button><button id="duplicate" title="Duplicate selection (Cmd/Ctrl D)">Duplicate</button><button id="delete">Delete</button><span class="split"></span><label>Steps <input id="length" type="number" min="1" max="128"></label><label>Step duration <select id="duration" aria-label="Step duration" title="Duration of every step in this pattern">${DURATIONS.map((name, i) => `<option value="${i}">${name}</option>`).join("")}</select></label><label>New velocity <input id="velocity" type="number" min="1" max="127" value="100"></label><span class="spacer"></span><label>Time zoom <input id="zoomX" type="range" min="18" max="80" value="36" aria-label="Horizontal zoom" style="width:65px"></label><label>Pitch <input id="zoomY" type="range" min="12" max="30" value="20" aria-label="Vertical zoom" style="width:55px"></label><button id="fit">Fit notes</button><button id="fitTime">Fit pattern</button></div>
   <div class="viewport" id="viewport" tabindex="0" aria-label="Piano roll. Double-click to insert. Drag notes to move. B toggles draw mode."><div class="sheet" id="sheet"></div></div>
   <div class="inspector"><span id="selection">No notes selected</span><label>Velocity <input id="selectedVel" type="number" min="1" max="127" disabled></label><button id="tie" title="Tie applies to every note on selected steps">Tie</button><button id="slide">Slide</button><button id="ratchet">Ratchet</button><button id="clear">Clear pattern</button></div>
   <div class="automation"><div class="lane-toolbar"><div id="lane" class="lane-tabs" role="group" aria-label="Automation lanes"></div><label>CC <input id="ccNumber" type="number" min="0" max="127" value="74"></label><button id="addCC">+ Add CC lane</button><span class="status" id="laneCount"></span><div id="ccControls" class="cc-controls" hidden><button id="removeCC">Remove CC lane</button><label>Record on module from <select id="ccSource" aria-label="CC recording source"><option value="0">MIDI / editor</option><option value="1">CV input 1</option><option value="2">CV input 2</option><option value="3">CV input 3</option><option value="4">CV input 4</option></select></label><label>Min <input id="ccMin" type="number" min="0" max="127" value="0" style="width:52px"></label><label>Max <input id="ccMax" type="number" min="0" max="127" value="127" style="width:52px"></label><label>Value <input id="ccValue" type="number" min="0" max="127" value="0" style="width:52px"></label></div></div><div class="lane-info" id="laneStatus" role="status"></div><div class="lane-info" id="laneHelp"></div><div id="laneScroll" class="lane-scroll"><div class="lane" id="laneGraph"></div></div></div>
   <div class="settings" id="settings" hidden><h3>Pattern and track settings</h3><div id="settingsFields" class="fields"></div><p class="help">Tie, slide and ratchet belong to the whole step. Notes use fixed steps; independent note lengths are not stored by the module.</p><p class="help">Preview uses a simple browser instrument with straight step timing. Hardware shuffle, generators, CV outputs and modulation behavior are not simulated.</p></div>
   <div class="help" id="help">Double-click: insert/remove · Drag note: move · Drag empty space: select · Shift-click: add to selection · Option/Alt-drag: copy · B: draw · Space: play</div>
-  </main></div><div id="toast" class="toast" role="status" hidden></div>
+  </div></main></div><div id="toast" class="toast" role="status" hidden></div>
   <dialog id="dialog" class="modal"><h2 id="dialogTitle"></h2><p id="dialogText"></p><div id="dialogFields"></div><div id="dialogActions" class="actions"></div></dialog>`;
   class GCEditor extends HTMLElement {
     connectedCallback() {
@@ -250,6 +250,7 @@
       if (!attaching && !(await this.leave())) return;
       this.stop();
       this.store = new Store(dir);
+      this.cardNeedsReopen = false;
       window.__gcSD = dir;
       window.dispatchEvent(
         new CustomEvent("gc-card-connected", { detail: dir }),
@@ -281,8 +282,8 @@
       this.model.undoStack = [];
       this.model.redoStack = [];
       const project = Object.keys(this.tree).sort()[0];
+      this.model.key = "";
       if (!project) {
-        this.model.open("projectA/1/A", F.blank());
         this.toast("Card opened. Create a project to get started.");
         this.render();
         return;
@@ -295,7 +296,6 @@
           project + "/" + track + "/" + this.tree[project][track][0],
         );
       else {
-        this.model.open(project + "/1/A", F.blank());
         this.render();
       }
     }
@@ -425,6 +425,12 @@
     }
     async saveAll() {
       if (this.busy) return false;
+      if (this.cardNeedsReopen) {
+        this.toast(
+          "Reopen the SD card before saving after an unverified deletion.",
+        );
+        return false;
+      }
       if (!this.store) {
         this.toast("Open an SD card to save, or export an editor project.");
         return false;
@@ -497,6 +503,9 @@
         );
       if (
         this.tree[project] ||
+        Object.keys(this.model.settings).some((k) =>
+          k.startsWith(project + "/"),
+        ) ||
         Object.keys(this.model.documents).some((k) =>
           k.startsWith(project + "/"),
         )
@@ -519,8 +528,8 @@
       this.render();
       this.fitNotes();
     }
-    async newPattern(copy = false) {
-      const [project, track] = this.parts;
+    async newPattern(copy = false, destination = this.parts) {
+      const [project, track] = destination;
       const used = new Set([
         ...(this.tree[project]?.[track] || []),
         ...Object.keys(this.model.documents)
@@ -547,6 +556,7 @@
         track +
         "/" +
         this.shadowRoot.getElementById("destLetter").value;
+      this.stop();
       this.action(copy ? "Copy pattern" : "New pattern", () => {
         this.model.documents[key] = copy
           ? F.clone(this.p)
@@ -554,6 +564,8 @@
         this.model.key = key;
         this.model.selection.clear();
       });
+      if (this.store) await this.loadPattern(key);
+      else this.fitNotes();
     }
     download(name, bytes, type) {
       const url = URL.createObjectURL(new Blob([bytes], { type })),
@@ -580,8 +592,14 @@
           "Imported editor project. Open the target SD card when ready to save.",
         );
       } else {
-        const pattern = F.decode(await file.arrayBuffer(), this.p.drum);
+        const pattern = F.decode(
+          await file.arrayBuffer(),
+          this.p?.drum || false,
+        );
         this.action("Import pattern", () => {
+          if (!this.model.key)
+            this.model.key =
+              (Object.keys(this.tree).sort()[0] || "projectA") + "/1/A";
           this.model.documents[this.model.key] = pattern;
           this.model.selection.clear();
         });
@@ -653,46 +671,72 @@
         projects[p][t] ||= [];
         if (!projects[p][t].includes(l)) projects[p][t].push(l);
       }
-      const [current] = this.parts,
+      for (const key of Object.keys(this.model.settings)) {
+        const project = key.split("/")[0];
+        if (/^project[A-Z0-9_-]*$/i.test(project)) projects[project] ||= {};
+      }
+      const [current, track] = this.parts,
         host = this.$("browser");
+      const expanded = new Set(
+        [...host.querySelectorAll("details[open][data-tree]")].map(
+          (node) => node.dataset.tree,
+        ),
+      );
       host.innerHTML = Object.keys(projects)
         .sort()
         .map(
           (project) =>
-            "<details " +
-            (project === current ? "open" : "") +
-            "><summary>" +
+            '<details data-tree="' +
             esc(project) +
-            "</summary>" +
+            '" ' +
+            (project === current || expanded.has(project) ? "open" : "") +
+            '><summary><span class="tree-project"><span>' +
+            esc(project) +
+            '</span><button class="tree-delete" data-delete-project="' +
+            esc(project) +
+            '" aria-label="Delete project ' +
+            esc(project) +
+            '" title="Delete project">×</button></span></summary>' +
             ["1", "2", "3", "D"]
               .map(
                 (t) =>
-                  "<details " +
-                  (project === current && this.parts[1] === t ? "open" : "") +
-                  "><summary>Track " +
-                  t +
+                  '<details data-tree="' +
+                  esc(project + "/" + t) +
+                  '" ' +
+                  ((project === current && track === t) ||
+                  expanded.has(project + "/" + t)
+                    ? "open"
+                    : "") +
+                  "><summary>" +
+                  (t === "D" ? "Drums" : "Track " + t) +
                   "</summary>" +
                   (projects[project][t] || [])
                     .sort((a, b) => F.LETTERS.indexOf(a) - F.LETTERS.indexOf(b))
                     .map((l) => {
-                      const k = project + "/" + t + "/" + l,
-                        dirty =
-                          this.model.documents[k] &&
-                          JSON.stringify(this.model.documents[k]) !==
-                            this.model.saved[k];
+                      const key = project + "/" + t + "/" + l;
+                      const dirty =
+                        this.model.documents[key] &&
+                        JSON.stringify(this.model.documents[key]) !==
+                          this.model.saved[key];
                       return (
-                        '<button class="pattern ' +
-                        (k === this.model.key ? "active" : "") +
+                        '<div class="tree-row"><button class="pattern ' +
+                        (key === this.model.key ? "active" : "") +
                         '" data-key="' +
-                        esc(k) +
+                        esc(key) +
                         '">Pattern ' +
                         l +
                         (dirty ? " •" : "") +
-                        "</button>"
+                        '</button><button class="tree-delete" data-delete-pattern="' +
+                        esc(key) +
+                        '" aria-label="Delete pattern ' +
+                        esc(key) +
+                        '" title="Delete pattern">×</button></div>'
                       );
                     })
                     .join("") +
-                  "</details>",
+                  '<button class="tree-add" data-new-pattern="' +
+                  esc(project + "/" + t) +
+                  '">+ Add pattern</button></details>',
               )
               .join("") +
             "</details>",
@@ -701,6 +745,160 @@
       host.querySelectorAll("[data-key]").forEach((b) => {
         b.onclick = this.guard(() => this.switchPattern(b.dataset.key));
       });
+      host.querySelectorAll("[data-new-pattern]").forEach((b) => {
+        b.onclick = this.guard(() =>
+          this.newPattern(false, b.dataset.newPattern.split("/")),
+        );
+      });
+      for (const kind of ["project", "pattern"])
+        host.querySelectorAll("[data-delete-" + kind + "]").forEach((b) => {
+          b.onclick = this.guard((ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            return this.deleteItem(
+              kind === "project"
+                ? b.dataset.deleteProject
+                : b.dataset.deletePattern,
+              kind === "project",
+            );
+          });
+        });
+    }
+    forgetDeleted(matches, removeSettings) {
+      for (const key of Object.keys(this.model.documents))
+        if (matches(key)) {
+          delete this.model.documents[key];
+          delete this.model.saved[key];
+          delete this.viewports[key];
+        }
+      for (const key of Object.keys(this.model.settings))
+        if (removeSettings(key)) {
+          delete this.model.settings[key];
+          delete this.model.savedSettings[key];
+        }
+      // Saved snapshots and recovery must never recreate a deleted item through Undo.
+      this.model.undoStack = [];
+      this.model.redoStack = [];
+      this.model.selection.clear();
+      this.model.cursor = 0;
+      this.clipboard = [];
+      this.ccSelection = new Set();
+      this.lane = "velocity";
+      this.extraLanes.clear();
+      if (!this.model.documents[this.model.key]) this.model.key = "";
+    }
+    async selectRemaining() {
+      if (this.p) return;
+      const keys = new Set(Object.keys(this.model.documents));
+      for (const [project, tracks] of Object.entries(this.tree))
+        for (const [track, letters] of Object.entries(tracks))
+          for (const letter of letters)
+            keys.add(project + "/" + track + "/" + letter);
+      const key = [...keys].sort()[0];
+      if (key) await this.switchPattern(key);
+    }
+    async deleteItem(target, project = false) {
+      if (this.busy || this.cardNeedsReopen) return;
+      if (this.gesture || this.laneGesture)
+        throw new Error("Finish the current edit before deleting");
+      this.stop();
+      const plan = this.store
+        ? await this.store.prepareDeletion(target, project)
+        : null;
+      if (this.busy) return;
+      const count = plan
+        ? [...plan.entries.values()].filter((v) => v instanceof Uint8Array)
+            .length
+        : 0;
+      const description = project
+        ? "the whole project folder, including all patterns, settings, backups and any other files inside it"
+        : "this pattern file and its .bak backup";
+      const result = await this.modal(
+        "Delete " + (project ? "project " : "pattern ") + target,
+        (this.store
+          ? "Permanently remove " +
+            description +
+            " from the connected SD card (" +
+            count +
+            " files). "
+          : "Remove this " +
+            (project ? "project" : "pattern") +
+            " from the editor workspace. ") +
+          "Unsaved edits in this item will be discarded. Other items stay intact. Deletion cannot be undone and clears edit history. Export a backup first if needed.",
+        [
+          ["cancel", "Cancel"],
+          ["delete", this.store ? "Delete from SD card" : "Delete from editor"],
+        ],
+      );
+      if (result !== "delete") return;
+      this.busy = true;
+      this.inert = true;
+      this.render();
+      let failure;
+      try {
+        if (plan) await this.store.deletePlanned(plan);
+        this.forgetDeleted(
+          (key) => (project ? key.startsWith(target + "/") : key === target),
+          (key) => project && key.startsWith(target + "/"),
+        );
+        if (this.store) this.tree = await this.store.tree();
+      } catch (error) {
+        failure = error;
+        if (plan) {
+          try {
+            this.tree = await this.store.tree();
+            const after = await this.store.deletionSnapshot(plan);
+            const removed = new Set(
+              [...plan.entries]
+                .filter(
+                  ([key, value]) =>
+                    value !== null &&
+                    (!after.has(key) || after.get(key) === null),
+                )
+                .map(([key]) => key),
+            );
+            for (const path of removed) this.store.originals.delete(path);
+            if (removed.size) {
+              const all = project && after.get(target) === null;
+              this.forgetDeleted(
+                (key) =>
+                  all
+                    ? key.startsWith(target + "/")
+                    : removed.has(Store.path(key).join("/")),
+                (key) =>
+                  all ? key.startsWith(target + "/") : removed.has(key),
+              );
+            }
+          } catch {
+            this.cardNeedsReopen = true;
+          }
+        }
+      } finally {
+        this.busy = false;
+        this.inert = false;
+        if (!this.cardNeedsReopen) {
+          try {
+            await this.selectRemaining();
+          } catch (error) {
+            failure ||= error;
+            this.cardNeedsReopen = true;
+          }
+        }
+        this.render();
+        this.recover();
+        this.$("restore").hidden = !localStorage.getItem("gc-editor-v2-draft");
+      }
+      this.toast(
+        failure
+          ? "Deletion stopped: " +
+              failure.message +
+              (this.cardNeedsReopen
+                ? " Reopen the SD card before saving."
+                : " Inspect the card before retrying.")
+          : "Deleted " +
+              target +
+              (plan ? " from the SD card and editor." : " from the editor."),
+      );
     }
     async switchPattern(key) {
       if (this.busy) return;
@@ -713,7 +911,33 @@
       }
     }
     render() {
-      if (!this.p) return;
+      const empty = !this.p;
+      this.$("patternWork").hidden = empty;
+      this.$("emptyWorkspace").hidden = !empty;
+      for (const id of [
+        "play",
+        "stop",
+        "bpm",
+        "loop",
+        "export",
+        "exportPattern",
+        "exportNotes",
+      ])
+        this.$(id).disabled = empty || this.busy;
+      this.$("export").disabled =
+        this.busy ||
+        (!Object.keys(this.model.documents).length &&
+          !Object.keys(this.model.settings).length);
+      if (empty) {
+        this.$("save").disabled =
+          !this.store || this.busy || this.cardNeedsReopen || !this.model.dirty;
+        this.$("dirty").textContent = this.model.dirty
+          ? "● Unsaved settings"
+          : "No pattern selected";
+        this.$("dirty").classList.toggle("dirty", this.model.dirty);
+        this.renderBrowser();
+        return;
+      }
       const [project, track, letter] = this.parts;
       this.$("title").textContent =
         project + " / Track " + track + " / Pattern " + letter;
@@ -731,7 +955,10 @@
         this.model.dirty || settingsDirty,
       );
       this.$("save").disabled =
-        !this.store || this.busy || (!this.model.dirty && !settingsDirty);
+        !this.store ||
+        this.busy ||
+        this.cardNeedsReopen ||
+        (!this.model.dirty && !settingsDirty);
       this.$("open").disabled = this.busy;
       this.$("length").value = this.p.length;
       this.$("duration").value = this.p.base.duration ?? 2;
@@ -741,47 +968,6 @@
       this.$("redo").disabled = !this.model.redoStack.length;
       this.$("pointer").classList.toggle("active", this.mode === "pointer");
       this.$("draw").classList.toggle("active", this.mode === "draw");
-      this.$("tracks").innerHTML = ["1", "2", "3", "D"]
-        .map(
-          (t) =>
-            '<button data-track="' +
-            t +
-            '" class="' +
-            (t === track ? "active" : "") +
-            '">' +
-            (t === "D" ? "Drums" : "Track " + t) +
-            "</button>",
-        )
-        .join("");
-      this.$("tracks")
-        .querySelectorAll("button")
-        .forEach((b) => {
-          b.onclick = this.guard(async () => {
-            const k = project + "/" + b.dataset.track + "/" + letter;
-            if (
-              !this.model.documents[k] &&
-              !(this.tree[project]?.[b.dataset.track] || []).includes(letter)
-            ) {
-              this.stop();
-              this.saveViewport();
-              this.action("New pattern", () => {
-                this.model.documents[k] = F.blank(b.dataset.track === "D");
-                this.model.key = k;
-                this.model.selection.clear();
-                this.model.cursor = 0;
-              });
-              this.restoreViewport();
-              this.toast(
-                "New unsaved pattern " +
-                  letter +
-                  " on Track " +
-                  b.dataset.track,
-              );
-              return;
-            }
-            await this.switchPattern(k);
-          });
-        });
       const ccPresent =
           this.p.steps.some((s) => s.cc.length) ||
           Object.keys(this.p.ccSources || {}).length ||
@@ -1124,6 +1310,7 @@
       } else this.fitNotes();
     }
     fitNotes() {
+      if (!this.p) return;
       const ns = this.p.steps.flatMap((s) => s.notes.map((n) => n[0])),
         pitch = this.p.drum
           ? 4
@@ -1500,7 +1687,7 @@
         return;
       const cmd = ev.ctrlKey || ev.metaKey,
         key = ev.key.toLowerCase();
-      if (this.busy) return;
+      if (this.busy || !this.p) return;
       if (
         this.editingLane &&
         this.lane !== "velocity" &&
@@ -1660,7 +1847,7 @@
       osc.onended = () => this.voices.delete(osc);
     }
     async startPlayback() {
-      if (this.playing) return;
+      if (this.playing || !this.p) return;
       const ctx = this.audioContext();
       await ctx.resume();
       this.playing = true;
