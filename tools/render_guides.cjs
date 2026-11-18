@@ -22,7 +22,12 @@ try {
       headless: true,
     });
     const page = await browser.newPage();
-    for (const slug of ["guide", "quick-card", "editor"]) {
+    const slugs = process.argv.slice(2);
+    for (const slug of slugs.length
+      ? slugs
+      : ["guide", "quick-card", "editor"]) {
+      if (!["guide", "quick-card", "editor"].includes(slug))
+        throw new Error("Unknown guide: " + slug);
       let ready = false;
       for (let i = 0; i < 20 && !ready; i++) {
         try {

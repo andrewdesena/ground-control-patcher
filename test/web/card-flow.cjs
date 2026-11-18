@@ -208,20 +208,18 @@ try {
     // An imported offline pattern gets missing project/track scaffolding when attached.
     const offline = F.blank();
     offline.steps[0].notes = [[72, 90]];
-    await e
-      .locator("#file")
-      .setInputFiles({
-        name: "offline.json",
-        mimeType: "application/json",
-        buffer: Buffer.from(
-          JSON.stringify({
-            format: "gc-editor",
-            version: 2,
-            documents: { "projectC/1/A": offline },
-            active: "projectC/1/A",
-          }),
-        ),
-      });
+    await e.locator("#file").setInputFiles({
+      name: "offline.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(
+        JSON.stringify({
+          format: "gc-editor",
+          version: 2,
+          documents: { "projectC/1/A": offline },
+          active: "projectC/1/A",
+        }),
+      ),
+    });
     await page.waitForFunction(
       () => document.querySelector("gc-editor").model.key === "projectC/1/A",
     );
@@ -260,7 +258,15 @@ try {
     await page.waitForFunction(() => !!GCModder.getOutput());
     assert.equal(
       await page.evaluate(() => GCModder.getOutput().name),
-      "gc-v3.26_poly-v0.10.0-alpha.1.hex",
+      "GCV326C1.HEX",
+    );
+    const alphaDownloadEvent = page.waitForEvent("download");
+    await page.locator("#viewPatcher #dl").click();
+    const alphaDownload = await alphaDownloadEvent;
+    assert.equal(alphaDownload.suggestedFilename(), "GCV326C1.HEX");
+    assert.equal(
+      require("node:fs").readFileSync(await alphaDownload.path(), "utf8"),
+      await page.evaluate(() => GCModder.getOutput().text),
     );
     assert.deepEqual(errors, []);
     console.log(

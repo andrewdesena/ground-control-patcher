@@ -24,7 +24,7 @@ Use 0.x while the complete v1 experience is being built. Preview **0.9.0** maps 
 
 ## Web and editor improvements
 
-- Guided firmware installation, supported-image checks, generated release metadata and verified writes.
+- Download-only firmware installation, supported-image checks, generated release metadata and short 8.3 download names. Browser-to-SD firmware writing was removed because of FAT32 and long-filename issues; transfer the HEX using your file manager.
 - Confirmed and experimental firmware are labeled separately.
 - Default pointer selection/movement, marquee selection and Option/Alt-drag copying.
 - Double-click insertion/removal, B for draw/erase, clipboard and keyboard editing.

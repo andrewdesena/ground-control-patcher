@@ -18,7 +18,7 @@ Local browser tools for unofficial customization of Endorphin.es Ground Control 
 | CC automation firmware | **v0.10.0-alpha.1**, experimental candidate with emulator tests; physical validation pending |
 | Web tools | Source in this checkout; deployed site changes only after publication |
 
-The patcher defaults to the confirmed baseline. Selecting the CC candidate is explicit. Neither a passing emulator test nor a verified SD write proves that a firmware build works on physical hardware.
+The patcher defaults to the confirmed baseline. Selecting the CC candidate is explicit. A verified build or passing emulator test does not prove that a firmware build works on physical hardware.
 
 Public versions are pre-1.0: **1.0.0 is reserved for the complete, hardware-tested experience.** The previous firmware IDs were engineering build counters. Preview 0.9.0 contains the same patch bytes as internal build 1.20-boot1; alpha 0.10.0-alpha.1 continues the CC work previously called 1.21-cc1. Older filenames remain as historical test inputs.
 
@@ -37,7 +37,7 @@ Public versions are pre-1.0: **1.0.0 is reserved for the complete, hardware-test
 
 ### Web tool and editor improvements
 
-- Guided installation with stock-image verification, a pinned release bundle, output checksums and byte-for-byte card-write verification.
+- Download-only firmware delivery with stock-image verification, a pinned release bundle, output checksums and short 8.3 filenames. Copy the firmware to the card using your file manager.
 - Clear distinction between writing a firmware file and flashing it on the module.
 - Ableton-style note selection and movement, marquee selection, double-click insertion/removal and Alt/Option-drag duplication.
 - Draw/erase mode, clipboard operations, keyboard nudging, semitone/octave transposition and undo/redo.
@@ -65,13 +65,15 @@ Public versions are pre-1.0: **1.0.0 is reserved for the complete, hardware-test
 ## Install
 
 1. Back up your whole microSD card outside the card itself. Keep the original official v3.26 HEX file for rollback.
-2. Open the [firmware tool](https://andrewdesena.github.io/ground-control-patcher/) in Chrome or Edge on HTTPS. Choose the confirmed release unless deliberately testing CC.
+2. Open the [firmware tool](https://andrewdesena.github.io/ground-control-patcher/) on HTTPS in a modern browser. Choose the confirmed release unless deliberately testing CC.
 3. Select your official stock v3.26 HEX. The build button remains disabled until its canonical SHA-256 matches the supported image.
-4. Build the firmware. Hold **PROJ for about five seconds** on the module to enter USB storage, then connect the card root in the tool.
-5. Choose **Write firmware to SD card**, or download the HEX and copy it yourself. Keep only one firmware HEX at the card root. Conflicting firmware files are never deleted automatically. Direct writes use short 8.3 card names: `GCV326B0.HEX` for 0.9.0 and `GCV326C1.HEX` for the alpha. Downloaded files retain descriptive versioned names; use the corresponding short name when copying manually.
-6. After the write verifies, safely disconnect USB storage and follow the module’s firmware-update procedure. Keep power stable during updating.
+4. Build, then click **Download .hex** to save the firmware to your computer. Downloads use short 8.3 filenames: `GCV326B0.HEX` for 0.9.0 and `GCV326C1.HEX` for the alpha.
+5. Hold **PROJ for about five seconds** on the module to enter USB storage. Open the card in Finder, File Explorer, or your operating system’s file manager and copy the downloaded HEX to the card root, outside the project folders. Keep only one firmware HEX there. Preserve the short filename; remove any duplicate-download suffix such as `(1)`.
+6. Wait for copying to finish, safely eject the volume through your operating system, and follow the module’s firmware-update procedure. Keep power stable during updating.
 
-The browser writes a file; the module’s bootloader performs the update. To return to stock, put only the original vendor HEX at the card root and follow the same module update procedure. Stock firmware plays native mono notes and removes embedded extensions when it rewrites patterns, so keep your backup.
+**The patcher does not connect to or write to SD cards.** Browser-to-card firmware writing was removed because of FAT32 and long-filename issues. Firmware transfer is a manual file-manager operation; the module’s bootloader performs the update.
+
+To return to stock, put only the original vendor HEX at the card root using your file manager and follow the same module update procedure. Stock firmware plays native mono notes and removes embedded extensions when it rewrites patterns, so keep your backup.
 
 Supported stock canonical SHA-256:
 
@@ -91,7 +93,7 @@ Notes use fixed steps, up to 128. Tie, slide and ratchet apply to a whole step. 
 
 ## Development and checks
 
-Serve locally with `python3 -m http.server 8765 --bind 127.0.0.1`, then open `http://127.0.0.1:8765`. Direct card access and SHA-256 verification need HTTPS or localhost. No backend or upload service is used.
+Serve locally with `python3 -m http.server 8765 --bind 127.0.0.1`, then open `http://127.0.0.1:8765`. Firmware verification needs HTTPS or localhost. Direct SD card access belongs to the pattern editor and requires Chrome or Edge; the firmware patcher uses file selection and download only. No backend or upload service is used.
 
 - `assets/pattern-format.js`: independent binary codec shared by every editor file operation.
 - `assets/editor-model.js`: undoable document and settings state.

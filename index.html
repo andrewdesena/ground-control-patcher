@@ -455,8 +455,8 @@
           <summary>New in the web tools and editor</summary>
           <ul class="muted">
             <li>
-              A guided patcher with supported-image checks, release selection
-              and verified SD writes.
+              A download-only patcher with supported-image checks, release
+              selection and verified firmware builds.
             </li>
             <li>
               DAW-style selection, dragging, duplication, draw mode, clipboard
@@ -485,8 +485,8 @@
         <div class="steps" aria-label="Installation progress">
           <span class="current" id="progress1">01 Choose & verify</span
           ><span id="progress2">02 Build</span
-          ><span id="progress3">03 Save to card</span
-          ><span id="progress4">04 Finish on module</span>
+          ><span id="progress3">03 Download</span
+          ><span id="progress4">04 Copy &amp; update</span>
         </div>
         <section class="card">
           <div class="card-head">
@@ -534,34 +534,48 @@
         <section class="card">
           <div class="card-head">
             <span class="number">3</span>
-            <h2>Save the firmware</h2>
+            <h2>Download the firmware</h2>
           </div>
           <p class="muted">
-            Hold <kbd>PROJ</kbd> for about five seconds to enter USB storage.
-            Choose the card root, then write the firmware. You can also download
-            it and copy it yourself.
+            Download the HEX to your computer, then copy it to the card using
+            your operating system’s file manager. The patcher builds and
+            downloads files; it does not access your SD card.
           </p>
-          <div class="row">
-            <button id="connectSD">Connect SD card</button
-            ><button id="install" class="primary" disabled>
-              Write firmware to SD card</button
-            ><button id="dl" disabled>Download .hex</button>
-          </div>
-          <div id="sdStatus" class="result" role="status"></div>
+          <button id="dl" class="primary" disabled>Download .hex</button>
           <p class="muted">
-            Card filename: <code id="cardFilename">GCV326B0.HEX</code>. Direct
-            writes use this short name automatically. If copying a download
-            manually, rename it to this name first.
+            Filename: <code id="downloadFilename">GCV326B0.HEX</code>. Downloads
+            use short 8.3 filenames for the module. Keep this filename when
+            moving the file to the card.
           </p>
-          <p id="capability" class="muted"></p>
         </section>
-        <section id="finish" class="notice" hidden>
-          <strong>File written and verified. Finish on the module.</strong>
-          <p>
-            Make sure only this firmware HEX is at the card root. Safely
-            disconnect USB storage, then follow the module’s update procedure. A
-            verified file write confirms the card contents; the module performs
-            the firmware update.
+        <section id="finish" class="card">
+          <div class="card-head">
+            <span class="number">4</span>
+            <h2>Copy to the card and update</h2>
+          </div>
+          <ol class="muted">
+            <li>
+              Back up your card and keep the original stock firmware for
+              rollback.
+            </li>
+            <li>
+              Hold <kbd>PROJ</kbd> for about five seconds to enter USB storage,
+              then open the card in Finder, File Explorer, or your file manager.
+            </li>
+            <li>
+              Copy the downloaded HEX to the card root, outside the project
+              folders. Keep only one firmware HEX there. If the browser added a
+              suffix such as “(1)”, rename it to the filename shown above.
+            </li>
+            <li>
+              Wait for copying to finish and safely eject the volume using your
+              operating system. Follow the module’s firmware-update procedure
+              and keep power stable.
+            </li>
+          </ol>
+          <p class="muted">
+            The module’s bootloader performs the update after you transfer the
+            file.
           </p>
         </section>
         <div class="guide">

@@ -13,6 +13,13 @@ const { chromium } = playwright;
   const page = await browser.newPage({
     viewport: { width: 1440, height: 1000 },
   });
+  await page.addInitScript(() => {
+    window.__firmwarePickerCalls = 0;
+    window.showDirectoryPicker = () => {
+      window.__firmwarePickerCalls++;
+      throw new Error("The firmware patcher must not request SD access");
+    };
+  });
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("http://127.0.0.1:8765");
@@ -24,8 +31,32 @@ const { chromium } = playwright;
   await page.waitForFunction(() => !!window.GCModder.getOutput());
   assert.equal(
     await page.evaluate(() => GCModder.getOutput().name),
-    "gc-v3.26_poly-v0.9.0.hex",
+    "GCV326B0.HEX",
   );
+  assert.equal(await page.locator("#viewPatcher #connectSD").count(), 0);
+  assert.equal(await page.locator("#viewPatcher #install").count(), 0);
+  assert.equal(
+    await page.evaluate(() => typeof GCModder.installFirmware),
+    "undefined",
+  );
+  assert.equal(
+    await page.evaluate(() => typeof GCModder.connectSD),
+    "undefined",
+  );
+  assert.equal(await page.evaluate(() => typeof GCModder.getSD), "undefined");
+  const downloadEvent = page.waitForEvent("download");
+  await page.locator("#viewPatcher #dl").click();
+  const download = await downloadEvent;
+  assert.equal(download.suggestedFilename(), "GCV326B0.HEX");
+  const downloaded = require("node:fs").readFileSync(
+    await download.path(),
+    "utf8",
+  );
+  assert.equal(
+    downloaded,
+    await page.evaluate(() => GCModder.getOutput().text),
+  );
+  assert.equal(await page.evaluate(() => window.__firmwarePickerCalls), 0);
   await page.click("#editorTab");
   const e = page.locator("gc-editor");
   await e.locator("#viewport").waitFor({ state: "visible" });
@@ -101,7 +132,7 @@ const { chromium } = playwright;
   );
   await browser.close();
   console.log(
-    "PASS browser build, insert, move, undo/redo, velocity, paint, CC and responsive layout",
+    "PASS download-only firmware (no SD APIs/picker), exact HEX download, insert/move/undo, velocity, paint, CC and responsive layout",
   );
 })().catch((e) => {
   console.error(e);
