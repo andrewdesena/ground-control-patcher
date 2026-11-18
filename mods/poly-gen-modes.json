@@ -1,0 +1,28 @@
+{
+  "name": "Generator modes keep chord records",
+  "status": "experimental",
+  "description": "The pattern generator at 0x0802F264 dispatches four ways. Only its mode-0 step loop was covered; modes 1 and 3 moved or emptied step notes without touching the chord record, so mode 3 collapsed a chorded step to mono and mode 1 left a record sitting on an empty step. Mode 1 at 0x0802F3D0 empties a step and now also zeroes that step's record count. Mode 3 at 0x0802F520 raises a note by 0xc and now moves the record's notes by 0xc too, dropping any note that would leave range and zeroing the tail so a dropped voice cannot return. Both resolve the track by scanning the block pointer against the four tracks and 24 letters, so they make no assumption about letter ordering, and both leave the drum alone.",
+  "requires": {},
+  "patches": [
+    {
+      "addr": "0x804b300",
+      "bytes": "7fb50c372f722046fef77afe00283ed0014623460022ab4204d003330132802af9d334e040f2110602fb06f211440a78082a24d85ab3921801320025112a02d28d540132fae701200123002611280fd20d5c5db10c357e2d08dccd54401c0d5c5b1ccd545b1c401c0136efe7801cede70e700025112b0ad2cd540133fae700250d700120112802d20d540130fae77fbd",
+      "note": "mode 3 note raise carries the record; disp 0x0802F520"
+    },
+    {
+      "addr": "0x804b400",
+      "bytes": "07b587f808902046fef7fafd002806d040f211010bfb01f210440021017007bd",
+      "note": "mode 1 step empty clears the record count; disp 0x0802F3D0"
+    },
+    {
+      "addr": "0x802f520",
+      "bytes": "1bf0eefe",
+      "note": "mode 3: note raise"
+    },
+    {
+      "addr": "0x802f3d0",
+      "bytes": "1cf016f8",
+      "note": "mode 1: step empty"
+    }
+  ]
+}

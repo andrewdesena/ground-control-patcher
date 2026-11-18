@@ -1,0 +1,33 @@
+{
+  "name": "poly-edit-entry-held",
+  "status": "experimental",
+  "description": "EDIT note entry rebuilds the active step chord from the entered note and held panel keys, with stock input transpose, octave latch and scale/root. Lowest retained note remains the pattern primary. Note128 clears the sidecar. No SD I/O. Stack on v1.9; hardware acceptance required. Rejects note zero, skips held zeros, validates declared staging pairs, and refuses per-step delta on multi-note or malformed sidecars; valid singletons move with their primary.",
+  "requires": {
+    "blank": [
+      "0x08049c00",
+      "0x08049fff"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x8049c00",
+      "bytes": "2de9ff5f8cb091465f4b93f804c0bcf1010f40f0b080802980f0ad80dc685b4d012755f82760a64203d00137042ff8d1a1e094f82d50002d40f09d8094f82e50182d80f0988040f2941605fb06463436b04240f09080dff8388108ebc72808ebc71808eb01188844cdf80c800df110080023002508f805300135112dfad199f8000000287cd0802868d074d899f8011000f08ef83846694601aad9f7ebf8daf7c9f9d0f8e00002903a48d0f800b0cbf3170b5ff0000a1bf0010f2ad05046d4f7a5ff0446344909570c2201fb024484f307043248791e142201fb02000a210278a24208d002300139f9d12d48c057204480f3070000e040780099029a9df80430d9f74ef8012804d37f2802d87f2100f04ff84fea5b0b0af1010abaf1180fcad198f80020002a2bd0082a29d800237f2008eb430191f801c0897801397e291fd8bcf1010f1cd3bcf17f0f19d8844538bf604601339342ebd389f80000039800210170012118f80120425401311129f9d198f8001001700cb0bde8ff5fddf76eb90cb0bde8ff9f000030c201207083030830b50010841c002017c1012014b60020a9b50020",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x80275c0",
+      "bytes": "22f01efb",
+      "note": "EDIT note/clear writer only; retain original 3-byte writer"
+    },
+    {
+      "addr": "0x80277d4",
+      "bytes": "22f004fb",
+      "note": "Refuse multi-note/malformed sidecars; bounded singleton delta keeps primary and record aligned"
+    },
+    {
+      "addr": "0x8049db0",
+      "bytes": "98f800200023934207d208eb430c9cf801c084450ad00133f5e7082a06d208eb420358709970013288f80020704700bf2de9ff50802956d22c4bdc682c4d012755f82760a64203d00137042ff8d346e094f82d50002d42d194f82e50182d42d240f2941605fb06463436b0423bd1214c04ebc72404ebc71404eb01140c442578082d30d800267f27ae4212d204eb460393f801c0bcf1010f25d3bcf17f0f22d89b78013b7e2b1ed8bc4538bf67460136eae7012d17d801eb410303441b7a012b11d37f2b0fd8002d01d0bb420bd11378012b08d37f2b06d8002d00d06370bde8ff50ddf7e3b8bde8ff90000030c201207083030830b50010",
+      "note": "Append helper and bounded per-step delta guard"
+    }
+  ]
+}

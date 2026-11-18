@@ -1,0 +1,199 @@
+{
+  "name": "Polyphony",
+  "version": "1.16",
+  "status": "experimental",
+  "description": "Known-good v1.1 polyphony build plus a post-switch reload: after the commit installs the incoming patterns and letters, each melodic track republishes its own poly sidecar into the chord bank. FR_NO_FILE zeroes the bank; any other FRESULT leaves it untouched.",
+  "requires": {
+    "blank": [
+      "0x08046810",
+      "0x0804A000"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x8011fc6",
+      "bytes": "36f01bf8",
+      "note": "Replace both stock literal loads; cave restores r0/r1."
+    },
+    {
+      "addr": "0x8012068",
+      "bytes": "35f0caff",
+      "note": "Replace both stock literal loads; cave restores r0/r1."
+    },
+    {
+      "addr": "0x801a4e6",
+      "bytes": "30f00bbe",
+      "note": "whole-pattern clear clears its owned chord bank"
+    },
+    {
+      "addr": "0x801c49a",
+      "bytes": "2df031ff",
+      "note": "Empty-pattern save extends the existing unlink route"
+    },
+    {
+      "addr": "0x801c542",
+      "bytes": "2bf05dfc00bf",
+      "note": "writer f_close prep -> save poly sidecar"
+    },
+    {
+      "addr": "0x801cd96",
+      "bytes": "2cf033f9",
+      "note": "after f_close -> load poly sidecar"
+    },
+    {
+      "addr": "0x801f1e8",
+      "bytes": "28f00abb",
+      "note": "note-on add -> stash velocity by note"
+    },
+    {
+      "addr": "0x8021528",
+      "bytes": "26f06afa",
+      "note": "playback-start per-track letter select -> publish from the committed letter"
+    },
+    {
+      "addr": "0x80217f4",
+      "bytes": "25f004ff",
+      "note": "real pair call -> chord fan-out cave"
+    },
+    {
+      "addr": "0x8025814",
+      "bytes": "21f0f4bd",
+      "note": "armed step store -> cave (store+poly capture)"
+    },
+    {
+      "addr": "0x80275c0",
+      "bytes": "22f01efb",
+      "note": "EDIT note/clear writer only; retain original 3-byte writer"
+    },
+    {
+      "addr": "0x80277d4",
+      "bytes": "22f004fb",
+      "note": "Refuse multi-note/malformed sidecars; bounded singleton delta keeps primary and record aligned"
+    },
+    {
+      "addr": "0x8028224",
+      "bytes": "20f0ecfc",
+      "note": "inside the transpose lock, after notes are rewritten, before unlock"
+    },
+    {
+      "addr": "0x802a126",
+      "bytes": "21f06bb800bf",
+      "note": "both melodic rotation directions move chord records under stock lock"
+    },
+    {
+      "addr": "0x802f3d0",
+      "bytes": "1cf016f8",
+      "note": "mode 1: step empty"
+    },
+    {
+      "addr": "0x802f43a",
+      "bytes": "1bf0a1be00bf",
+      "note": "fill clear clears owned step count"
+    },
+    {
+      "addr": "0x802f520",
+      "bytes": "1bf0eefe",
+      "note": "mode 3: note raise"
+    },
+    {
+      "addr": "0x8030c9c",
+      "bytes": "50d70010",
+      "note": "Extend reset CCM zero bound through all banks and ownership words"
+    },
+    {
+      "addr": "0x8047400",
+      "bytes": "2fb55977224b1878c0b202281cd86279802a19d20346db0203ebc01303eb021313444bf23050c1f20000184429467f290ad84ff60052c1f200020a441278002a00d1642200f004f8bde82f40def7d4b970b50378082b01d90023037000249c420ad200f1010505eb44052e788e4201d00134f4e76a7009e0082b07d200f1010505eb430529706a7001330370184670bddaca0020",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8047600",
+      "bytes": "2de9ff5f84b0ddf84890ddf84ca0ddf850b0cdf80090cdf804a0cdf808b0cdf80cb0099db9f1000f52d0aa682b485ff0000bbbf1040f4bd250f82b10914202d01bf1010bf5e795f83c60802e40d24bf23054c1f200045f46ff0207ebcb173046360106443c4434442678002e30d0082e2ed85ff00008b0452ad204f1010707eb480797f800c0cc4502d018f10108f2e75ff00008b0451bd204f1010707eb480797f800c07878bcf17f0f0ed800280cd0cc450ad0cdf800c00190039b029300200599069a079bd2f7e4f918f10108e1e704b0bde8ff5fd2f7dcb9000070830308",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8047800",
+      "bytes": "01b548790b794ff6005cc1f2000c9c448cf800000b794a79bde80140d7f7e6bc",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8047a00",
+      "bytes": "2de9f04f81b094f82ea0dbf7a5fb94f82eb0354a127812b9d34500d1ffe794f82d20002a5dd13148002550f82510a14203d00135042df8d353e0042d51d22a480078002808d1d34506d1294850f825001bf10101884244d0bbf1180f41d2254850f82b000678244890f84972182f38d2204850f8270007784ef22048c1f200081e480021425c08f8012001311029f9d388f8087030222a4488f80f202f2288f81020702288f811206f2288f812206c2288f81320792288f8142088f81560002288f816204bf23059c1f200092a46d20202ebc5129144484629465a46434602f00ffb01b0bde8f08fd8c500207083030840d700101083030850b200201b700308",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8047e00",
+      "bytes": "ec462de9f0412746e046204602f0f8f8002846d004460d46254b53f82530511c99423ed1234b53f822301e7898f80f10b14236d146f67070c7f66c10c8f8080088f80c60002088f80d00204607f1080100220378002b0dd0082b09d80e78802e06d00123c55cb54204d00233112bf9d300250570113003310132802ae9d30e4808f108010a22ccf771fd002809d10a48214640f68002094bccf7fbfe0648cdf73bf808f11800cdf737f8bde8f081000040d700101083030800e0001000e30010",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8048000",
+      "bytes": "2de9f0413e4800683e49884273d13e48017b00296fd084683c498c426bd12079012868d13a49487c022864d1e268394b002004285fd253f82010914201d00130f7e792f82d10012955d092f82e10182951d24ff4ca7301fb03223432a3689a4249d1e179802946d201eb41031a44127a802a40d2264b5b789a423cd1264d4ff4086300fb035501eb01131d442e78002e31d0082e2fd8214890f900700c2007fb00f7d21b353a172a25d81d48805cc10800f00700012282401a4b595c11421ad04ff00008b04516d205eb4800407880280ed2c01b353817280ad81149085cc10800f00700012282400e4b585c1043585408f10108e6e70b490b48bde8f081000080c301209005002088c3012030c20120fbcd01207083030830b50010e8cd012090860308741e00202c2b0020",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8048c00",
+      "bytes": "2de9ff51acf83840a8463648002750f8271091f82e5040f2941205fb0212624503d00137042ff2d350e091f82d20012a4cd04bf23051c1f2000140f6800207fb02110cf13c0300221d780e78082e40d8beb3802d3dd016eb060c1cf1010c012001270026604511d20d5c6db14544012d0adb7e2d08dccd55401c0d5c7f1ccd557f1c401c761cede7801cebe70e700025112f02d2cd557f1cfae796b17f2501200027b74206d20c5cac4200d22546801c7f1cf6e71c78ac4203d04c7001250d70ffe7033311310132802abdd3bde8ff51704700250d7001201128f2d20d54401cfae70000188e0308",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8049000",
+      "bytes": "ec462de9f041e046204600f0f9ff002817d007460d4693f82e60182e11d20b4850f8260000780a4b46f67071c7f66c11196018710020587138462946324601f05ff84ff0ff33bde8f08100001083030800e40010",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8049c00",
+      "bytes": "2de9ff5f8cb091465f4b93f804c0bcf1010f40f0b080802980f0ad80dc685b4d012755f82760a64203d00137042ff8d1a1e094f82d50002d40f09d8094f82e50182d80f0988040f2941605fb06463436b04240f09080dff8388108ebc72808ebc71808eb01188844cdf80c800df110080023002508f805300135112dfad199f8000000287cd0802868d074d899f8011000f08ef83846694601aad9f7ebf8daf7c9f9d0f8e00002903a48d0f800b0cbf3170b5ff0000a1bf0010f2ad05046d4f7a5ff0446344909570c2201fb024484f307043248791e142201fb02000a210278a24208d002300139f9d12d48c057204480f3070000e040780099029a9df80430d9f74ef8012804d37f2802d87f2100f04ff84fea5b0b0af1010abaf1180fcad198f80020002a2bd0082a29d800237f2008eb430191f801c0897801397e291fd8bcf1010f1cd3bcf17f0f19d8844538bf604601339342ebd389f80000039800210170012118f80120425401311129f9d198f8001001700cb0bde8ff5fddf76eb90cb0bde8ff9f000030c201207083030830b50010841c002017c1012014b60020a9b50020",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8049db0",
+      "bytes": "98f800200023934207d208eb430c9cf801c084450ad00133f5e7082a06d208eb420358709970013288f80020704700bf2de9ff50802956d22c4bdc682c4d012755f82760a64203d00137042ff8d346e094f82d50002d42d194f82e50182d42d240f2941605fb06463436b0423bd1214c04ebc72404ebc71404eb01140c442578082d30d800267f27ae4212d204eb460393f801c0bcf1010f25d3bcf17f0f22d89b78013b7e2b1ed8bc4538bf67460136eae7012d17d801eb410303441b7a012b11d37f2b0fd8002d01d0bb420bd11378012b08d37f2b06d8002d00d06370bde8ff50ddf7e3b8bde8ff90000030c201207083030830b50010",
+      "note": "Append helper and bounded per-step delta guard"
+    },
+    {
+      "addr": "0x804a000",
+      "bytes": "f0b504460e4f002157f8213003f134050022a54209d005f5ca750132182af8d301310429f0d30020f0bd93f82d60012ef9d0044840f6800601fb0600f0bd00007083030830b50010",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x804a100",
+      "bytes": "2de9f04f81b004460d4616461f461d4839460122caf72afc042824d000282dd12046002140f6800201600430043afbd11448214640f68002134b5ff00008c3f80080caf7f5fc80460e48caf7e5fe002809d1b8f1000f06d10b48006840f68001884200d106e00021002262500431b1f5086ffad10548013640f8256001b0bde8f08f000000e0001000e3001040d70010",
+      "note": "direct publication into the bank, no staging buffer"
+    },
+    {
+      "addr": "0x804a300",
+      "bytes": "2de9f0418046caf7d6fe0746002801d0042826d12046fff773fe002821d004460d461646104b53f8253001329a4206d10021002262500431b1f5086ffad146f67070c7f66c10c8f80000084850f82600007888f80400002088f805004046caf7aafe3846bde8f08140d7001010830308",
+      "note": "Empty native save unlinks the matching sidecar and clears its owned bank"
+    },
+    {
+      "addr": "0x804b000",
+      "bytes": "f0b581b00446114d002655f8261091f82d20012a08d034310027a14209d001f294110137182ff8d30136042eedd300200ae0074951f826200137ba42f7d1054840f6800106fb010001b0f0bd7083030840d7001030b50010",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x804b100",
+      "bytes": "2de9ff5f002b0ad1fff77aff002806d0002140f6800200f8011b013afbd1bde8ff5f16725572cff7e0b9",
+      "note": "whole clear owned bank helper"
+    },
+    {
+      "addr": "0x804b180",
+      "bytes": "2de9ff5f2046fff73bff002806d0802f04d200eb0710384400210170bde8ff5f1a724ff00002e4f74bb9",
+      "note": "fill clear owned record helper"
+    },
+    {
+      "addr": "0x804b200",
+      "bytes": "2de9ff5f86b02046fff7fafe00283cd0b4f88841022c38d3802c36d80546013c112104fb01f405eb04060027b8f1000f01d0304600e02846c15d0df807100137112ff9d3b8f1000f0cd030460027a0f11102d15dc1550137112ffad31138a842f4d80be02846002700f11102d15dc1550137112ffad31130b042f4d300271df80710c1550137112ff9d306b0bde8ff5fd619b8f1000fdef749bf",
+      "note": "rotate complete 17-byte records before stock note rotation"
+    },
+    {
+      "addr": "0x804b300",
+      "bytes": "7fb50c372f722046fef77afe002836d0014623460022ab4204d003330132802af9d32ce040f2110602fb06f211440a78082a1cd81ab301200123002611280fd20d5c5db10c357e2d08dccd54401c0d5c5b1ccd545b1c401c0136efe7801cede70e700025112b0ad2cd540133fae700250d700120112802d20d540130fae77fbd",
+      "note": "mode 3 note raise carries the record; disp 0x0802F520"
+    },
+    {
+      "addr": "0x804b400",
+      "bytes": "07b587f808902046fef7fafd002806d040f211010bfb01f210440021017007bd",
+      "note": "mode 1 step empty clears the record count; disp 0x0802F3D0"
+    }
+  ]
+}

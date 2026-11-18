@@ -1,0 +1,13 @@
+{
+  "name": "Save drops unplayable records",
+  "status": "experimental",
+  "description": "Save cave: acquires the lock, snapshots the live chord bank to a staging buffer at 0x1000E500, releases the lock, then sanitises and writes the snapshot. This prevents a concurrent publish from changing the bank between the ownership check and f_write (save-race fix). Sanitising first means a record whose step note is not among its notes is never persisted, since the fan-out could never fire it. Saving to a chosen letter is how the module copies a pattern, so the bank is written even when its owner is a different letter; the frame letter must still match the block the resolver found, which keeps a save from crossing tracks.",
+  "requires": {},
+  "patches": [
+    {
+      "addr": "0x8047e00",
+      "bytes": "ec462de9f0412746e046204602f0f8f8002856d004460d462d4b53f822301e7898f80f10b1424cd1dbf73afa2948214640f68002013a8b5c8354002afad1254c46f67070c7f66c10c8f8080088f80c60002088f80d00204607f1080100220378002b15d0082b11d80e78802e0ed0db1801330025112b02d2c5540133fae70123c55cb54204d00233112bf9d300250570113003310132802ae1d3dbf709fa0e4808f108010a22ccf761fd002809d10a48084940f68002094bccf7ebfe0648cdf72bf808f11800cdf727f8bde8f08100001083030800e5001000e0001000e30010",
+      "note": "cave routine"
+    }
+  ]
+}

@@ -1,573 +1,641 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ground Control firmware modder</title>
-<style>
-  :root { color-scheme: dark; }
-  body { margin: 0; background: #0d0d10; color: #e8e6e3; font: 15px/1.6 -apple-system, "Segoe UI", system-ui, sans-serif; }
-  header { padding: 30px 24px 6px; }
-  h1 { font-size: 20px; margin: 0 0 6px; }
-  .sub { color: #8b8b93; font-size: 14px; max-width: 720px; }
-  main { max-width: 860px; padding: 16px 24px 80px; }
-  #drop { border: 2px dashed #3a3a44; border-radius: 12px; padding: 38px 22px; text-align: center; cursor: pointer; }
-  #drop:hover, #drop.hot { border-color: #c2554a; background: #17110f; }
-  #drop b { display: block; font-size: 16px; margin-bottom: 6px; }
-  #drop small { color: #8b8b93; }
-  section { margin-top: 28px; }
-  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: #8b8b93; margin: 0 0 10px; }
-  table { border-collapse: collapse; width: 100%; font-size: 13px; }
-  td, th { text-align: left; padding: 6px 12px 6px 0; border-bottom: 1px solid #1e1e24; vertical-align: top; }
-  th { color: #8b8b93; font-weight: 400; white-space: nowrap; }
-  .mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; word-break: break-all; }
-  .mod { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid #1e1e24; }
-  .mod .name { font-weight: 600; }
-  .mod .desc { color: #8b8b93; font-size: 13px; }
-  .tag { font-size: 11px; padding: 1px 7px; border-radius: 5px; border: 1px solid #3a3a44; color: #8b8b93; }
-  .tag.ok { border-color: #2f6b46; color: #6fce9a; }
-  .tag.warn { border-color: #6b5a2f; color: #d8bd6a; }
-  button { background: #c2554a; color: #fff; border: 0; padding: 12px 22px; border-radius: 9px; font: inherit; font-weight: 600; cursor: pointer; }
-  button:disabled { background: #2a2a31; color: #6a6a72; cursor: not-allowed; }
-  pre { background: #131318; border: 1px solid #1e1e24; border-radius: 9px; padding: 12px; overflow: auto; font-size: 12px; max-height: 260px; }
-  textarea { width: 100%; min-height: 240px; background: #131318; color: #e8e6e3; border: 1px solid #1e1e24; border-radius: 9px; padding: 12px; font: 12px/1.5 ui-monospace, Menlo, monospace; box-sizing: border-box; }
-  #projList a { color: #d8bd6a; text-decoration: none; }
-  #views { display: flex; gap: 6px; margin: 6px 0 16px; }
-  .vtab { background: #15181d; color: #9fb4c9; border: 1px solid #2a2f38; border-radius: 8px; padding: 8px 18px; font-weight: 600; cursor: pointer; font: inherit; }
-  .vtab.active { background: #c2554a; color: #fff; border-color: #c2554a; }
-  .err { color: #e07a6a; } .ok { color: #6fce9a; }
-  #banner { display: none; margin: 14px 0 0; padding: 12px 14px; border-radius: 9px; background: #2a1512; border: 1px solid #c2554a; color: #f0c6bf; font-size: 13px; }
-</style>
-</head>
-<body>
-<header>
-  <h1>Ground Control firmware modder</h1>
-  <div class="sub">Drop the Endorphin.es <b>.hex</b> file below. Everything happens inside this page, on your computer. Nothing is uploaded anywhere.</div>
-  <div class="sub" style="margin-top:10px"><a href="#" onclick="window.__gcShowView&&window.__gcShowView('editor');return false" style="color:#c2554a;text-decoration:none;font-weight:600">→ Open the Pattern Editor</a> &nbsp;·&nbsp; author polyphonic patterns and export project JSON</div>
-  <div id="banner"></div>
-</header>
-<nav id="views">
-  <button class="vtab active" data-v="patcher">Patcher</button>
-  <button class="vtab" data-v="editor">Editor</button>
-</nav>
-<section id="viewPatcher"><main>
-  <div id="drop">
-    <b>Click here to choose a file, or drag one in</b>
-    <small>gc-v3.xx_latest_release_YYYYMMDD.hex</small>
-  </div>
-  <input id="file" type="file" accept=".hex,.HEX,.txt" hidden>
-
-  <section id="info" hidden><h2>The file you loaded</h2><table id="infoTable"></table></section>
-  <section id="modsSection" hidden><h2>Upgrades</h2><div id="mods"></div></section>
-  <section id="actions" hidden>
-    <button id="build" disabled>Build modded firmware</button>
-    <button id="install" disabled>Install to GC (write to SD)</button>
-    <button id="dl" disabled>Download .hex</button>
-    <pre id="log" hidden></pre>
-  </section>
-
-  <section id="sd">
-    <h2>SD card over USB</h2>
-    <div class="sub">Hold <b>PROJ</b> for 5 seconds on the module to enter USB mass-storage, then connect the card below. (Chrome or Edge; needs https or localhost.)</div>
-    <div style="margin:12px 0"><button id="connectSD">Connect GC SD card</button> <span id="sdStatus" class="mono"></span></div>
-    <div id="sdFiles" hidden>
-      <h2>Projects on card</h2>
-      <div id="projList" class="mono"></div>
-      <button id="reloadProj" style="margin-top:10px">Reload list</button>
-    </div>
-    <div id="editor" hidden>
-      <h2 id="edTitle">Project editor</h2>
-      <textarea id="edText" spellcheck="false"></textarea>
-      <div style="margin-top:10px">
-        <button id="saveProj">Save to SD</button>
-        <button id="newProj">New project file</button>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta
+      name="description"
+      content="Build Ground Control polyphonic firmware locally and edit patterns with a step-native piano roll."
+    />
+    <title>Ground Control / Firmware & Pattern Editor</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #101318;
+        --panel: #191e25;
+        --line: #303844;
+        --muted: #a0adbd;
+        --fg: #eef2f7;
+        --accent: #74dac1;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font:
+          15px/1.6 system-ui,
+          -apple-system,
+          sans-serif;
+      }
+      button,
+      input {
+        font: inherit;
+      }
+      button,
+      .button {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 9px 15px;
+        background: #242d38;
+        color: var(--fg);
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+      }
+      button:hover,
+      .button:hover {
+        background: #344253;
+      }
+      button:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+      .primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #122b23;
+        font-weight: 650;
+      }
+      .primary:hover {
+        background: #9eebd7;
+      }
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+      }
+      a {
+        color: var(--accent);
+      }
+      .site-header {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        border-bottom: 1px solid var(--line);
+        padding: 17px 30px;
+      }
+      .wordmark {
+        font-size: 13px;
+        font-weight: 750;
+        letter-spacing: 0.13em;
+      }
+      .wordmark small {
+        display: block;
+        color: var(--muted);
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        font-weight: 400;
+      }
+      .nav {
+        display: flex;
+        gap: 5px;
+        margin-left: auto;
+      }
+      .nav button {
+        background: transparent;
+        border-color: transparent;
+        padding: 8px 15px;
+      }
+      .nav button.active {
+        color: var(--accent);
+        border-color: var(--line);
+        background: var(--panel);
+      }
+      main.installer {
+        max-width: 1060px;
+        margin: auto;
+        padding: 52px 30px 70px;
+      }
+      .eyebrow {
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      h1 {
+        font-size: clamp(30px, 4vw, 48px);
+        line-height: 1.13;
+        letter-spacing: -0.035em;
+        margin: 14px 0 18px;
+        max-width: 700px;
+      }
+      h2 {
+        font-size: 18px;
+        margin: 0 0 10px;
+      }
+      p {
+        margin: 9px 0 18px;
+      }
+      .lead {
+        font-size: 17px;
+        color: var(--muted);
+        max-width: 640px;
+      }
+      .release {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin: 24px 0;
+      }
+      .pill {
+        font-size: 11px;
+        padding: 3px 9px;
+        border: 1px solid #3f6d60;
+        border-radius: 20px;
+        color: var(--accent);
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .intro {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 290px;
+        gap: 40px;
+        margin-bottom: 36px;
+      }
+      .feature-box {
+        border-left: 1px solid var(--line);
+        padding-left: 24px;
+        align-self: center;
+      }
+      .feature-box h2 {
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        color: var(--muted);
+        text-transform: uppercase;
+      }
+      .feature-box ul {
+        padding-left: 17px;
+        font-size: 13px;
+      }
+      .feature-box li {
+        margin: 8px 0;
+      }
+      .steps {
+        display: flex;
+        gap: 4px;
+        margin: 26px 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .steps span {
+        flex: 1;
+        border-top: 2px solid var(--line);
+        padding-top: 10px;
+      }
+      .steps .current {
+        color: var(--accent);
+        border-color: var(--accent);
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 24px;
+        margin: 16px 0;
+      }
+      .card-head {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .number {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+        color: var(--accent);
+        flex-shrink: 0;
+      }
+      .card-head h2 {
+        margin: 0;
+      }
+      .drop {
+        display: block;
+        width: 100%;
+        padding: 30px 16px;
+        text-align: center;
+        border: 1px dashed #526171;
+        background: #131a22;
+        color: var(--fg);
+        border-radius: 8px;
+      }
+      .drop.hot {
+        border-color: var(--accent);
+        background: #1d3630;
+      }
+      .drop strong {
+        display: block;
+        font-size: 15px;
+      }
+      .drop small {
+        display: block;
+        color: var(--muted);
+        margin-top: 5px;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .result {
+        padding: 12px 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .success {
+        color: var(--accent);
+      }
+      .error {
+        color: #ffb39f;
+      }
+      .notice {
+        background: #30291b;
+        border: 1px solid #645537;
+        color: #f0d6a0;
+        border-radius: 7px;
+        padding: 13px;
+        font-size: 13px;
+        margin: 16px 0;
+      }
+      .notice[hidden],
+      [hidden] {
+        display: none !important;
+      }
+      details {
+        border-top: 1px solid var(--line);
+        padding: 14px 0;
+        margin-top: 10px;
+      }
+      summary {
+        cursor: pointer;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        font:
+          11px/1.6 ui-monospace,
+          monospace;
+        max-height: 260px;
+        overflow: auto;
+        padding: 12px;
+        background: #10151c;
+        border-radius: 6px;
+      }
+      .guide {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 26px;
+        margin-top: 28px;
+      }
+      .guide h2 {
+        font-size: 16px;
+      }
+      .guide ol,
+      .guide ul {
+        padding-left: 20px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .guide li {
+        margin: 9px 0;
+      }
+      footer {
+        border-top: 1px solid var(--line);
+        padding: 22px 30px;
+        color: var(--muted);
+        font-size: 12px;
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+      footer a {
+        color: var(--muted);
+      }
+      #viewEditor {
+        padding: 0;
+      }
+      #banner {
+        margin-bottom: 20px;
+      }
+      kbd {
+        font:
+          12px ui-monospace,
+          monospace;
+        padding: 1px 4px;
+        border: 1px solid var(--line);
+        border-radius: 3px;
+      }
+      @media (max-width: 760px) {
+        .intro {
+          grid-template-columns: 1fr;
+          gap: 20px;
+        }
+        .feature-box {
+          border-left: 0;
+          border-top: 1px solid var(--line);
+          padding: 18px 0 0;
+        }
+        .guide {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+        .site-header {
+          padding: 14px 15px;
+          gap: 10px;
+        }
+        .wordmark {
+          font-size: 11px;
+        }
+        .nav button {
+          padding: 8px 10px;
+        }
+        main.installer {
+          padding: 32px 18px;
+        }
+        .card {
+          padding: 18px;
+        }
+        .steps {
+          font-size: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wordmark">GROUND CONTROL<small>UNOFFICIAL TOOLS</small></div>
+      <nav class="nav" aria-label="Tools">
+        <button id="firmwareTab" class="active" aria-pressed="true">
+          Firmware</button
+        ><button id="editorTab" aria-pressed="false">Pattern editor</button>
+      </nav>
+    </header>
+    <section id="viewPatcher">
+      <main class="installer">
+        <div class="intro">
+          <div>
+            <div class="eyebrow">Polyphonic firmware</div>
+            <h1>More voices.<br />Same Ground Control.</h1>
+            <p class="lead">
+              Build your firmware locally, then take it to the module. Chords,
+              live recording, and patterns that travel as one file.
+            </p>
+            <div class="release">
+              <span class="pill" id="releaseVersion"></span
+              ><label class="muted"
+                >Release
+                <select
+                  id="releaseSelect"
+                  style="
+                    background: #222a34;
+                    color: inherit;
+                    padding: 5px;
+                    border: 1px solid var(--line);
+                    border-radius: 5px;
+                  "
+                >
+                  <option value="confirmed">v0.9.0 · confirmed baseline</option>
+                  <option value="candidate">
+                    v0.10.0-alpha.1 · experimental CC candidate
+                  </option>
+                </select></label
+              ><span class="muted" id="releaseLabel"></span>
+            </div>
+            <p class="muted">
+              Your firmware and patterns stay on this computer. Nothing is
+              uploaded.
+            </p>
+          </div>
+          <div class="feature-box">
+            <h2>In this release</h2>
+            <ul id="features"></ul>
+          </div>
+        </div>
+        <section class="notice" aria-labelledby="disclaimerTitle">
+          <strong id="disclaimerTitle"
+            >Unofficial firmware. Use at your own risk.</strong
+          >
+          <p>
+            This project is not affiliated with, endorsed by, or supported by
+            Endorphin.es in any way. The tools and patches are provided as-is,
+            without warranty. To the fullest extent permitted by law, the
+            authors and contributors accept no responsibility for device damage,
+            lost data, failed updates, or other problems arising from their use.
+          </p>
+          <p>
+            Back up your card and keep the stock firmware before installing.
+            <strong
+              >Do not contact Endorphin.es for support with these tools or
+              modified firmware.</strong
+            >
+            Report problems in
+            <a
+              href="https://github.com/andrewdesena/ground-control-patcher/issues"
+              target="_blank"
+              rel="noopener"
+              >this project’s issue tracker</a
+            >.
+          </p>
+        </section>
+        <details style="margin: 18px 0">
+          <summary>New in the web tools and editor</summary>
+          <ul class="muted">
+            <li>
+              A guided patcher with supported-image checks, release selection
+              and verified SD writes.
+            </li>
+            <li>
+              DAW-style selection, dragging, duplication, draw mode, clipboard
+              editing and undo/redo.
+            </li>
+            <li>
+              Per-note velocity, zoom, loop controls and browser sound preview.
+            </li>
+            <li>
+              Single-file pattern editing, binary-safe backups and browser draft
+              recovery.
+            </li>
+            <li>
+              CC lanes with external CV recording assignments for the
+              experimental candidate.
+            </li>
+          </ul>
+          <a
+            href="https://github.com/andrewdesena/ground-control-patcher/blob/main/docs/releases.md"
+            target="_blank"
+            rel="noopener"
+            >Full features and release notes in the repo</a
+          >
+        </details>
+        <div id="banner" class="notice" role="status" hidden></div>
+        <div class="steps" aria-label="Installation progress">
+          <span class="current" id="progress1">01 Choose & verify</span
+          ><span id="progress2">02 Build</span
+          ><span id="progress3">03 Save to card</span
+          ><span id="progress4">04 Finish on module</span>
+        </div>
+        <section class="card">
+          <div class="card-head">
+            <span class="number">1</span>
+            <h2>Choose your stock firmware</h2>
+          </div>
+          <p class="muted">
+            Use the official Ground Control v3.26 HEX file. We verify its
+            contents before enabling the build.
+          </p>
+          <button id="drop" class="drop">
+            <strong>Choose a .hex file or drop it here</strong
+            ><small>Official stock v3.26 firmware required</small></button
+          ><input id="file" type="file" accept=".hex,.HEX" hidden />
+          <div id="verification" class="result" role="status">
+            No file selected
+          </div>
+          <details>
+            <summary>Compatibility and local processing</summary>
+            <p class="muted">
+              Only the verified stock v3.26 image is supported. Already-patched
+              and unknown firmware files are rejected. Building requires a
+              browser with SHA-256 support, available on HTTPS or localhost. You
+              supply the vendor firmware; this tool contains patch definitions
+              only.
+            </p>
+          </details>
+        </section>
+        <section class="card">
+          <div class="card-head">
+            <span class="number">2</span>
+            <h2>Build polyphonic firmware</h2>
+          </div>
+          <p class="muted">
+            The release includes the tested polyphony, recording, pattern
+            switching, and startup changes as one bundle.
+          </p>
+          <button id="build" class="primary" disabled>Build firmware</button
+          ><span id="buildStatus" class="result" role="status"></span>
+          <details>
+            <summary>Build diagnostics and checksums</summary>
+            <pre id="log">Choose a stock firmware file to begin.</pre>
+          </details>
+        </section>
+        <section class="card">
+          <div class="card-head">
+            <span class="number">3</span>
+            <h2>Save the firmware</h2>
+          </div>
+          <p class="muted">
+            Hold <kbd>PROJ</kbd> for about five seconds to enter USB storage.
+            Choose the card root, then write the firmware. You can also download
+            it and copy it yourself.
+          </p>
+          <div class="row">
+            <button id="connectSD">Connect SD card</button
+            ><button id="install" class="primary" disabled>
+              Write firmware to SD card</button
+            ><button id="dl" disabled>Download .hex</button>
+          </div>
+          <div id="sdStatus" class="result" role="status"></div>
+          <p class="muted">
+            Card filename: <code id="cardFilename">GCV326B0.HEX</code>. Direct
+            writes use this short name automatically. If copying a download
+            manually, rename it to this name first.
+          </p>
+          <p id="capability" class="muted"></p>
+        </section>
+        <section id="finish" class="notice" hidden>
+          <strong>File written and verified. Finish on the module.</strong>
+          <p>
+            Make sure only this firmware HEX is at the card root. Safely
+            disconnect USB storage, then follow the module’s update procedure. A
+            verified file write confirms the card contents; the module performs
+            the firmware update.
+          </p>
+        </section>
+        <div class="guide">
+          <section>
+            <h2>Before installing</h2>
+            <ul id="limitations"></ul>
+            <details>
+              <summary>Release notes</summary>
+              <p class="muted">
+                Preview 0.9.0 includes live polyphonic recording, locked pattern
+                switching and quiet startup restore. Public versions remain
+                below 1.0 until the complete experience passes hardware
+                acceptance. Melodic patterns store chord data inside each
+                pattern file. The drum track retains its native format.
+              </p>
+            </details>
+          </section>
+          <section>
+            <h2>Return to stock</h2>
+            <ol>
+              <li>
+                Keep a backup of your original stock v3.26 firmware and SD card.
+              </li>
+              <li>
+                Place only the original stock HEX file at the card root and use
+                the module’s normal firmware update procedure.
+              </li>
+              <li>
+                Stock firmware plays the native mono notes. Saving a pattern
+                from stock firmware removes its embedded chord data, so retain
+                your backup.
+              </li>
+            </ol>
+          </section>
+        </div>
+      </main>
+    </section>
+    <section id="viewEditor" hidden>
+      <div class="muted" style="padding: 9px 16px; background: #30291b">
+        Unofficial tools, used at your own risk. Back up your card. No
+        affiliation with Endorphin.es;
+        <a
+          href="https://github.com/andrewdesena/ground-control-patcher/issues"
+          target="_blank"
+          rel="noopener"
+          >get support from this project</a
+        >. <a href="docs/reference/editor.html">Editor instructions</a>
       </div>
-    </div>
-  </section>
-</main></section>
-<section id="viewEditor" hidden><gc-editor></gc-editor></section>
-
-  <footer style="margin-top:28px;padding-top:14px;border-top:1px solid #1e1e24;color:#8a8a92;font-size:13px">
-    Unofficial · not affiliated with Endorphin.es · MIT ·
-    <a href="https://github.com/andrewdesena/ground-control-patcher" target="_blank" rel="noopener" style="color:#c2554a">repo</a> ·
-    <a href="https://github.com/andrewdesena/ground-control-patcher/issues/new/choose" target="_blank" rel="noopener" style="color:#c2554a">report an issue</a> ·
-    <a href="docs/reference/guide-letter.pdf" target="_blank" style="color:#c2554a">guide (PDF)</a>
-  </footer>
-
-<script>
-(function () {
-  'use strict';
-
-  /* ---------------- Intel HEX: read, change, write back ---------------- */
-  var REC = { DATA: 0, EOF: 1, EXT_SEG: 2, START_SEG: 3, EXT_LIN: 4, START_LIN: 5 };
-
-  function checksum(bytes) { var s = 0; for (var i = 0; i < bytes.length; i++) s += bytes[i]; return (-s) & 0xff; }
-
-  function HexFile(text) {
-    this.eol = text.indexOf('\r\n') >= 0 ? '\r\n' : '\n';
-    this.records = [];
-    var lines = text.split(/\r?\n/);
-    for (var i = 0; i < lines.length; i++) {
-      var s = lines[i].trim();
-      if (!s) continue;
-      if (s.charAt(0) !== ':') throw new Error('line ' + (i + 1) + ' is not a hex record');
-      var bin = new Uint8Array((s.length - 1) / 2);
-      for (var j = 0; j < bin.length; j++) bin[j] = parseInt(s.substr(1 + j * 2, 2), 16);
-      var len = bin[0], off = (bin[1] << 8) | bin[2], type = bin[3];
-      var data = bin.slice(4, 4 + len);
-      if ((checksum(bin.slice(0, 4 + len)) & 0xff) !== bin[4 + len]) throw new Error('line ' + (i + 1) + ' fails its checksum');
-      this.records.push({ type: type, offset: off, data: data, raw: s, dirty: false });
-    }
-    var last = this.records[this.records.length - 1];
-    if (!last || last.type !== REC.EOF) throw new Error('file is missing its end marker (EOF record)');
-    this.reindex();
-  }
-
-  HexFile.prototype.reindex = function () {
-    var base = 0;
-    this.index = new Map();
-    for (var i = 0; i < this.records.length; i++) {
-      var r = this.records[i];
-      if (r.type === REC.EXT_SEG) base = (((r.data[0] << 8) | r.data[1]) << 4) >>> 0;
-      else if (r.type === REC.EXT_LIN) base = (((r.data[0] << 8) | r.data[1]) << 16) >>> 0;
-      else if (r.type === REC.DATA) {
-        var a = (base + r.offset) >>> 0;
-        for (var p = 0; p < r.data.length; p++) this.index.set(a + p, { rec: i, pos: p });
-      }
-    }
-  };
-
-  HexFile.prototype.readByte = function (addr) {
-    var hit = this.index.get(addr >>> 0);
-    return hit ? this.records[hit.rec].data[hit.pos] : null;
-  };
-  HexFile.prototype.read = function (addr, len) {
-    var out = new Uint8Array(len);
-    for (var i = 0; i < len; i++) {
-      var b = this.readByte(addr + i);
-      if (b === null) throw new Error('address 0x' + (addr + i).toString(16) + ' is not in this file');
-      out[i] = b;
-    }
-    return out;
-  };
-  HexFile.prototype.segments = function () {
-    var addrs = Array.from(this.index.keys()).sort(function (a, b) { return a - b; });
-    if (!addrs.length) return [];
-    var segs = [], start = addrs[0], prev = addrs[0];
-    for (var i = 1; i < addrs.length; i++) {
-      var a = addrs[i];
-      if (a !== prev + 1) { segs.push({ start: start, end: prev, length: prev - start + 1 }); start = a; }
-      prev = a;
-    }
-    segs.push({ start: start, end: prev, length: prev - start + 1 });
-    return segs;
-  };
-  HexFile.prototype.isBlank = function (start, length) {
-    for (var i = 0; i < length; i++) {
-      var b = this.readByte(start + i);
-      if (b !== null && b !== 0xff) return false;
-    }
-    return true;
-  };
-  HexFile.prototype.makeRecord = function (type, offset, data) {
-    var buf = new Uint8Array(5 + data.length);
-    buf[0] = data.length; buf[1] = (offset >> 8) & 0xff; buf[2] = offset & 0xff; buf[3] = type;
-    buf.set(data, 4); buf[4 + data.length] = checksum(buf.slice(0, 4 + data.length));
-    return buf;
-  };
-  HexFile.prototype.patch = function (addr, bytes) {
-    var inPlace = 0, pending = [];
-    for (var i = 0; i < bytes.length; i++) {
-      var a = (addr + i) >>> 0, hit = this.index.get(a);
-      if (hit) { this.records[hit.rec].data[hit.pos] = bytes[i]; this.records[hit.rec].dirty = true; inPlace++; }
-      else pending.push([a, bytes[i]]);
-    }
-    if (pending.length) this.appendBytes(pending);
-    return { inPlace: inPlace, appended: pending.length };
-  };
-  HexFile.prototype.appendBytes = function (pairs) {
-    var eof = this.records.pop(), curPage = null, run = [], self = this;
-    function flush() {
-      for (var i = 0; i < run.length; i += 16) {
-        var chunk = run.slice(i, i + 16);
-        var data = Uint8Array.from(chunk.map(function (p) { return p[1]; }));
-        self.records.push({ type: REC.DATA, offset: chunk[0][0] & 0xffff, data: data, raw: null, dirty: true });
-      }
-      run = [];
-    }
-    for (var k = 0; k < pairs.length; k++) {
-      var a = pairs[k][0], page = (a >>> 16) & 0xffff;
-      if (page !== curPage) {
-        flush();
-        this.records.push({ type: REC.EXT_LIN, offset: 0, data: Uint8Array.from([(page >> 8) & 0xff, page & 0xff]), raw: null, dirty: true });
-        curPage = page;
-      }
-      if (run.length && a !== run[run.length - 1][0] + 1) flush();
-      run.push(pairs[k]);
-    }
-    flush();
-    this.records.push(eof);
-    this.reindex();
-  };
-  HexFile.prototype.serialize = function (r) {
-    if (r.raw && !r.dirty) return r.raw;
-    var buf = this.makeRecord(r.type, r.offset, r.data), s = ':';
-    for (var i = 0; i < buf.length; i++) s += ('0' + buf[i].toString(16).toUpperCase()).slice(-2);
-    return s;
-  };
-  HexFile.prototype.toString = function () {
-    var out = [];
-    for (var i = 0; i < this.records.length; i++) out.push(this.serialize(this.records[i]));
-    return out.join(this.eol) + this.eol;
-  };
-  HexFile.prototype.freeRuns = function (min) {
-    var segs = this.segments(), runs = [];
-    for (var i = 0; i < segs.length - 1; i++) {
-      var gap = segs[i + 1].start - segs[i].end - 1;
-      if (gap >= min) runs.push({ start: segs[i].end + 1, end: segs[i + 1].start - 1, length: gap });
-    }
-    return runs;
-  };
-
-  /* ---------------- mod bundles ---------------- */
-  var APP_BASE = 0x08010000;
-
-  function toNum(v) { return typeof v === 'number' ? v : parseInt(v, 16); }
-  function toBytes(v) {
-    var s = String(v).replace(/[^0-9a-fA-F]/g, '');
-    if (s.length % 2) throw new Error('patch has an odd number of hex digits');
-    var out = new Uint8Array(s.length / 2);
-    for (var i = 0; i < out.length; i++) out[i] = parseInt(s.substr(i * 2, 2), 16);
-    return out;
-  }
-  function identify(hex) {
-    var b = hex.read(APP_BASE, 8);
-    var sp = (b[0] | (b[1] << 8) | (b[2] << 16) | (b[3] << 24)) >>> 0;
-    var reset = (b[4] | (b[5] << 8) | (b[6] << 16) | (b[7] << 24)) >>> 0;
-    if (sp !== 0x20020000) throw new Error('this does not look like a Ground Control firmware (unexpected start of file)');
-    if (!(reset & 1)) throw new Error('this does not look like a Ground Control firmware (wrong entry point)');
-    return { sp: sp, reset: reset };
-  }
-  function applyBundle(hex, bundle) {
-    var id = identify(hex);
-    var blankReq = (bundle.requires && bundle.requires.blank) || [];
-    if (blankReq.length && typeof blankReq[0] === 'string') blankReq = [blankReq];
-    for (var i = 0; i < blankReq.length; i++) {
-      var s = toNum(blankReq[i][0]), e = toNum(blankReq[i][1]);
-      if (!hex.isBlank(s, e - s + 1)) throw new Error('expected empty space at 0x' + s.toString(16) + ' but it is not empty');
-    }
-    var report = [];
-    for (var j = 0; j < bundle.patches.length; j++) {
-      var p = bundle.patches[j], addr = toNum(p.addr), bytes = toBytes(p.bytes);
-      if (addr < APP_BASE) throw new Error('patch address 0x' + addr.toString(16) + ' is inside the protected bootloader area');
-      var res = hex.patch(addr, bytes);
-      report.push({ addr: addr, length: bytes.length, inPlace: res.inPlace, appended: res.appended, note: p.note || '' });
-    }
-    return { id: id, report: report };
-  }
-
-  /* ---------------- UI ---------------- */
-  var $ = function (id) { return document.getElementById(id); };
-  var drop = $('drop'), fileInput = $('file'), log = $('log'), banner = $('banner');
-  var hex = null, fileName = '', lastOutput = null, fsDir = null;
-  // Ground Control — Polyphony v1.1 (clock + poly + entry + step-record + clear + transpose + SD persistence); embedded
-  var V1 = {
-    name: 'Polyphony v1.9', version: '1.9', status: 'experimental', enabled: true,
-    description: 'Known-good v1.1 polyphony build plus a post-switch reload: after the commit installs the incoming patterns and letters, each melodic track republishes its own poly sidecar into the chord bank. FR_NO_FILE zeroes the bank; any other FRESULT leaves it untouched.',
-    patches: [
-      { addr: '0x8011fc6', bytes: '36f01bf8' },
-      { addr: '0x8012068', bytes: '35f0caff' },
-      { addr: '0x801c542', bytes: '2bf05dfc00bf' },
-      { addr: '0x801cd96', bytes: '2cf033f9' },
-      { addr: '0x801f1e8', bytes: '28f00abb' },
-      { addr: '0x8021528', bytes: '26f06afa' },
-      { addr: '0x80217f4', bytes: '25f004ff' },
-      { addr: '0x8025814', bytes: '21f0f4bd' },
-      { addr: '0x8047400', bytes: '2fb55977224b1878c0b202281cd86279802a19d20346db0203ebc01303eb021313444bf23050c1f20000184429467f290ad84ff60052c1f200020a441278002a00d1642200f004f8bde82f40def7d4b970b50378082b01d90023037000249c420ad200f1010505eb44052e788e4201d00134f4e76a7009e0082b07d200f1010505eb430529706a7001330370184670bddaca0020' },
-      { addr: '0x8047600', bytes: '2de9ff5f84b0ddf84890ddf84ca0ddf850b0cdf80090cdf804a0cdf808b0cdf80cb0099db9f1000f52d0aa682b485ff0000bbbf1040f4bd250f82b10914202d01bf1010bf5e795f83c60802e40d24bf23054c1f200045f46ff0207ebcb173046360106443c4434442678002e30d0082e2ed85ff00008b0452ad204f1010707eb480797f800c0cc4502d018f10108f2e75ff00008b0451bd204f1010707eb480797f800c07878bcf17f0f0ed800280cd0cc450ad0cdf800c00190039b029300200599069a079bd2f7e4f918f10108e1e704b0bde8ff5fd2f7dcb9000070830308' },
-      { addr: '0x8047800', bytes: '01b548790b794ff6005cc1f2000c9c448cf800000b794a79bde80140d7f7e6bc' },
-      { addr: '0x8047a00', bytes: '2de9f04f81b094f82ea0dbf7a5fb94f82eb0444a12780ab9d3457fd094f82d20002a7bd14048002550f82510a14203d00135042df8d371e0042d6fd2bbf1180f6cd23a4850f82b000678394890f84972182f63d2354850f8270007784ef22048c1f2000833480021425c08f8012001311029f9d388f8087030222a4488f80f202f2288f81020702288f811206f2288f812206c2288f81320792288f8142088f81560002288f816204bf23059c1f200092a46d20202ebc51291444ef20000c1f2000041460122ccf751ffe0b94ef20000c1f20000494640f680024ef20033c1f20003cdf725f84ef20000c1f20000cdf713fa4ef20030c1f20000006840f6800188420bd001e0042808d10020002149f80100043140f680029142f8d101b0bde8f08f0000d8c50020708303081083030850b200201b700308' },
-      { addr: '0x8047e00', bytes: 'ec462de9f041e04698f80f60412e4cdbb6f1410740f2941207fb02f2a4eb0204343c94f82d20012a3fd0234b0025042d3bd253f82510a14201d00135f7e7702088f808006f2088f809006c2088f80a00792088f80b0088f80c60002088f80d004ef20000c1f2000008f108010a22ccf77dfdd0b94bf23051c1f2000140f6800205fb02f001444ef20000c1f2000040f680024ef20033c1f20003ccf7fafe4ef20000c1f20000cdf737f808f11800cdf733f8bde8f041704770830308' },
-      { addr: '0x8048000', bytes: '2de9f0413e4800683e49884273d13e48017b00296fd084683c498c426bd12079012868d13a49487c022864d1e268394b002004285fd253f82010914201d00130f7e792f82d10012955d092f82e10182951d24ff4ca7301fb03223432a3689a4249d1e179802946d201eb41031a44127a802a40d2264b5b789a423cd1264d4ff4086300fb035501eb01131d442e78002e31d0082e2fd8214890f900700c2007fb00f7d21b353a172a25d81d48805cc10800f00700012282401a4b595c11421ad04ff00008b04516d205eb4800407880280ed2c01b353817280ad81149085cc10800f00700012282400e4b585c1043585408f10108e6e70b490b48bde8f081000080c301209005002088c3012030c20120fbcd01207083030830b50010e8cd012090860308741e00202c2b0020' },
-      { addr: '0x8049000', bytes: 'ec462de9f041644654f8187c34480025042d60d250f82510a7eb0102002a03db40f2f0439a4201db0135f1e794f83f604ef20047c1f20007702038706f2078706c20b8707920f8703e71002078714ef20000c1f2000039460122cbf787fc002840f039804bf23056c1f2000640f6800205fb02f0064400205ff0000846f8080018f10408b8f5086ff8d14ef20000c1f20000314640f680024ef20033c1f20003cbf746fd4ef20000c1f20000cbf734ff4ef20037c1f20007386840f68001884209d000205ff0000846f8080018f10408b8f5086ff8d14ff0ff33bde8f041704770830308' }
-    ]
-  };
-  var mods = [V1];
-
-  // Known-good base images (canonical image SHA-256 -> version). Patcher warns if the input
-  // doesn't match, and shows the output hash so a build can be verified.
-  var KNOWN_BASE = {
-    'e1db4815f8cf2983f832493aa8b2085586cb5ea10446e133774bdfc91bca9f52': 'Ground Control v3.26'
-  };
-  async function canonicalHash(hf) {
-    if (!crypto || !crypto.subtle) return null;
-    var keys = Array.from(hf.index.keys()).sort(function (a, b) { return a - b; });
-    var buf = new Uint8Array(keys.length * 5);
-    for (var i = 0; i < keys.length; i++) {
-      var a = keys[i], o = i * 5;
-      buf[o] = a & 255; buf[o + 1] = (a >>> 8) & 255; buf[o + 2] = (a >>> 16) & 255; buf[o + 3] = (a >>> 24) & 255;
-      buf[o + 4] = hf.readByte(a);
-    }
-    var h = await crypto.subtle.digest('SHA-256', buf);
-    return Array.from(new Uint8Array(h)).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
-  }
-
-  function showBanner(msg) { banner.style.display = 'block'; banner.textContent = msg; }
-  function hexs(n) { return '0x' + n.toString(16).toUpperCase().padStart(8, '0'); }
-  function fmt(n) { return n.toLocaleString('en-US'); }
-  function say(msg, cls) {
-    log.hidden = false;
-    var span = document.createElement('span');
-    span.className = cls || '';
-    span.textContent = msg + '\n';
-    log.appendChild(span);
-    log.scrollTop = log.scrollHeight;
-  }
-
-  function loadHex(text, name) {
-    try {
-      banner.style.display = 'none';
-      var h = new HexFile(text);
-      identify(h);
-      hex = h;
-      fileName = name;
-      var segs = hex.segments();
-      var total = segs.reduce(function (a, s) { return a + s.length; }, 0);
-      var free = hex.freeRuns(1024);
-      var rows = [['file', name], ['lines', fmt(hex.records.length)], ['program size', fmt(total) + ' bytes']];
-      segs.forEach(function (s) { rows.push(['', hexs(s.start) + ' to ' + hexs(s.end) + '  (' + fmt(s.length) + ' bytes)']); });
-      free.forEach(function (f) {
-        rows.push(['empty space', hexs(f.start) + ' to ' + hexs(f.end) + '  (' + fmt(f.length) + ' bytes)' + (hex.isBlank(f.start, f.length) ? '  blank' : '  not blank')]);
-      });
-      var t = $('infoTable');
-      t.textContent = '';
-      rows.forEach(function (r) {
-        var tr = document.createElement('tr');
-        var th = document.createElement('th'); th.textContent = r[0];
-        var td = document.createElement('td'); td.textContent = r[1]; td.className = 'mono';
-        tr.appendChild(th); tr.appendChild(td); t.appendChild(tr);
-      });
-      $('info').hidden = false;
-      $('modsSection').hidden = false;
-      $('actions').hidden = false;
-      renderMods();
-      // base-image verification (SHA-256)
-      var tb = $('infoTable');
-      var tr = document.createElement('tr'), th = document.createElement('th'), td = document.createElement('td');
-      th.textContent = 'base image'; td.className = 'mono'; td.textContent = 'verifying…';
-      tr.appendChild(th); tr.appendChild(td); tb.appendChild(tr);
-      canonicalHash(hex).then(function (hh) {
-        if (!hh) { td.textContent = '(SHA-256 unavailable here)'; return; }
-        var k = KNOWN_BASE[hh];
-        td.textContent = hh + (k ? '   \u2713 ' + k : '   (unrecognized base \u2014 patch at your own risk)');
-        td.className = 'mono ' + (k ? 'ok' : 'err');
-        if (!k) showBanner('This file does not match a known stock base (Ground Control v3.26). Building may produce a broken image \u2014 continue only if you know it is compatible.');
-      }).catch(function (e) { td.textContent = 'hash error: ' + e.message; });
-    } catch (e) {
-      $('info').hidden = true; $('modsSection').hidden = true; $('actions').hidden = true;
-      log.hidden = false; log.textContent = '';
-      say('Could not read that file: ' + e.message, 'err');
-      showBanner('That file was not accepted. ' + e.message);
-    }
-  }
-
-  function renderMods() {
-    var box = $('mods');
-    box.textContent = '';
-    if (!mods.length) {
-      var d = document.createElement('div');
-      d.className = 'mod';
-      d.innerHTML = '<div><div class="name">No mods bundled yet</div><div class="desc">The patching engine works: it reads the file, changes bytes, and writes a valid new file. The real mods (clock fix, polyphony, CC remap) get added here once they are proven on hardware.</div></div>';
-      box.appendChild(d);
-      $('build').disabled = true;
-      return;
-    }
-    mods.forEach(function (m, i) {
-      var label = document.createElement('label');
-      label.className = 'mod';
-      var cb = document.createElement('input');
-      cb.type = 'checkbox'; cb.checked = m.enabled !== false; cb.dataset.i = String(i);
-      cb.addEventListener('change', updateBuild);
-      var div = document.createElement('div');
-      div.innerHTML = '<div class="name"></div><div class="desc"></div><div class="desc mono"></div>';
-      div.children[0].textContent = m.name + ' ';
-      var tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = m.status || 'experimental';
-      div.children[0].appendChild(tag);
-      div.children[1].textContent = m.description || '';
-      div.children[2].textContent = (m.patches || []).length + ' change site(s)';
-      label.appendChild(cb); label.appendChild(div); box.appendChild(label);
-    });
-    updateBuild();
-  }
-  function updateBuild() {
-    $('build').disabled = document.querySelectorAll('#mods input:checked').length === 0;
-  }
-
-  function build() {
-    var chosen = Array.prototype.map.call(document.querySelectorAll('#mods input:checked'), function (el) { return mods[+el.dataset.i]; });
-    var work = new HexFile(hex.toString());
-    log.hidden = false; log.textContent = '';
-    for (var i = 0; i < chosen.length; i++) {
-      try {
-        var res = applyBundle(work, chosen[i]);
-        res.report.forEach(function (r) {
-          say('applied ' + hexs(r.addr) + ' +' + r.length + ' bytes' + (r.note ? '  (' + r.note + ')' : ''));
-        });
-      } catch (e) {
-        say('stopped: ' + chosen[i].name + ' failed - ' + e.message + '. Nothing was downloaded.', 'err');
-        return;
-      }
-    }
-    var out = work.toString();
-    new HexFile(out);  // read our own output back before handing it over
-    lastOutput = { text: out, name: chosen.some(function (m) { return m.status === 'diagnostic'; })
-      ? 'gc-led.hex' : 'gc-v3.26_poly-v1.9.hex' };
-    $('install').disabled = !fsDir;
-    $('dl').disabled = false;
-    canonicalHash(new HexFile(out)).then(function (hh) { if (hh) say('output SHA-256: ' + hh, 'ok'); }).catch(function () {});
-    say('ready: ' + lastOutput.name + ' (' + fmt(out.length) + ' chars). ' +
-        (fsDir ? 'Click "Install to GC" to write it to the SD card.' : 'Connect the SD card to install, or Download .hex.'), 'ok');
-    if (!fsDir) showBanner('Firmware built. Connect the GC SD card (hold PROJ 5s on the module) to install it, or use Download .hex as a fallback.');
-    else banner.style.display = 'none';
-  }
-
-  function takeFile(f) {
-    if (!f) return;
-    var reader = new FileReader();
-    reader.onload = function () { loadHex(String(reader.result), f.name); };
-    reader.onerror = function () { showBanner('The browser could not open that file.'); };
-    reader.readAsText(f);
-  }
-
-  drop.addEventListener('click', function () { fileInput.click(); });
-  fileInput.addEventListener('change', function () { takeFile(fileInput.files && fileInput.files[0]); });
-  ['dragenter', 'dragover'].forEach(function (ev) {
-    drop.addEventListener(ev, function (e) { e.preventDefault(); e.stopPropagation(); drop.classList.add('hot'); });
-  });
-  ['dragleave', 'drop'].forEach(function (ev) {
-    drop.addEventListener(ev, function (e) { e.preventDefault(); e.stopPropagation(); drop.classList.remove('hot'); });
-  });
-  drop.addEventListener('drop', function (e) {
-    var dt = e.dataTransfer;
-    if (dt && dt.files && dt.files.length) takeFile(dt.files[0]);
-    else showBanner('That drop had no file in it. Try choosing the file instead.');
-  });
-  window.addEventListener('dragover', function (e) { e.preventDefault(); });
-  window.addEventListener('drop', function (e) { if (!drop.contains(e.target)) e.preventDefault(); });
-  $('build').addEventListener('click', build);
-
-  var sample = new URLSearchParams(location.search).get('sample');
-  if (sample) fetch(sample).then(function (r) { return r.text(); }).then(function (t) { loadHex(t, sample.split('/').pop()); });
-
-  // ---- SD card over USB (File System Access API) ----
-  function fsSupported() { return !!window.showDirectoryPicker; }
-  function sdStatus(t, cls) { var s = $('sdStatus'); s.textContent = t; s.className = 'mono ' + (cls || ''); }
-  async function connectSD() {
-    if (!fsSupported()) { showBanner('This browser cannot access the SD card. Use Chrome or Edge over https/localhost.'); return; }
-    try {
-      fsDir = await window.showDirectoryPicker({ mode: 'readwrite' });
-      window.__gcSD = fsDir;   // share the handle with the embedded editor
-      sdStatus('connected: ' + fsDir.name, 'ok');
-      $('sdFiles').hidden = false;
-      $('install').disabled = !lastOutput;
-      await refreshProjects();
-      return fsDir;
-    } catch (e) { if (!e || e.name !== 'AbortError') showBanner('Could not open the card: ' + e.message); return null; }
-  }
-  async function refreshProjects() {
-    if (!fsDir) return;
-    var box = $('projList'); box.textContent = 'loading...';
-    try {
-      var names = [];
-      for await (const entry of fsDir.values()) {
-        if (entry.kind === 'file' && /\.json$/i.test(entry.name)) names.push(entry.name);
-        else if (entry.kind === 'directory') names.push(entry.name + '/');
-      }
-      names.sort();
-      box.textContent = '';
-      if (!names.length) box.textContent = '(no .json files at the card root — open a project folder on the card)';
-      names.forEach(function (n) {
-        if (n.slice(-1) === '/') { var d = document.createElement('div'); d.textContent = n; d.style.color = '#6a6a72'; box.appendChild(d); return; }
-        var a = document.createElement('a'); a.href = '#'; a.textContent = n; a.style.display = 'block';
-        a.addEventListener('click', function (ev) { ev.preventDefault(); openProject(n); });
-        box.appendChild(a);
-      });
-    } catch (e) { box.textContent = 'error: ' + e.message; }
-  }
-  async function openProject(name) {
-    try {
-      var fh = await fsDir.getFileHandle(name);
-      var txt = await (await fh.getFile()).text();
-      $('editor').hidden = false; $('edTitle').textContent = 'Project: ' + name;
-      $('edText').value = txt; $('edText').dataset.name = name;
-      sdStatus('opened ' + name, 'ok');
-    } catch (e) { showBanner('Could not open ' + name + ': ' + e.message); }
-  }
-  async function saveProject() {
-    if (!fsDir) { showBanner('Connect the SD card first.'); return; }
-    var name = $('edText').dataset.name || 'new-project.json';
-    try {
-      var fh = await fsDir.getFileHandle(name, { create: true });
-      var w = await fh.createWritable(); await w.write($('edText').value); await w.close();
-      sdStatus('saved ' + name, 'ok'); await refreshProjects();
-    } catch (e) { showBanner('Could not save ' + name + ': ' + e.message); }
-  }
-  function newProject() {
-    var n = prompt('New project file name', 'my-project.json'); if (!n) return;
-    if (!/\.json$/i.test(n)) n += '.json';
-    $('editor').hidden = false; $('edTitle').textContent = 'Project: ' + n;
-    $('edText').value = '{\n  "name": "",\n  "tracks": []\n}\n'; $('edText').dataset.name = n;
-  }
-  async function installFirmware() {
-    if (!fsDir) { showBanner('Connect the GC SD card first (hold PROJ 5s on the module).'); return; }
-    if (!lastOutput) { showBanner('Build the firmware first.'); return; }
-    var defName = lastOutput.name;
-    var name = prompt('Firmware file name on the card (must be gc-*.hex in the card ROOT; short 8.3-style names are safest)', defName); if (!name) return;
-    if (!/\.hex$/i.test(name)) name += '.hex';
-    if (!/^gc-.*\.hex$/i.test(name) && !confirm('The updater expects a file named gc-*.hex in the card root; "' + name + '" may not be picked up. Continue anyway?')) return;
-    async function dropSidecar(n) { try { await fsDir.removeEntry('._' + n); } catch (e) {} }
-    try {
-      await dropSidecar(name);
-      var fh = await fsDir.getFileHandle(name, { create: true });
-      var w = await fh.createWritable(); await w.write(lastOutput.text); await w.close();
-      await dropSidecar(name);
-      // read it back immediately: proves the volume actually kept the bytes
-      var chk = await fsDir.getFileHandle(name);
-      var f = await chk.getFile();
-      if (f.size !== lastOutput.text.length) throw new Error('volume kept ' + f.size + ' of ' + lastOutput.text.length + ' bytes');
-      sdStatus('wrote ' + name + ' · ' + f.size + ' bytes verified', 'ok');
-      showBanner('Firmware written as "' + name + '" and read back at ' + f.size + ' bytes. Keep it as-is and make sure it is the ONLY gc-*.hex in the card ROOT. Then press PROJ ~5s to exit mass storage — the module reboots and flashes.');
-    } catch (e) { showBanner('Could not write firmware: ' + e.message); }
-  }
-  function downloadFirmware() {
-    if (!lastOutput) return;
-    var blob = new Blob([lastOutput.text], { type: 'text/plain' });
-    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = lastOutput.name;
-    document.body.appendChild(a); a.click(); a.remove();
-  }
-  $('connectSD').addEventListener('click', connectSD);
-  $('reloadProj').addEventListener('click', refreshProjects);
-  $('saveProj').addEventListener('click', saveProject);
-  $('newProj').addEventListener('click', newProject);
-  $('install').addEventListener('click', installFirmware);
-  $('dl').addEventListener('click', downloadFirmware);
-
-  window.GCModder = { HexFile: HexFile, identify: identify, applyBundle: applyBundle, loadHex: loadHex, takeFile: takeFile, getOutput: function () { return lastOutput; }, connectSD: connectSD, getSD: function () { return fsDir; }, ready: true };
-})();
-</script>
-<script src="assets/editor.js?v=813"></script>
-<script>
-(function () {
-  function showView(v) {
-    var p = document.getElementById('viewPatcher'), e = document.getElementById('viewEditor');
-    if (!p || !e) return;
-    p.hidden = v !== 'patcher'; e.hidden = v !== 'editor';
-    document.querySelectorAll('#views .vtab').forEach(function (b) { b.classList.toggle('active', b.dataset.v === v); });
-    if (v === 'editor') window.scrollTo(0, 0);
-  }
-  window.__gcShowView = showView;
-  document.querySelectorAll('#views .vtab').forEach(function (b) { b.onclick = function () { showView(b.dataset.v); }; });
-})();
-</script>
-</body>
+      <gc-editor></gc-editor>
+    </section>
+    <footer>
+      <a
+        href="https://github.com/andrewdesena/ground-control-patcher"
+        target="_blank"
+        rel="noopener"
+        >Repository & README</a
+      ><a href="docs/reference/guide.html">Installation guide</a
+      ><a href="docs/reference/editor.html">Editor guide</a
+      ><a href="docs/reference/quick-card-letter.pdf">Printable quick card</a
+      ><span>Unofficial. Not affiliated with or endorsed by Endorphin.es.</span
+      ><span>Ground Control is a product of Endorphin.es.</span
+      ><a
+        href="https://github.com/andrewdesena/ground-control-patcher"
+        target="_blank"
+        rel="noopener"
+        >Source & issues</a
+      ><span>MIT-licensed tooling</span>
+    </footer>
+    <script src="assets/release.js"></script>
+    <script src="assets/firmware-core.js"></script>
+    <script src="assets/firmware-page.js"></script>
+    <script src="assets/pattern-format.js"></script>
+    <script src="assets/editor-model.js"></script>
+    <script src="assets/card-store.js"></script>
+    <script src="assets/editor.js"></script>
+  </body>
 </html>

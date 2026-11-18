@@ -1,0 +1,13 @@
+{
+  "name": "Chord save letter guard",
+  "status": "experimental",
+  "description": "The v1.9 save cave, plus a guard so a save of a non-active pattern letter no longer writes the active letter's live chord bank over the other letter's sidecar. Stock allows dirty or forced non-active patterns through this writer; the bank only ever holds the active letter, so the only correct action for another letter is to leave its sidecar alone.",
+  "requires": {},
+  "patches": [
+    {
+      "addr": "0x8047e00",
+      "bytes": "ec462de9f041e04698f80f60412e51dbb6f1410740f2941207fb02f2a4eb0204343c94f82d20012a44d0264b0025042d40d253f82510a14201d00135f7e794f82e004130b04235d1702088f808006f2088f809006c2088f80a00792088f80b0088f80c60002088f80d004ef20000c1f2000008f108010a22ccf778fdd0b94bf23051c1f2000140f6800205fb02f001444ef20000c1f2000040f680024ef20033c1f20003ccf7f5fe4ef20000c1f20000cdf732f808f11800cdf72ef8bde8f0417047000070830308",
+      "note": "cave routine"
+    }
+  ]
+}

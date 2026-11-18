@@ -1,5 +1,7 @@
 # Known-good poly build
 
+> Historical research and version-specific observations. Use [current documentation](README.md) for installation, compatibility and release status. Sidecar references describe abandoned formats.
+
 Last hardware-confirmed build: **`71957a3`** (10-site bundle). This is what
 `index.html` still embeds and what users get today.
 

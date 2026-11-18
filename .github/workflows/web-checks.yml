@@ -1,0 +1,22 @@
+name: Web and documentation checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python3 tools/web_release.py --check
+      # Firmware is intentionally absent from public CI. These tests need no vendor image.
+      - run: node --test test/web/model.test.cjs
+      - run: npm run lint:style
+      - run: python3 tools/repo_audit.py

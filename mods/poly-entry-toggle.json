@@ -1,0 +1,18 @@
+{
+  "name": "Toggle chord entry",
+  "status": "experimental",
+  "description": "Wrapper in front of the hardware proven entry cave at 0x08049C00. Handles three cases: (1) press a note already in the record -> remove it, compact and update primary to lowest. (2) 0x80 (Rest or stock re-press of primary) -> clear the entire record and set step note to 0x80. (3) press a new note -> add it directly to the chord record, write the step note/velocity/modifier inline, and set the dirty flag. The walk is bounded by the declared count, never by the record size. The track is resolved by scanning the block pointer, so the drum and unknown blocks pass through untouched.",
+  "requires": {},
+  "patches": [
+    {
+      "addr": "0x804b500",
+      "bytes": "ffb582b00e4615460746fef779fd002800f0b4800091019240f2110206fb02031c78002c00f0aa80082c00f2a7800837032106fb01772878802800f01080241901340122a24280f06280995c814201d00232f7e7104601210122002525e0697800290ad1002018700121112902d258540131fae780223a7042e00020ff210022a04209d200eb000501355d5d8d4201d2294602460130f3e710460018013024190134012101220025ffe7a1420dd2814209d05e5c9e54013101325e5c9e54013101320135f1e70231efe71d700026112a02d29e540132fae7002d0ed00021ff22a94208d201eb010601369e5d964200d232460131f4e73a7002e080223a70ffe7029c0126a68002b0bde8ff40704719780829bff4f5af0a469218013298540132029c64789c54013119700a46921801320026112a02d29e540132fae700291ad0ff2200248c4208d204eb040601369e5d964200d232460134f4e73a70029c64787c70029c0126a6800099019a0132064840f82120c4e780223a70c1e702b0bde8ff40fef7bdba000040d70010",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x80275c0",
+      "bytes": "23f09eff",
+      "note": "replaces the direct call into the entry cave; wrapper decides add or remove"
+    }
+  ]
+}

@@ -34,14 +34,16 @@ STACK = SRAM + 0x8000
 def main():
     fails = []
 
-    def run_case(label, track, letter, expect_bank, expect_open=True):
+    def run_case(label, track, letter, expect_bank, expect_open=True, active=None):
+        active = letter if active is None else active
         sb = Sandbox()
         import json
-        for p in json.load(open(ROOT / 'mods/poly-save-track.json'))['patches']:
+        for p in json.load(open(ROOT / 'mods/poly-save-letter.json'))['patches']:
             sb.w(int(p['addr'], 0), bytes.fromhex(p['bytes']))
         sb.w(TABLE, struct.pack('<4I', *TRACKS))
         for i, p in enumerate(TRACKS):
             sb.w(p + 0x2D, bytes([1 if p == DRUM else 0]))
+        sb.w(track + 0x2E, bytes([active]))   # the letter the bank currently holds
         # caller frame as the pattern writer leaves it
         sb.w(STACK, bytes(0x60))
         sb.w(STACK + 0x0F, bytes([0x41 + letter]))   # frame holds the ASCII letter
@@ -107,13 +109,15 @@ def main():
     run_case('track1 letter A -> bank 1', T1, 0, 1)
     run_case('track2 letter A -> bank 2', T2, 0, 2)
     run_case('track3 letter A -> bank 3', T3, 0, 3)
-    run_case('track2 letter E -> bank 2', T2, 4, 2)
+    run_case('track2 letter E, E active -> bank 2', T2, 4, 2)
+    run_case('track2 letter E while A active -> no sidecar write', T2, 4, 2, expect_open=False, active=0)
+    run_case('track1 letter B while B active -> bank 1', T1, 1, 1, active=1)
     run_case('drum only closes', DRUM, 0, 0, expect_open=False)
 
     if fails:
         print(f'\nFAIL {len(fails)}: {fails}')
         return 1
-    print('\nPASS save writer ignores the letter when choosing the bank')
+    print('\nPASS save writer uses the track bank only for the active letter')
     return 0
 
 

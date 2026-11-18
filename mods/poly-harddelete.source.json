@@ -1,0 +1,59 @@
+{
+  "name": "Hard-delete chord bank clear",
+  "status": "experimental",
+  "description": "Hooks the UI hard-delete and inline clear paths to zero the owned chord bank, preventing stale chord data from surviving a pattern delete.",
+  "cave": {
+    "addr": "0x0804B700",
+    "asm": [
+      "@ r8 is the pattern block; r2 is the loop index.",
+      "cmp r2, #0",
+      "bne ui_resume",
+      "push {r0-r3, ip, lr}",
+      "mov r0, r8",
+      "bl clear_bank",
+      "pop {r0-r3, ip, lr}",
+      "ui_resume:",
+      "strb.w lr, [r3, #0x3c]",
+      "b.w 0x0802bee2",
+      ".org 0x30",
+      "@ r4 is the pattern block; r1 and r2 advance through the steps.",
+      "cmp r3, #0",
+      "bne inline_resume",
+      "push {r0-r3, ip, lr}",
+      "mov r0, r4",
+      "bl clear_bank",
+      "pop {r0-r3, ip, lr}",
+      "inline_resume:",
+      "strb.w ip, [r2, #8]",
+      "b.w 0x0802f2f2",
+      "clear_bank:",
+      "push {r4, lr}",
+      "bl 0x0804b000",
+      "cbz r0, clear_done",
+      "movs r1, #0",
+      "movw r2, #2176",
+      "zero:",
+      "str r1, [r0], #4",
+      "subs r2, #4",
+      "bne zero",
+      "clear_done:",
+      "pop {r4, pc}"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x0802BEDE",
+      "asm": [
+        "b.w #0x0804B700"
+      ],
+      "note": "UI hard-delete clears the chord bank before clearing the pattern"
+    },
+    {
+      "addr": "0x0802F2EE",
+      "asm": [
+        "b.w #0x0804B730"
+      ],
+      "note": "Inline clear clears the chord bank before clearing the step"
+    }
+  ]
+}

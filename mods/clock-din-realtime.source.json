@@ -1,0 +1,71 @@
+{
+  "name": "DIN MIDI clock at the next byte boundary",
+  "status": "experimental",
+  "description": "Prefer a pending F8 at the next UART4 TXE event when a MIDI message is already in progress and no older realtime event is queued. Preserve the stock formatter state and transport ordering.",
+  "cave": {
+    "addr": "0x08046810",
+    "asm": [
+      "@ On the stock priority enqueue path with IRQs masked.",
+      "ldr r2, =0x20001cca",
+      "ldrb r1, [r2]",
+      "cbnz r1, generic",
+      "ldrb r3, [r4]",
+      "cmp r3, #0xf8",
+      "bne generic",
+      "ldr r3, =0x20001cb8",
+      "ldrb r3, [r3, #5]",
+      "cbz r3, generic",
+      "ldr r3, =0x40004c00",
+      "ldrb r3, [r3, #0xc]",
+      "tst r3, #0x80",
+      "beq generic",
+      "ldr r3, =0x1000d730",
+      "ldrb r1, [r3]",
+      "cbnz r1, generic_reload",
+      "movs r1, #1",
+      "strb r1, [r3]",
+      "b.w 0x08011880",
+      "generic_reload:",
+      "ldrb r1, [r2]",
+      "generic:",
+      "b.w 0x0801184c",
+      ".ltorg"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x08011848",
+      "asm": [
+        "b.w 0x08046810"
+      ],
+      "note": "Stage an eligible F8 once, without adding a second copy to the FIFO"
+    },
+    {
+      "addr": "0x0801190A",
+      "asm": [
+        "b.w 0x08046860"
+      ],
+      "note": "Check for a pending F8 at UART4 TXE before advancing the formatter"
+    },
+    {
+      "addr": "0x08046860",
+      "asm": [
+        "ldr r3, =0x1000d730",
+        "ldrb r0, [r3]",
+        "cbz r0, ordinary_byte",
+        "movs r0, #0",
+        "strb r0, [r3]",
+        "movs r0, #0xf8",
+        "b.w 0x08011914",
+        "ordinary_byte:",
+        "ldrb r3, [r4, #5]",
+        "cbz r3, refill",
+        "b.w 0x0801190e",
+        "refill:",
+        "b.w 0x0801191a",
+        ".ltorg"
+      ],
+      "note": "Send pending clock through the original UART write, preserving note-byte state"
+    }
+  ]
+}

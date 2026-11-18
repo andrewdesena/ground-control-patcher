@@ -1,853 +1,2078 @@
-/* Ground Control pattern editor — <gc-editor> web component (shadow DOM, isolated CSS).
-   Embedded as the "Editor" tab of the patcher. Full-range DAW piano roll (MIDI 0–127),
-   left vertical track bar (Tracks 1/2/3/D), no octave control. */
+/* Ground Control step-native piano roll, with gesture transactions and binary card I/O. */
 (function () {
   "use strict";
-  const NAME = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
-  const NOTE_RE = /^([A-G])(#?)(-?\d)(#?)$/;
-  const isBlack = n => NAME[n % 12].includes("#");
-  const noteName = n => NAME[n % 12] + (Math.floor(n / 12) - 2);
-  const noteToMidi = s => { const m = NOTE_RE.exec(String(s == null ? '' : s).trim()); if (!m) return null; const v = (parseInt(m[3], 10) + 2) * 12 + NAME.indexOf(m[1]) + ((m[2] || m[4]) ? 1 : 0); return v >= 0 && v <= 127 ? v : null; };
-  const nameToMidi = s => noteToMidi(s);
-
+  const F = window.GCFormat,
+    Model = window.GCEditorModel,
+    Store = window.GCCardStore;
+  const esc = (s) =>
+    String(s).replace(
+      /[&<>"']/g,
+      (c) =>
+        ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        })[c],
+    );
+  function projectDefaults() {
+    const out = {
+      BPM: 120,
+      Muted: Array(12).fill("0"),
+      QuantizedMute: Array(12).fill("0"),
+      modulationTrack: 1,
+      modulationSubtrack: 1,
+      modulationPolarity: "Unipolar",
+      modulationSource: "Velocity",
+      modulationSlideMode: "Instant",
+      DrumMap: ["C1", "C1#", "D1", "D1#", "E1", "F1", "F1#", "G1"],
+    };
+    for (let t = 1; t <= 3; t++)
+      out["Track" + t + "Scale"] = {
+        Scale: 0,
+        Root: 0,
+        Custom: Array.from({ length: 12 }, (_, i) => i),
+      };
+    for (let i = 0; i < 4; i++) out["Cv" + i] = { Type: 0, Param: 0 };
+    return out;
+  }
+  function trackDefaults(track) {
+    return {
+      direction: 0,
+      slide: 50,
+      shuffle: 50,
+      humanize: track === "D" ? Array(9).fill(0) : 0,
+      ratchet: track === "D" ? Array(9).fill(0) : 0,
+      ArpEngaged: 0,
+      ...(track === "D"
+        ? { triggerlength: Array(9).fill(50) }
+        : { gatelength: 50 }),
+      patternChain: ["A"],
+    };
+  }
+  const CC_NAMES = {
+    1: "Mod wheel",
+    2: "Breath",
+    7: "Volume",
+    10: "Pan",
+    11: "Expression",
+    64: "Sustain",
+    71: "Resonance",
+    74: "Cutoff",
+  };
   const CSS = `
-  :host{display:block;color:#e7e9ec;font:13px/1.4 ui-monospace,Menlo,monospace;
-    --bg:#0d0f12;--panel:#15181d;--panel2:#1b1f26;--line:#2a2f38;--fg:#e7e9ec;--muted:#8b93a1;
-    --accent:#ff3b3b;--accent2:#28d7c3;--key:#12151a;--drum:#ffb04d;}
-  *{box-sizing:border-box}
-  header{display:flex;gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--line);
-    background:var(--panel);flex-wrap:wrap;border-radius:8px 8px 0 0}
-  h1{font-size:12px;margin:0;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);white-space:nowrap}
-  .grp{display:flex;gap:6px;align-items:center}
-  label{color:var(--muted);font-size:11px}
-  input[type=number],input[type=text]{background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:3px 6px;font:inherit}
-  button{background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:5px 9px;font:inherit;cursor:pointer}
-  button:hover{border-color:var(--accent)}
-  button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
-  #app{display:flex;border:1px solid var(--line);border-top:0;border-radius:0 0 8px 8px;overflow:hidden;background:var(--bg)}
-  #side{flex:0 0 178px;display:flex;flex-direction:column;gap:6px;padding:8px 6px;border-right:1px solid var(--line);background:var(--panel);overflow:auto}
-  #side .nav{display:flex;flex-direction:column;gap:2px;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:4px}
-  #side .navproj{text-align:left;font-size:11px;padding:5px 6px;border:1px solid transparent;background:transparent;color:var(--fg)}
-  #side .navproj.active{border-color:var(--accent);color:var(--accent)}
-  #side .navpat{text-align:left;font-size:10px;padding:3px 6px 3px 28px;border:1px solid transparent;background:transparent;color:var(--muted)}
-  #side .navpat.active{color:var(--accent2);border-color:var(--accent2)}
-  #side .navtrack{text-align:left;font-size:10px;padding:4px 6px 4px 16px;border:1px solid transparent;background:transparent;color:var(--fg);opacity:.85}
-  #side .navtrack.drop{border-color:var(--accent2);background:#16262b}
-  .grp[hidden]{display:none}
-  #side .ttab{text-align:left;padding:8px 7px;font-size:11px;line-height:1.1}
-  #side .ttab.active{border-color:var(--accent2);color:var(--accent2);background:#16262b}
-  #side .ttab.d.active{border-color:var(--drum);color:var(--drum);background:#2a2118}
-  #trackLabel{color:var(--accent2);font-size:12px;font-weight:700;margin:0 0 6px;letter-spacing:.02em}
-  #main{flex:1;min-width:0;padding:10px;display:flex;flex-direction:column}
-  .hint{color:var(--muted);font-size:11px;margin:0 0 8px}
-  .vscroll{overflow:auto;border:1px solid var(--line);border-radius:6px;max-height:64vh;background:#0b0d10}
-  .row{display:flex;align-items:stretch}
-  .key{position:sticky;left:0;z-index:3;flex:0 0 56px;height:16px;display:flex;align-items:center;justify-content:flex-end;
-    padding-right:6px;font-size:10px;color:var(--muted);background:var(--panel);border-bottom:1px solid #191c22;border-right:1px solid var(--line)}
-  .key.black{background:#0a0c0f;color:#5b6270}
-  .steps-hdr{display:flex;position:sticky;top:0;z-index:4;background:var(--panel);border-bottom:1px solid var(--line)}
-  .steps-hdr .spacer{flex:0 0 56px;position:sticky;left:0;z-index:5;background:var(--panel)}
-  .scell{flex:0 0 20px;width:20px;text-align:center;font-size:9px;color:var(--muted);border-right:1px solid #191c22;padding:2px 0}
-  .scell.beat{color:var(--accent2);font-weight:700}
-  .cell{flex:0 0 20px;width:20px;height:16px;border-right:1px solid #191c22;border-bottom:1px solid #191c22;background:var(--key);cursor:pointer}
-  .cell.sel{outline:1px solid var(--accent);outline-offset:-1px}
-  #rollWrap{user-select:none;-webkit-user-select:none}
-  .cell.beat{border-left:1px solid #343b47}.cell.bar{background:#0f1217}.cell.blackrow{background:#0a0c0f}
-  .cell:hover{outline:1px solid var(--accent2);outline-offset:-1px}
-  .cell.on{background:var(--accent)!important}
-  .cell.tie{border-left:3px solid #fff}
-  .cell.slide{border-bottom:3px solid #fff}
-  .cell.ratchet{box-shadow:inset 0 0 0 2px rgba(255,255,255,.55)}
-  .flag.on{background:var(--accent2);color:#0b0b0b}
-  .dcell.on{background:var(--drum)!important}
-  .dlane{display:flex}
-  .dlabel{flex:0 0 56px;height:20px;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;font-size:10px;color:var(--drum);border-bottom:1px solid #191c22;background:var(--panel);position:sticky;left:0;z-index:3}
-  .dcell{width:20px;height:20px;flex:0 0 20px;border-right:1px solid #191c22;border-bottom:1px solid #191c22;background:var(--key);cursor:pointer}
-  .dcell.beat{border-left:1px solid #343b47}.dcell:hover{outline:1px solid var(--drum);outline-offset:-1px}
-  .lanes{margin-top:10px}
-  .lane{display:flex;align-items:center;gap:8px;margin:6px 0;border:1px solid var(--line);border-radius:6px;padding:8px;background:var(--panel)}
-  .ccbar{display:flex;gap:2px;overflow:auto}
-  .cc{width:20px;height:50px;background:var(--key);border:1px solid #191c22;position:relative;cursor:pointer;border-radius:2px;overflow:hidden;flex:0 0 20px}
-  .cc .fill{position:absolute;bottom:0;left:0;right:0;background:var(--accent2);opacity:.75}
-  .cc .lbl{position:absolute;top:1px;left:0;right:0;text-align:center;font-size:8px;color:#0d0f12}
-  #drawer{position:fixed;top:0;right:0;height:100%;width:340px;max-width:92vw;background:var(--panel);border-left:1px solid var(--line);
-    transform:translateX(100%);transition:transform .18s ease;z-index:60;display:flex;flex-direction:column;color:var(--fg)}
-  #drawer.open{transform:translateX(0)}
-  .dhead{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:10px 12px;border-bottom:1px solid var(--line)}
-  .dbody{overflow:auto;padding:10px 12px;flex:1}
-  .sec{margin-bottom:14px}.sec h3{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--accent2);margin:6px 0}
-  .fld{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:2px 0}
-  .fld span{color:var(--muted);font-size:11px}.fld input,.fld select{width:120px}
-  .arr4{display:flex;gap:3px}.arr4 input{width:32px!important}
-  .drawerTab.active{color:var(--accent);border-color:var(--accent)}
-  .grp select{background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:4px 6px;font:inherit;max-width:180px}
-  #sdstat{color:var(--muted);font-size:10px;max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .cell.sel{outline:2px solid #fff;outline-offset:-2px;z-index:1}
-  #ccHost{margin-top:6px;overflow-x:auto}
-  .cclane{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:6px;margin:6px 0;overflow:hidden;background:#0b0d10;width:max-content}
-  .cchead{flex:0 0 56px;position:sticky;left:0;z-index:3;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:var(--accent2);gap:4px;padding:4px 2px}
-  .cchead button{font-size:9px;padding:1px 4px}
-  .ccsvg{flex:0 0 auto;display:block;cursor:crosshair}
-  .ccsvg circle{fill:var(--accent2);stroke:#04342c;stroke-width:1;cursor:ns-resize}
-  .ccsvg polyline{fill:none;stroke:var(--accent2);stroke-width:1.5;opacity:.8}
-  .ccsvg .cgrid{stroke:#1c2230;stroke-width:1}
-  #sdbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:6px 0 8px;border-bottom:1px solid var(--line);margin-bottom:8px}
-  #sdbar select{max-width:150px}
-  #sdbar .sep{width:1px;height:18px;background:var(--line)}
-  #sdbar[hidden]{display:none}
-  #toast{position:fixed;right:14px;bottom:14px;background:var(--panel);border:1px solid var(--accent);color:var(--fg);padding:8px 12px;border-radius:6px;font-size:12px;opacity:0;transform:translateY(6px);transition:opacity .18s,transform .18s;pointer-events:none;z-index:50}
-  #toast.show{opacity:1;transform:translateY(0)}`;
-
+  :host{--bg:#101318;--panel:#191e25;--line:#303844;--muted:#9ba9ba;--fg:#e9eef5;--accent:#74dac1;display:block;background:var(--bg);color:var(--fg);font:13px/1.45 system-ui,sans-serif;min-height:78vh}
+  *{box-sizing:border-box}button,input,select{font:inherit;color:inherit}button,select,input[type=number],input[type=text]{border:1px solid var(--line);background:#222a34;border-radius:5px;padding:6px 9px}button{cursor:pointer;white-space:nowrap}button:hover{background:#303c49}button:disabled{opacity:.4;cursor:default}button.active{background:#294b45;border-color:var(--accent);color:var(--accent)}button.primary{background:var(--accent);color:#11251f;border-color:var(--accent);font-weight:650}:focus-visible{outline:2px solid var(--accent);outline-offset:2px}input[type=number]{width:67px}label{display:inline-flex;align-items:center;gap:5px;color:var(--muted);font-size:12px}label input{color:var(--fg)}
+  .top{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--line)}.brand{font-weight:700;font-size:14px;letter-spacing:.02em;margin-right:12px}.spacer{flex:1}.status{font-size:12px;color:var(--muted)}.lane-toolbar .status{font-size:10px}.dirty{color:#ffd184}.shell{display:grid;grid-template-columns:210px minmax(0,1fr)}aside{background:#141920;border-right:1px solid var(--line);padding:14px 10px;max-height:calc(100vh - 180px);overflow:auto}aside h2{font-size:10px;color:var(--muted);letter-spacing:.13em;margin:0 6px 12px}aside button{width:100%;text-align:left;margin-bottom:4px}details{margin:4px 0}summary{cursor:pointer;color:var(--muted);padding:5px}.pattern{padding-left:22px;font-size:12px}.work{min-width:0;padding:14px 18px 20px}.title{display:flex;align-items:center;gap:10px;margin-bottom:12px}.title strong{font-size:16px}.track-tabs{display:flex;gap:5px;margin:10px 0}.tools{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:10px 0}.tools .split{border-left:1px solid var(--line);height:20px;margin:0 3px}.help{color:var(--muted);font-size:11px;margin:9px 0}.warning{padding:10px;border:1px solid #765c2d;background:#30281a;color:#ffe0a2;border-radius:6px;margin-bottom:8px}.warning[hidden]{display:none}
+  .viewport{height:48vh;min-height:230px;overflow:auto;border:1px solid var(--line);border-radius:6px;position:relative;overscroll-behavior:contain;background:#11161d;touch-action:none;user-select:none}.sheet{position:relative;min-height:100%}.ruler{height:27px;position:sticky;top:0;z-index:5;background:#222a34;display:flex;margin-left:58px;border-bottom:1px solid #465263}.tick{position:absolute;top:4px;font:10px ui-monospace,monospace;color:var(--muted);padding-left:5px}.ruler .insert{height:27px;background:#74dac130;position:absolute;top:0;border-left:2px solid var(--accent)}.keyboard{position:sticky;left:0;z-index:4;width:58px;background:#252e3a}.key{width:58px;border-bottom:1px solid #45505f;text-align:right;padding-right:7px;font:10px ui-monospace,monospace;display:flex;align-items:center;justify-content:flex-end;cursor:pointer}.key.black{background:#111820;color:#9daabd}.key.c{color:#fff;background:#3b4655}.grid{position:absolute;top:27px;left:58px;right:0;bottom:0;background-image:linear-gradient(to right,#53637466 1px,transparent 1px),linear-gradient(to bottom,#39455577 1px,transparent 1px);cursor:default}.blackrow{position:absolute;left:0;right:0;background:#0003;pointer-events:none}.beatline{position:absolute;top:0;bottom:0;border-left:1px solid #8398b044;pointer-events:none}.note{position:absolute;border:1px solid #a4e8d0a0;border-radius:3px;min-height:8px;background:#5bbca3;color:#0b2720;font:10px ui-monospace,monospace;overflow:hidden;padding-left:4px;cursor:grab;display:flex;align-items:center;user-select:none}.note.selected{outline:2px solid #fff;outline-offset:-2px;color:#fff}.note.ghost{opacity:.5}.marquee{position:absolute;border:1px solid var(--accent);background:#74dac125;pointer-events:none;z-index:7}.playhead{position:absolute;top:27px;bottom:0;border-left:2px solid #fff;z-index:6;pointer-events:none}.loop-region{position:absolute;top:0;height:27px;background:#d6bc7530;border-top:3px solid #d6bc75;pointer-events:none}
+  .inspector{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--line)}.inspector span{font-size:12px;color:var(--muted)}.automation{margin-top:10px;min-height:110px;height:170px;resize:vertical;overflow:auto;border:1px solid var(--line);border-radius:6px}.lane-toolbar{display:flex;align-items:center;gap:7px;position:sticky;top:0;background:var(--panel);padding:8px;z-index:3;flex-wrap:wrap}.lane-scroll{overflow-x:auto;overflow-y:hidden}.lane{height:105px;position:relative;margin-left:58px;background:repeating-linear-gradient(to bottom,transparent 0,transparent 25px,#303c4955 25px,#303c4955 26px);cursor:crosshair}.value{position:absolute;bottom:0;min-width:4px;background:#74dac180;border-top:3px solid var(--accent);cursor:ns-resize}.value.selected{background:#74dac1bd;border-color:#fff}.value span{position:absolute;bottom:4px;left:2px;font-size:10px;color:#eafbf6}.lane-info{font-size:11px;color:var(--muted);padding:6px 12px}.settings{margin-top:12px;background:var(--panel);padding:12px;border-radius:6px}.settings[hidden]{display:none}.settings h3{margin:0 0 10px;font-size:12px}.settings .fields{display:flex;gap:12px;flex-wrap:wrap}.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:100;background:#283b39;border:1px solid var(--accent);padding:10px 18px;border-radius:7px;max-width:90vw;box-shadow:0 8px 30px #0008}.toast[hidden]{display:none}.modal{border:1px solid var(--line);border-radius:10px;background:#1c242e;color:var(--fg);max-width:500px;padding:24px}.modal::backdrop{background:#0009}.modal h2{margin-top:0}.modal .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}.modal p{color:var(--muted)}
+  @media(max-width:850px){.shell{grid-template-columns:150px minmax(0,1fr)}.work{padding:12px 10px}.top{padding:10px}.brand{width:100%}aside{padding:10px 6px}}@media(max-width:620px){.shell{grid-template-columns:1fr}aside{max-height:170px;border-bottom:1px solid var(--line)}.viewport{height:48vh}.title{flex-wrap:wrap}.top .status{width:100%}}`;
   const TPL = `
-  <header>
-    <h1>GC Pattern Editor</h1>
-    <div class="grp"><label>Steps</label><input id="stepsNum" type="number" min="1" max="128" value="32" style="width:62px"></div>
-    <div class="grp"><label>Vel</label><input id="vel" type="number" min="1" max="127" value="100" style="width:52px"><button id="applyVel" title="Apply Vel to selected notes">▸ sel</button></div>
-    <div class="grp" style="margin-left:auto">
-      <button id="settingsBtn">Settings</button>
-      <button id="importBtn">Import</button><input id="importFile" type="file" accept=".json" hidden>
-      <button id="exportBtn" class="primary">Export project</button>
-    </div>
-  </header>
-  <div id="app">
-    <div id="side"></div>
-    <div id="main">
-      <div id="sdbar">
-        <div class="grp"><button id="connectSD" class="primary">Open SD card</button><span id="sdstat"></span><button id="saveAll" disabled>Save to SD</button><button id="newProj">New</button><button id="delProj" disabled>Delete</button></div>
-        <span class="sep"></span>
-        <div class="grp" hidden><label>Project</label><select id="projSel" disabled></select></div>
-        <span class="sep"></span>
-        <div class="grp" hidden><label>Pattern</label><select id="patSel" disabled></select></div>
-      </div>
-      <div class="grp" id="trackTools" style="margin:6px 0">
-        <span id="trackLabel"></span>
-        <button id="clear">Clear track</button>
-      </div>
-      <div class="grp" id="flagCtl" style="margin:6px 0">
-        <label>Step flags</label>
-        <button id="tieStep" class="flag" title="Hold the note into the next step">Tie</button>
-        <button id="slideStep" class="flag" title="Slide into the next note">Slide</button>
-        <button id="ratStep" class="flag" title="Ratchet this step (amount from track settings)">Ratchet</button>
-        <span style="color:var(--muted);font-size:10px">last-clicked step</span>
-      </div>
-      <div class="hint" id="hint"></div><div id="rollWrap"></div>
-      <div id="ccSection"><div class="grp" id="ccCtl"><label>CC lane</label>
-        <input id="ccAdd" type="number" min="0" max="127" value="74" style="width:60px">
-        <button id="addCC">Add lane</button>
-        <span style="color:var(--muted);font-size:10px">click a lane to add a point · drag points · right-click removes</span>
-      </div><div id="ccHost"></div></div>
-      <div class="lanes" id="lanes"></div></div>
+  <div class="top"><span class="brand">GROUND CONTROL <span style="color:var(--muted);font-weight:400">/ PATTERN EDITOR</span></span>
+    <button id="play" title="Play / stop (Space)">▶ Play</button><button id="stop" title="Stop and return to start">■ Stop</button>
+    <label>BPM <input id="bpm" type="number" min="30" max="300" value="120"></label><button id="loop" class="active">Loop</button>
+    <span class="spacer"></span><span id="dirty" class="status" role="status">Saved locally</span><button id="open">Open SD card</button><button id="save" class="primary" disabled>Save changes</button>
   </div>
-  <div id="drawer"><div class="dhead"><strong style="color:var(--accent)">Settings</strong>
-    <div class="grp" id="drawerTabs"></div><button id="closeDrawer">✕</button></div>
-    <div class="dbody" id="drawerBody"></div></div>
-  <div id="toast"></div>`;
-
+  <div class="shell"><aside><h2>PROJECTS & PATTERNS</h2><div id="browser"></div><button id="newProject">+ New project</button><button id="import">Import file</button><input id="file" type="file" accept=".txt,.json" hidden><button id="export">Export editor project</button><button id="exportPattern">Export pattern file</button><button id="exportNotes">Export notes only</button><a class="help" href="docs/reference/editor.html" target="_blank" style="display:block;padding:6px;color:var(--accent)">Controls &amp; instructions ↗</a><button id="restore" hidden>Recover browser draft</button></aside>
+  <main class="work"><div class="title"><strong id="title"></strong><span class="spacer"></span><button id="newPattern">+ Pattern</button><button id="copyPattern">Copy pattern</button><button id="settingsBtn">Settings</button></div>
+  <div id="tracks" class="track-tabs"></div><div id="warning" class="warning" role="status" hidden></div>
+  <div class="tools"><button id="pointer" class="active" title="Select and move notes">↖ Select</button><button id="draw" title="Draw / erase (B)">✎ Draw</button><span class="split"></span><button id="undo" title="Undo (Cmd/Ctrl Z)">↶ Undo</button><button id="redo" title="Redo (Cmd/Ctrl Shift Z)">↷ Redo</button><button id="duplicate" title="Duplicate selection (Cmd/Ctrl D)">Duplicate</button><button id="delete">Delete</button><span class="split"></span><label>Steps <input id="length" type="number" min="1" max="128"></label><label>New velocity <input id="velocity" type="number" min="1" max="127" value="100"></label><span class="spacer"></span><label>Time <input id="zoomX" type="range" min="18" max="80" value="36" aria-label="Horizontal zoom" style="width:65px"></label><label>Pitch <input id="zoomY" type="range" min="12" max="30" value="20" aria-label="Vertical zoom" style="width:55px"></label><button id="fit">Fit notes</button><button id="fitTime">Fit pattern</button></div>
+  <div class="viewport" id="viewport" tabindex="0" aria-label="Piano roll. Double-click to insert. Drag notes to move. B toggles draw mode."><div class="sheet" id="sheet"></div></div>
+  <div class="inspector"><span id="selection">No notes selected</span><label>Velocity <input id="selectedVel" type="number" min="1" max="127" disabled></label><button id="tie" title="Tie applies to every note on selected steps">Tie</button><button id="slide">Slide</button><button id="ratchet">Ratchet</button><button id="clear">Clear pattern</button></div>
+  <div class="automation"><div class="lane-toolbar"><select id="lane" aria-label="Automation lane"><option value="velocity">Velocity</option></select><label>CC <input id="ccNumber" type="number" min="0" max="127" value="74"></label><button id="addCC">+ CC lane</button><button id="removeCC">Remove lane</button><label>Source <select id="ccSource" aria-label="CC recording source"><option value="0">MIDI / editor</option><option value="1">CV input 1</option><option value="2">CV input 2</option><option value="3">CV input 3</option><option value="4">CV input 4</option></select></label><label>Min <input id="ccMin" type="number" min="0" max="127" value="0" style="width:52px"></label><label>Max <input id="ccMax" type="number" min="0" max="127" value="127" style="width:52px"></label><label>Value <input id="ccValue" type="number" min="0" max="127" value="0" style="width:52px"></label><span class="spacer"></span><span class="status" id="laneStatus"></span></div><div id="laneScroll" class="lane-scroll"><div class="lane" id="laneGraph"></div></div><div class="lane-info">Drag to set values · Shift-drag velocity for a relative adjustment · Right-click to remove a CC point · Values are quantized to steps</div></div>
+  <div class="settings" id="settings" hidden><h3>Pattern and track settings</h3><div id="settingsFields" class="fields"></div><p class="help">Tie, slide and ratchet belong to the whole step. Notes use fixed steps; independent note lengths are not stored by the module.</p><p class="help">Preview uses a simple browser instrument with straight step timing. Hardware shuffle, generators, CV outputs and modulation behavior are not simulated.</p></div>
+  <div class="help" id="help">Double-click: insert/remove · Drag note: move · Drag empty space: select · Shift-click: add to selection · Option/Alt-drag: copy · B: draw · Space: play</div>
+  </main></div><div id="toast" class="toast" role="status" hidden></div>
+  <dialog id="dialog" class="modal"><h2 id="dialogTitle"></h2><p id="dialogText"></p><div id="dialogFields"></div><div id="dialogActions" class="actions"></div></dialog>`;
   class GCEditor extends HTMLElement {
     connectedCallback() {
-      if (this._init) return; this._init = true;
-      const r = this.attachShadow({ mode: "open" });
-      this._r = r;
-      r.innerHTML = `<style>${CSS}</style>${TPL}`;
-      const $ = id => r.querySelector("#" + id);
-      this.$ = $;
-
-      const MELODIC = [1, 2, 3], DRUM = 8;
-      const state = { steps: 32, track: 1, melodic: {}, drum: [], tset: {}, global: {}, cv: {}, drawerTab: "Global", sel: new Set(), ccLanes: [], pasteStep: 0, dirty: false, drag: null, suppressClick: false };
-      let toastTimer = null;
-      function toast(msg) {
-        const t = $("toast"); if (!t) return;
-        t.textContent = msg; t.classList.add("show");
-        clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
+      if (this.initialized) return;
+      this.initialized = true;
+      this.attachShadow({ mode: "open" }).innerHTML =
+        "<style>" + CSS + "</style>" + TPL;
+      this.$ = (id) => this.shadowRoot.getElementById(id);
+      this.model = new Model();
+      this.tree = {};
+      this.trackSettings = {};
+      this.projectSettings = {};
+      this.store = null;
+      this.mode = "pointer";
+      this.cellW = 36;
+      this.cellH = 20;
+      this.lane = "velocity";
+      this.extraLanes = new Set();
+      this.clipboard = [];
+      this.viewports = {};
+      this.playing = false;
+      this.looping = true;
+      this.loopStart = 0;
+      this.loopEnd = null;
+      this.busy = false;
+      for (const track of ["1", "2", "3", "D"])
+        this.model.open("projectA/" + track + "/A", F.blank(track === "D"));
+      this.model.key = "projectA/1/A";
+      this.model.listeners.add(() => {
+        this.render();
+        this.recover();
+      });
+      this.wire();
+      this.render();
+      this.fitNotes();
+      this.$("restore").hidden = !localStorage.getItem("gc-editor-v2-draft");
+      this._api = {
+        get model() {
+          return this.editor.model;
+        },
+        format: F,
+        editor: this,
+        loadPattern: (...a) => this.loadPattern(...a),
+        saveAll: () => this.saveAll(),
+      };
+      this.beforeUnload = (ev) => {
+        if (this.model.dirty) {
+          ev.preventDefault();
+          ev.returnValue = "";
+        }
+      };
+      window.addEventListener("beforeunload", this.beforeUnload);
+      this.visibility = () => {
+        if (document.hidden) this.stop();
+      };
+      document.addEventListener("visibilitychange", this.visibility);
+    }
+    disconnectedCallback() {
+      this.stop();
+      window.removeEventListener("beforeunload", this.beforeUnload);
+      document.removeEventListener("visibilitychange", this.visibility);
+    }
+    get p() {
+      return this.model.pattern;
+    }
+    get parts() {
+      return this.model.key.split("/");
+    }
+    toast(message) {
+      this.$("toast").textContent = message;
+      this.$("toast").hidden = false;
+      clearTimeout(this.toastTimer);
+      this.toastTimer = setTimeout(() => {
+        this.$("toast").hidden = true;
+      }, 4500);
+    }
+    guard(fn) {
+      return async (...args) => {
+        try {
+          return await fn(...args);
+        } catch (error) {
+          this.toast(error.message);
+          return false;
+        }
+      };
+    }
+    recover() {
+      try {
+        if (this.model.dirty)
+          localStorage.setItem(
+            "gc-editor-v2-draft",
+            JSON.stringify(this.model.export()),
+          );
+        else localStorage.removeItem("gc-editor-v2-draft");
+      } catch {
+        this.$("dirty").textContent = "Browser recovery storage unavailable";
       }
-      function markDirty() {
-        state.dirty = true;
-        try { localStorage.setItem("gc-editor-draft", JSON.stringify(exportJSON())); } catch (e) {}
+    }
+    async modal(title, text, actions, fields = "") {
+      if (this.$("dialog").open) return null;
+      this.$("dialogTitle").textContent = title;
+      this.$("dialogText").textContent = text;
+      this.$("dialogFields").innerHTML = fields;
+      return new Promise((resolve) => {
+        const dialog = this.$("dialog"),
+          host = this.$("dialogActions");
+        host.innerHTML = "";
+        const finish = (value) => {
+          dialog.close();
+          dialog.oncancel = null;
+          resolve(value);
+        };
+        for (const [value, label] of actions) {
+          const b = document.createElement("button");
+          b.textContent = label;
+          if (value === "save" || value === "ok") b.className = "primary";
+          b.onclick = () => finish(value);
+          host.append(b);
+        }
+        dialog.oncancel = (ev) => {
+          ev.preventDefault();
+          finish(null);
+        };
+        dialog.showModal();
+      });
+    }
+    selectedSteps() {
+      const steps = [...new Set(this.model.notes().map((n) => n.s))];
+      return steps.length ? steps : [this.model.cursor];
+    }
+    action(label, fn) {
+      if (this.busy) {
+        this.toast("Wait for the current save to finish");
+        return;
       }
-      async function maybeSave(reason) {
-        if (!state.dirty) return true;
-        const save = confirm("Unsaved changes.\n\nOK = save to the SD card first\nCancel = keep them stored in the browser");
-        if (save && sdDir && native.projectName) { await saveAll(); }
-        else { toast("Kept in the browser"); }
+      try {
+        this.model.transaction(label, fn);
+      } catch (error) {
+        this.toast(error.message);
+      }
+    }
+    async connect() {
+      if (this.busy) return;
+      if (!window.showDirectoryPicker) {
+        this.toast(
+          "Direct card access needs Chrome or Edge on HTTPS or localhost. You can still import and export files.",
+        );
+        return;
+      }
+      const dir =
+        window.__gcSD ||
+        (await window.showDirectoryPicker({ mode: "readwrite" }));
+      const attaching = !this.store && this.model.dirty;
+      if (!attaching && !(await this.leave())) return;
+      this.stop();
+      this.store = new Store(dir);
+      window.__gcSD = dir;
+      window.dispatchEvent(
+        new CustomEvent("gc-card-connected", { detail: dir }),
+      );
+      this.tree = await this.store.tree();
+      if (attaching) {
+        for (const key of Object.keys(this.model.documents)) {
+          const bytes = await this.store.optional(Store.path(key));
+          if (
+            bytes &&
+            JSON.stringify(this.model.documents[key]) === this.model.saved[key]
+          ) {
+            this.model.documents[key] = F.decode(
+              bytes,
+              key.split("/")[1] === "D",
+            );
+            this.model.saved[key] = JSON.stringify(this.model.documents[key]);
+          } else if (!bytes) delete this.model.saved[key];
+        }
+        await this.ensureWorkspace();
+        this.render();
+        this.toast("Card connected. Your editor workspace is ready to save.");
+        return;
+      }
+      this.model.documents = {};
+      this.model.saved = {};
+      this.model.settings = {};
+      this.model.savedSettings = {};
+      this.model.undoStack = [];
+      this.model.redoStack = [];
+      const project = Object.keys(this.tree).sort()[0];
+      if (!project) {
+        this.model.open("projectA/1/A", F.blank());
+        this.toast("Card opened. Create a project to get started.");
+        this.render();
+        return;
+      }
+      const track = ["1", "2", "3", "D"].find(
+        (t) => this.tree[project][t].length,
+      );
+      if (track)
+        await this.loadPattern(
+          project + "/" + track + "/" + this.tree[project][track][0],
+        );
+      else {
+        this.model.open(project + "/1/A", F.blank());
+        this.render();
+      }
+    }
+    async leave() {
+      if (this.busy) return false;
+      if (!this.model.dirty) return true;
+      const result = await this.modal(
+        "Unsaved changes",
+        "Save changes before replacing the current workspace?",
+        [
+          ["cancel", "Cancel"],
+          ["discard", "Discard"],
+          ["save", "Save"],
+        ],
+      );
+      if (result === "save") return await this.saveAll();
+      if (result !== "discard") return false;
+      this.model = this.resetModel();
+      return true;
+    }
+    resetModel() {
+      const model = new Model();
+      model.listeners.add(() => {
+        this.render();
+        this.recover();
+      });
+      model.open("projectA/1/A", F.blank());
+      return model;
+    }
+    async loadPattern(key) {
+      if (this.gesture) return;
+      this.stop();
+      this.saveViewport();
+      if (!this.model.documents[key]) {
+        const pattern = F.decode(
+          await this.store.read(Store.path(key)),
+          key.split("/")[1] === "D",
+        );
+        this.model.open(key, pattern);
+      } else this.model.open(key, this.model.documents[key]);
+      const [project, track] = key.split("/");
+      for (const path of [
+        [project, "ProjectSettings.txt"],
+        [project, "track" + track, "TrackSettings.txt"],
+      ]) {
+        const k = path.join("/");
+        if (!this.model.settings[k]) {
+          const value = (await this.store.json(path)) || {};
+          this.model.settings[k] = value;
+          this.model.savedSettings[k] = JSON.stringify(value);
+        }
+      }
+      this.$("bpm").value =
+        this.model.settings[project + "/ProjectSettings.txt"]?.BPM || 120;
+      this.extraLanes.clear();
+      this.lane = "velocity";
+      this.render();
+      this.restoreViewport();
+    }
+    async ensureWorkspace() {
+      const projects = [
+        ...new Set(
+          Object.keys(this.model.documents).map((k) => k.split("/")[0]),
+        ),
+      ];
+      for (const project of projects) {
+        const path = [project, "ProjectSettings.txt"],
+          key = path.join("/"),
+          existing = await this.store.json(path, { remember: false });
+        if (!this.model.settings[key]) {
+          this.model.settings[key] = existing || projectDefaults();
+          if (existing)
+            this.model.savedSettings[key] = JSON.stringify(existing);
+        }
+        if (existing)
+          this.model.settings[key] = {
+            ...existing,
+            ...this.model.settings[key],
+          };
+        if (!existing) {
+          this.model.settings[key] = {
+            ...projectDefaults(),
+            ...this.model.settings[key],
+          };
+          delete this.model.savedSettings[key];
+        }
+        for (const track of ["1", "2", "3", "D"]) {
+          const settingsPath = [project, "track" + track, "TrackSettings.txt"],
+            settingsKey = settingsPath.join("/"),
+            trackExists = await this.store.json(settingsPath, {
+              remember: false,
+            });
+          if (!this.model.settings[settingsKey]) {
+            this.model.settings[settingsKey] =
+              trackExists || trackDefaults(track);
+            if (trackExists)
+              this.model.savedSettings[settingsKey] =
+                JSON.stringify(trackExists);
+          }
+          if (trackExists)
+            this.model.settings[settingsKey] = {
+              ...trackExists,
+              ...this.model.settings[settingsKey],
+            };
+          if (!trackExists) {
+            this.model.settings[settingsKey] = {
+              ...trackDefaults(track),
+              ...this.model.settings[settingsKey],
+            };
+            delete this.model.savedSettings[settingsKey];
+          }
+          if (!existing) {
+            const patternKey = project + "/" + track + "/A";
+            if (!this.model.documents[patternKey]) {
+              const bytes = await this.store.optional(Store.path(patternKey));
+              this.model.documents[patternKey] = bytes
+                ? F.decode(bytes, track === "D")
+                : F.blank(track === "D");
+              if (bytes)
+                this.model.saved[patternKey] = JSON.stringify(
+                  this.model.documents[patternKey],
+                );
+            }
+          }
+        }
+      }
+    }
+    async saveAll() {
+      if (this.busy) return false;
+      if (!this.store) {
+        this.toast("Open an SD card to save, or export an editor project.");
+        return false;
+      }
+      this.busy = true;
+      this.inert = true;
+      this.stop();
+      this.render();
+      try {
+        await this.ensureWorkspace();
+        const pending = Object.entries(this.model.documents).filter(
+          ([k, p]) => JSON.stringify(p) !== this.model.saved[k],
+        );
+        const writes = pending.map(([k, p]) => [
+            k,
+            F.encode(p),
+            JSON.stringify(p),
+          ]),
+          settings = Object.entries(this.model.settings)
+            .filter(
+              ([k, v]) => JSON.stringify(v) !== this.model.savedSettings[k],
+            )
+            .map(([k, v]) => [k, F.clone(v)]);
+        for (const [key, bytes, version] of writes) {
+          await this.store.write(Store.path(key), bytes);
+          this.model.markSaved(key, version);
+        }
+        for (const [key, value] of settings) {
+          await this.store.writeJSON(key.split("/"), value);
+          this.model.savedSettings[key] = JSON.stringify(value);
+        }
+        this.tree = await this.store.tree();
+        this.toast(
+          "Saved and verified " +
+            writes.length +
+            " pattern(s). Previous files kept as .bak.",
+        );
         return true;
+      } catch (error) {
+        this.toast(
+          "Save stopped: " +
+            error.message +
+            ". Remaining changes are still in the editor.",
+        );
+        return false;
+      } finally {
+        this.busy = false;
+        this.inert = false;
+        this.render();
+        this.recover();
       }
-      function dragApply(s0, p0, s1, p1) {
-        const a = ensureMelodic(state.track);
-        const sLo = Math.min(s0, s1), sHi = Math.max(s0, s1);
-        const pLo = Math.min(p0, p1), pHi = Math.max(p0, p1);
-        state.sel = new Set();
-        for (let s = sLo; s <= sHi; s++) for (let p = pLo; p <= pHi; p++) {
-          if (a[s] && a[s].notes.find(q => q[0] === p)) state.sel.add(s + ":" + p);
+    }
+    async newProject() {
+      const choice = await this.modal(
+        "New project",
+        "Create an empty project in the editor. Nothing is written until you save.",
+        [
+          ["cancel", "Cancel"],
+          ["ok", "Create"],
+        ],
+        '<label>Name <input id="projectName" type="text" value="projectB" maxlength="40"></label>',
+      );
+      if (choice !== "ok") return;
+      const project = this.shadowRoot
+        .getElementById("projectName")
+        .value.trim();
+      if (!/^project[A-Z0-9_-]+$/i.test(project))
+        throw new Error(
+          "Use project followed by letters, numbers, hyphens or underscores",
+        );
+      if (
+        this.tree[project] ||
+        Object.keys(this.model.documents).some((k) =>
+          k.startsWith(project + "/"),
+        )
+      )
+        throw new Error("That project already exists");
+      this.action("New project", () => {
+        for (const track of ["1", "2", "3", "D"]) {
+          this.model.documents[project + "/" + track + "/A"] = F.blank(
+            track === "D",
+          );
+          this.model.settings[
+            project + "/track" + track + "/TrackSettings.txt"
+          ] = trackDefaults(track);
         }
-        const r = $("rollWrap");
-        if (!r) return;
-        r.querySelectorAll(".cell").forEach(c => {
-          const s = +c.dataset.s, p = +c.dataset.p;
-          c.classList.toggle("sel", state.sel.has(s + ":" + p));
+        this.model.settings[project + "/ProjectSettings.txt"] =
+          projectDefaults();
+        this.model.key = project + "/1/A";
+        this.model.selection.clear();
+      });
+      this.render();
+      this.fitNotes();
+    }
+    async newPattern(copy = false) {
+      const [project, track] = this.parts;
+      const used = new Set([
+        ...(this.tree[project]?.[track] || []),
+        ...Object.keys(this.model.documents)
+          .filter((k) => k.startsWith(project + "/" + track + "/"))
+          .map((k) => k.split("/")[2]),
+      ]);
+      const available = F.LETTERS.filter((l) => !used.has(l));
+      if (!available.length) throw new Error("All 24 pattern letters are used");
+      const choice = await this.modal(
+        copy ? "Copy pattern" : "New pattern",
+        "Choose a destination letter on this track. Existing patterns are preserved.",
+        [
+          ["cancel", "Cancel"],
+          ["ok", copy ? "Copy" : "Create"],
+        ],
+        '<label>Letter <select id="destLetter">' +
+          available.map((l) => "<option>" + l + "</option>").join("") +
+          "</select></label>",
+      );
+      if (choice !== "ok") return;
+      const key =
+        project +
+        "/" +
+        track +
+        "/" +
+        this.shadowRoot.getElementById("destLetter").value;
+      this.action(copy ? "Copy pattern" : "New pattern", () => {
+        this.model.documents[key] = copy
+          ? F.clone(this.p)
+          : F.blank(track === "D");
+        this.model.key = key;
+        this.model.selection.clear();
+      });
+    }
+    download(name, bytes, type) {
+      const url = URL.createObjectURL(new Blob([bytes], { type })),
+        a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+    async importFile(file) {
+      if (!file) return;
+      if (/\.json$/i.test(file.name)) {
+        let doc = JSON.parse(await file.text());
+        if (!doc.format && Array.isArray(doc.tracks))
+          doc = this.convertLegacy(doc);
+        const check = new Model();
+        check.import(doc);
+        if (!(await this.leave())) return;
+        this.model.import(doc);
+        this.store = null;
+        this.tree = {};
+        this.render();
+        this.toast(
+          "Imported editor project. Open the target SD card when ready to save.",
+        );
+      } else {
+        const pattern = F.decode(await file.arrayBuffer(), this.p.drum);
+        this.action("Import pattern", () => {
+          this.model.documents[this.model.key] = pattern;
+          this.model.selection.clear();
         });
+        this.fitNotes();
       }
-      const ensureMelodic = t => {
-        if (!state.melodic[t]) { state.melodic[t] = []; for (let i = 0; i < 128; i++) state.melodic[t].push({ notes: [], cc: [], modifier: 0, ratchet: 0 }); }
-        return state.melodic[t];
+    }
+    convertLegacy(doc) {
+      const documents = {},
+        settings = {
+          "projectA/ProjectSettings.txt": { BPM: doc.global?.BPM || 120 },
+        };
+      for (const tr of doc.tracks || []) {
+        if (![1, 2, 3].includes(+tr.index)) continue;
+        const p = F.blank();
+        p.length = Math.max(
+          1,
+          Math.min(128, tr.step_limit || doc.step_limit || doc.steps || 32),
+        );
+        const source =
+          tr.steps2 ||
+          (tr.steps || []).map((s) => ({
+            notes:
+              s.note && s.velocity > 0
+                ? [[F.noteToMidi(s.note), s.velocity]]
+                : [],
+            cc: [],
+            modifier: s.modifier,
+            ratchet: s.ratchet,
+          }));
+        source.slice(0, 128).forEach((s, i) => {
+          p.steps[i] = {
+            notes: F.clone(s.notes || []),
+            cc: F.clone(s.cc || []),
+            modifier: s.modifier || 0,
+            ratchet: s.ratchet || 0,
+          };
+        });
+        documents["projectA/" + tr.index + "/A"] = p;
+        settings["projectA/track" + tr.index + "/TrackSettings.txt"] = F.clone(
+          tr.settings || {},
+        );
+      }
+      if (doc.drum?.steps) {
+        const p = F.blank(true);
+        p.length = Math.max(1, Math.min(128, doc.steps || 32));
+        for (const s of doc.drum.steps)
+          if (s.index >= 0 && s.index < 128)
+            p.steps[s.index].notes = (s.triggers || []).map((t) => [
+              t.pad - 1,
+              t.velocity,
+            ]);
+        documents["projectA/D/A"] = p;
+      }
+      if (!Object.keys(documents).length)
+        throw new Error("This JSON contains no supported tracks");
+      return {
+        format: "gc-editor",
+        version: 2,
+        documents,
+        settings,
+        active: Object.keys(documents)[0],
       };
-      const ensureDrum = () => { while (state.drum.length < 128) state.drum.push({ pads: {}, ratchet: 0, modifier: 0 }); return state.drum; };
-      const flagAt = () => ensureMelodic(state.track)[state.pasteStep || 0];
-      function syncFlags() {
-        const st = flagAt(), t = $("tieStep"), sl = $("slideStep"), r = $("ratStep");
-        if (!st || !t) return;
-        t.classList.toggle("on", !!(st.modifier & 1));
-        sl.classList.toggle("on", !!(st.modifier & 2));
-        r.classList.toggle("on", !!st.ratchet);
+    }
+    renderBrowser() {
+      const projects = F.clone(this.tree);
+      for (const key of Object.keys(this.model.documents)) {
+        const [p, t, l] = key.split("/");
+        projects[p] ||= {};
+        projects[p][t] ||= [];
+        if (!projects[p][t].includes(l)) projects[p][t].push(l);
       }
-
-      const F = (k, label, def, type = "num", extra = {}) => Object.assign({ k, label, def, type }, extra);
-      const GLOBAL_FIELDS = [
-        F("BPM", "BPM", 120, "num", { min: 30, max: 300 }), F("MasterClockSource", "Clock src", 0, "sel", { opts: ["Internal", "Jack", "USB", "MIDI"] }),
-        F("OutputClockDivider", "Out clk div", 0, "num", { min: 0, max: 16 }), F("ResetOutputMode", "Reset mode", 0, "num", { min: 0, max: 3 }),
-        F("ClockOnStop", "Clock on stop", 0, "num", { min: 0, max: 1 }), F("RxTransport", "Rx transport", 1, "num", { min: 0, max: 1 }),
-        F("TxTransport", "Tx transport", 1, "num", { min: 0, max: 1 }), F("KeyLed", "Key LED", 1, "num", { min: 0, max: 1 }),
-        F("GateLed", "Gate LED", 1, "num", { min: 0, max: 1 }), F("MenuTimeout", "Menu timeout", 10, "num", { min: 0, max: 120 }),
-        F("TapTempo", "Tap tempo", 2, "num", { min: 1, max: 8 }), F("StartPattern", "Start pattern", 0, "num", { min: 0, max: 23 }),
-        F("SnapAlgo", "Snap algo", 0, "num", { min: 0, max: 3 }), F("MidiHostLoopback", "Host loopback", 0, "num", { min: 0, max: 1 }),
-        F("MidiHostToDeviceForward", "Host→Dev fwd", 0, "num", { min: 0, max: 1 }), F("MidiDeviceToHostForward", "Dev→Host fwd", 0, "num", { min: 0, max: 1 }),
-        F("TracksLocked", "Tracks locked", 0, "num", { min: 0, max: 1 }), F("BuzzerEnabled", "Buzzer", 0, "num", { min: 0, max: 1 }),
-        F("BuzzerTrack", "Buzzer track", 0, "num", { min: 0, max: 12 }), F("channelTx", "MIDI TX ch[4]", 0, "arr4", { min: 1, max: 16, defArr: [1, 2, 3, 4] }),
-        F("channelRx", "MIDI RX ch[4]", 0, "arr4", { min: 1, max: 16, defArr: [1, 2, 3, 4] }), F("enableTx", "Enable TX[4]", 0, "arr4", { min: 0, max: 1, defArr: [1, 1, 1, 1] }),
-        F("enableRx", "Enable RX[4]", 0, "arr4", { min: 0, max: 1, defArr: [1, 1, 1, 1] }), F("OmniChannel", "Omni[4]", 0, "arr4", { min: 0, max: 1, defArr: [0, 0, 0, 0] })
-      ];
-      const TRACK_FIELDS = [
-        F("Scale", "Scale", 0, "sel", { opts: ["Chromatic", "Major", "Minor", "PentaMaj", "PentaMin", "Dorian", "Drum"] }), F("Root", "Root", 0, "num", { min: 0, max: 11 }),
-        F("direction", "Direction", 0, "sel", { opts: ["Forward", "Reverse", "Pendulum", "Random"] }), F("shuffle", "Shuffle", 0, "num", { min: 0, max: 100 }),
-        F("humanize", "Humanize", 0, "num", { min: 0, max: 100 }), F("ratchet", "Ratchet", 0, "num", { min: 0, max: 8 }),
-        F("gatelength", "Gate length", 64, "num", { min: 0, max: 127 }), F("slide", "Slide", 0, "num", { min: 0, max: 127 }),
-        F("ArpEngaged", "Arp engaged", 0, "num", { min: 0, max: 1 }), F("ArpMode", "Arp mode", 0, "num", { min: 0, max: 7 }),
-        F("ArpLatch", "Arp latch", 0, "num", { min: 0, max: 1 }), F("ArpSuperLatch", "Arp super-latch", 0, "num", { min: 0, max: 1 }),
-        F("modulationTrack", "Mod track", 0, "num", { min: 0, max: 3 }), F("modulationSubtrack", "Mod subtrack", 0, "num", { min: 0, max: 3 }),
-        F("PolyFrom", "Polyrhythm from", 1, "num", { min: 1, max: 32 }), F("PolyTo", "Polyrhythm to", 1, "num", { min: 1, max: 32 })
-      ];
-      const CV_FIELDS = [F("Type", "Type", 0, "sel", { opts: ["Off", "Pattern shift", "Semitone", "Octave", "Shuffle", "Ratchets", "Slide", "Gate len", "CC", "Pattern"] }), F("Param", "Param", 0, "num", { min: 0, max: 127 })];
-      const defVal = f => f.type === "arr4" ? (f.defArr || [0, 0, 0, 0]).slice() : (f.def !== undefined ? f.def : 0);
-      (function seed() {
-        for (const f of GLOBAL_FIELDS) if (state.global[f.k] === undefined) state.global[f.k] = defVal(f);
-        for (let c = 1; c <= 4; c++) { if (!state.cv[c]) state.cv[c] = {}; for (const f of CV_FIELDS) if (state.cv[c][f.k] === undefined) state.cv[c][f.k] = defVal(f); }
-        for (const t of MELODIC.concat(["D"])) { if (!state.tset[t]) state.tset[t] = {}; for (const f of TRACK_FIELDS) if (state.tset[t][f.k] === undefined) state.tset[t][f.k] = defVal(f); }
-      })();
-
-      // ---- melodic (full 0..127 piano roll) ----
-      const NS = "http://www.w3.org/2000/svg";
-      const noteIndex = (step, pitch) => ensureMelodic(state.track)[step].notes.findIndex(p => p[0] === pitch);
-      const cellOn = (step, pitch) => noteIndex(step, pitch) >= 0;
-      const keyOf = (s, p) => s + ":" + p;
-      const noteAt = (s, p) => { const i = noteIndex(s, p); return i >= 0 ? ensureMelodic(state.track)[s].notes[i] : null; };
-      const isSel = (s, p) => state.sel.has(keyOf(s, p));
-      const velColor = v => { v = Math.max(0, Math.min(127, v | 0)); const l = 28 + 36 * (v / 127); return "hsl(356,72%," + l.toFixed(0) + "%)"; };
-      const cellEl = (s, p) => { const rows = $("rollWrap").querySelectorAll('.row'); const row = rows[127 - p]; return row ? row.querySelectorAll('.cell')[s] : null; };
-      function updateCell(s, p) { const c = cellEl(s, p); if (!c) return; const nv = noteAt(s, p), f = ensureMelodic(state.track)[s]; c.classList.toggle('sel', isSel(s, p)); c.style.background = nv ? velColor(nv[1]) : ''; c.classList.toggle('tie', !!(f.modifier & 1)); c.classList.toggle('slide', !!(f.modifier & 2)); c.classList.toggle('ratchet', !!f.ratchet); }
-      function selectOrToggle(s, p, ev) {
-        const list = ensureMelodic(state.track)[s].notes, i = list.findIndex(x => x[0] === p), k = keyOf(s, p);
-        const oldSel = new Set(state.sel);
-        state.pasteStep = s;
-        syncFlags();
-        if (i < 0) { if (list.length >= 8) return; list.push([p, +$("vel").value || 100]); state.sel = new Set([k]); markDirty(); }
-        else if (ev && ev.shiftKey) { if (state.sel.has(k)) state.sel.delete(k); else state.sel.add(k); }
-        else state.sel = new Set([k]);
-        const touched = new Set([...oldSel, ...state.sel]);
-        touched.forEach(x => { const q = x.split(':'); updateCell(+q[0], +q[1]); });
+      const [current] = this.parts,
+        host = this.$("browser");
+      host.innerHTML = Object.keys(projects)
+        .sort()
+        .map(
+          (project) =>
+            "<details " +
+            (project === current ? "open" : "") +
+            "><summary>" +
+            esc(project) +
+            "</summary>" +
+            ["1", "2", "3", "D"]
+              .map(
+                (t) =>
+                  "<details " +
+                  (project === current && this.parts[1] === t ? "open" : "") +
+                  "><summary>Track " +
+                  t +
+                  "</summary>" +
+                  (projects[project][t] || [])
+                    .sort((a, b) => F.LETTERS.indexOf(a) - F.LETTERS.indexOf(b))
+                    .map((l) => {
+                      const k = project + "/" + t + "/" + l,
+                        dirty =
+                          this.model.documents[k] &&
+                          JSON.stringify(this.model.documents[k]) !==
+                            this.model.saved[k];
+                      return (
+                        '<button class="pattern ' +
+                        (k === this.model.key ? "active" : "") +
+                        '" data-key="' +
+                        esc(k) +
+                        '">Pattern ' +
+                        l +
+                        (dirty ? " •" : "") +
+                        "</button>"
+                      );
+                    })
+                    .join("") +
+                  "</details>",
+              )
+              .join("") +
+            "</details>",
+        )
+        .join("");
+      host.querySelectorAll("[data-key]").forEach((b) => {
+        b.onclick = this.guard(() => this.switchPattern(b.dataset.key));
+      });
+    }
+    async switchPattern(key) {
+      if (this.busy) return;
+      if (this.store) await this.loadPattern(key);
+      else {
+        this.stop();
+        this.saveViewport();
+        this.model.open(key, this.model.documents[key]);
+        this.restoreViewport();
       }
-      function removeNote(s, p) { const list = ensureMelodic(state.track)[s].notes, i = list.findIndex(x => x[0] === p); if (i >= 0) { list.splice(i, 1); state.sel.delete(keyOf(s, p)); markDirty(); updateCell(s, p); } }
-      const toggleNote = (s, p) => { const st = ensureMelodic(state.track)[s], i = noteIndex(s, p); if (i >= 0) st.notes.splice(i, 1); else if (st.notes.length < 8) st.notes.push([p, +$("vel").value]); paint(); };
-      const setCCval = (s, num, v) => { const st = ensureMelodic(state.track)[s]; v = Math.max(0, Math.min(127, v | 0)); const i = st.cc.findIndex(c => c[0] === num); if (i >= 0) st.cc[i][1] = v; else st.cc.push([num, v]); };
-      const delCCval = (s, num) => { const st = ensureMelodic(state.track)[s]; const i = st.cc.findIndex(c => c[0] === num); if (i >= 0) st.cc.splice(i, 1); };
-      const setCC = (s, num, val) => { if (val === null) delCCval(s, num); else setCCval(s, num, val); buildCC(); };
-
-      function buildMelodic() {
-        const w = $("rollWrap");
-        const prevVs = w.querySelector('.vscroll');
-        const prevTop = prevVs ? prevVs.scrollTop : null;
-        const prevLeft = prevVs ? prevVs.scrollLeft : null;
-        w.innerHTML = "";
-        const mc = ensureMelodic(state.track);
-        const vs = document.createElement("div"); vs.className = "vscroll";
-        const hdr = document.createElement("div"); hdr.className = "steps-hdr";
-        const sp = document.createElement("div"); sp.className = "spacer"; hdr.appendChild(sp);
-        for (let s = 0; s < state.steps; s++) { const d = document.createElement("div"); d.className = "scell" + (s % 4 === 0 ? " beat" : ""); d.textContent = (s % 4 === 0) ? (s + 1) : ""; hdr.appendChild(d); }
-        vs.appendChild(hdr);
-        for (let pitch = 127; pitch >= 0; pitch--) {
-          const row = document.createElement("div"); row.className = "row";
-          const k = document.createElement("div"); k.className = "key" + (isBlack(pitch) ? " black" : ""); k.textContent = noteName(pitch); row.appendChild(k);
-          for (let s = 0; s < state.steps; s++) {
-            const c = document.createElement("div");
-            const nv = noteAt(s, pitch), f = mc[s];
-            c.className = "cell" + (isBlack(pitch) ? " blackrow" : "") + (s % 4 === 0 ? " beat" : "") + (s % 16 === 0 ? " bar" : "") + (isSel(s, pitch) ? " sel" : "") + (f.modifier & 1 ? " tie" : "") + (f.modifier & 2 ? " slide" : "") + (f.ratchet ? " ratchet" : "");
-            if (nv) c.style.background = velColor(nv[1]);
-            c.dataset.s = s; c.dataset.p = pitch;
-            c.addEventListener("click", ev => { if (state.suppressClick) { state.suppressClick = false; return; } selectOrToggle(s, pitch, ev); });
-            c.addEventListener("contextmenu", ev => { ev.preventDefault(); removeNote(s, pitch); });
-            row.appendChild(c);
-          }
-          vs.appendChild(row);
-        }
-        w.appendChild(vs);
-        // keep the CC automation lanes horizontally locked to the step columns
-        const ch = $("ccHost");
-        if (ch) vs.addEventListener("scroll", () => { ch.scrollLeft = vs.scrollLeft; ch.dataset.synced = "1"; });
-        // keep the view where the user left it; only center on the first render
-        requestAnimationFrame(() => {
-          const t = (prevTop != null) ? prevTop : ((127 - 60) * 16 - 120);
-          void vs.scrollHeight;                 // force layout so the clamp doesn't eat it
-          vs.scrollTop = t;
-          if (prevLeft != null) vs.scrollLeft = prevLeft;
-          setTimeout(() => { vs.scrollTop = t; if (prevLeft != null) vs.scrollLeft = prevLeft; }, 0);
-        });
-        buildCC();
-        syncFlags();
-      }
-      function buildCC() {
-        const host = $("ccHost"); if (!host) return; const prevLeft = host.scrollLeft; host.innerHTML = "";
-        const mc = ensureMelodic(state.track), W = state.steps * 20, H = 64;
-        state.ccLanes.forEach(num => {
-          const lane = document.createElement("div"); lane.className = "cclane";
-          const head = document.createElement("div"); head.className = "cchead";
-          head.appendChild(document.createTextNode("CC " + num));
-          const xb = document.createElement("button"); xb.textContent = "✕";
-          xb.onclick = () => { state.ccLanes = state.ccLanes.filter(n => n !== num); buildCC(); };
-          head.appendChild(xb); lane.appendChild(head);
-          const svg = document.createElementNS(NS, "svg");
-          svg.setAttribute("class", "ccsvg"); svg.setAttribute("viewBox", "0 0 " + W + " " + H);
-          svg.setAttribute("width", W); svg.setAttribute("height", H);
-          for (let s = 0; s <= state.steps; s += 4) { const ln = document.createElementNS(NS, "line"); ln.setAttribute("class", "cgrid"); ln.setAttribute("x1", s * 20); ln.setAttribute("y1", 0); ln.setAttribute("x2", s * 20); ln.setAttribute("y2", H); svg.appendChild(ln); }
-          const pts = [];
-          for (let s = 0; s < state.steps; s++) { const e = mc[s].cc.find(c => c[0] === num); if (e) pts.push([s, e[1]]); }
-          const yOf = v => H - 3 - (v / 127) * (H - 8);
-          if (pts.length > 1) { const pl = document.createElementNS(NS, "polyline"); pl.setAttribute("points", pts.map(([s, v]) => (s * 20 + 10) + "," + yOf(v)).join(" ")); svg.appendChild(pl); }
-          pts.forEach(([s, v]) => {
-            const c = document.createElementNS(NS, "circle"); c.setAttribute("cx", s * 20 + 10); c.setAttribute("cy", yOf(v)); c.setAttribute("r", 4);
-            c.addEventListener("pointerdown", ev => {
-              ev.preventDefault(); ev.stopPropagation();
-              const rect = svg.getBoundingClientRect();
-              const move = e2 => { const y = e2.clientY - rect.top; const val = Math.round((H - 3 - Math.max(0, Math.min(H - 8, y))) / (H - 8) * 127); setCCval(s, num, val); buildCC(); };
-              const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
-              window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
-            });
-            c.addEventListener("contextmenu", ev => { ev.preventDefault(); ev.stopPropagation(); delCCval(s, num); buildCC(); });
-            svg.appendChild(c);
-          });
-          svg.addEventListener("click", ev => {
-            if (ev.target !== svg) return;
-            const rect = svg.getBoundingClientRect();
-            const s = Math.max(0, Math.min(state.steps - 1, Math.floor((ev.clientX - rect.left) / 20)));
-            const y = ev.clientY - rect.top;
-            const val = Math.round((H - 3 - Math.max(0, Math.min(H - 8, y))) / (H - 8) * 127);
-            setCCval(s, num, val); buildCC();
-          });
-          lane.appendChild(svg); host.appendChild(lane);
-        });
-        if (!state.ccLanes.length) { const e = document.createElement("div"); e.className = "hint"; e.textContent = "No CC lanes. Pick a CC# above and Add lane to draw automation."; host.appendChild(e); }
-        host.scrollLeft = prevLeft;
-      }
-
-      // ---- drum ----
-      const toggleDrum = (step, pad) => { const d = ensureDrum()[step]; if (d.pads[pad] !== undefined) delete d.pads[pad]; else d.pads[pad] = +$("vel").value; paint(); };
-      function buildDrum() {
-        const w = $("rollWrap"); w.innerHTML = "";
-        const vs = document.createElement("div"); vs.className = "vscroll";
-        const hdr = document.createElement("div"); hdr.className = "steps-hdr";
-        const sp = document.createElement("div"); sp.className = "spacer"; hdr.appendChild(sp);
-        for (let s = 0; s < state.steps; s++) { const d = document.createElement("div"); d.className = "scell" + (s % 4 === 0 ? " beat" : ""); d.textContent = (s % 4 === 0) ? (s + 1) : ""; hdr.appendChild(d); }
-        vs.appendChild(hdr);
-        const drum = ensureDrum();
-        for (let pad = 1; pad <= DRUM; pad++) {
-          const ln = document.createElement("div"); ln.className = "dlane";
-          const lb = document.createElement("div"); lb.className = "dlabel"; lb.textContent = "Drum " + pad; ln.appendChild(lb);
-          for (let s = 0; s < state.steps; s++) { const c = document.createElement("div"); c.className = "dcell" + (s % 4 === 0 ? " beat" : "") + (drum[s].pads[pad] !== undefined ? " on" : ""); c.addEventListener("click", () => toggleDrum(s, pad)); ln.appendChild(c); }
-          vs.appendChild(ln);
-        }
-        w.appendChild(vs);
-        $("lanes").innerHTML = '<div class="lane"><label>Drum map</label><span style="color:#8b93a1">38,40,41,43,45,47,48,50 (pads 1-8)</span></div>';
-      }
-
-      // ---- left track bar ----
-      async function copyTrackPattern(sp, st, L, dp, dt) {
-        if (sp === dp && st === dt) return;
-        const srcDir = [sp, 'track' + st], dstDir = [dp, 'track' + dt];
-        const srcPat = srcDir.concat('pattern' + L + '.txt'), dstPat = dstDir.concat('pattern' + L + '.txt');
-        try {
-          if (!(await existsFile(sdDir, srcPat))) return toast('No pattern ' + L + ' on that track');
-          await backup(sdDir, dstPat);
-          await wr(sdDir, dstPat, await rd(sdDir, srcPat));
-          if (st !== 'D' && dt !== 'D') {
-            const srcPoly = srcDir.concat('poly' + L), dstPoly = dstDir.concat('poly' + L);
-            if (await existsFile(sdDir, srcPoly)) { await backupBytes(sdDir, dstPoly); await wrBytes(sdDir, dstPoly, await rdBytes(sdDir, srcPoly)); }
-          }
-          toast('Copied ' + sp + ' Track ' + st + ' Pattern ' + L + ' → ' + dp + ' Track ' + dt);
-          await refreshProjects(dp); paint();
-        } catch (e) { toast('Copy failed: ' + e.message); }
-      }
-      function buildTrackbar() {
-        const t = $("side"); t.innerHTML = "";
-        if (native.projects && native.projects.length) {
-          const nav = document.createElement("div"); nav.className = "nav";
-          native.projects.forEach(p => {
-            const openMap = state.navOpen || (state.navOpen = {});
-            const pKey = 'p:' + p, pOpen = openMap[pKey] !== false;
-            const pb = document.createElement("button");
-            pb.className = "navproj" + (native.projectName === p ? " active" : "");
-            pb.textContent = (pOpen ? "▾ " : "▸ ") + p;
-            pb.onclick = async () => {
-              openMap[pKey] = !pOpen;
-              if (!pOpen) { await maybeSave("project"); await loadProject(p, "A"); }
-              paint();
-            };
-            nav.appendChild(pb);
-            if (!pOpen) return;
-            const open = async (tr, L) => {
-              await maybeSave("pattern"); await loadProject(p, L || "A");
-              state.track = tr; state.sel = new Set();
-              if (native.len[tr]) state.steps = native.len[tr];
-              const sn = $("stepsNum"); if (sn) sn.value = state.steps;
-              paint();
-            };
-            ["1", "2", "3", "D"].forEach(tr => {
-              const letters = (native.tree[p] && native.tree[p][tr]) || [];
-              const tKey = p + ':' + tr, tOpen = !!openMap[tKey];
-              const tb = document.createElement("button");
-              tb.className = "navtrack" + (native.projectName === p && state.track === tr ? " active" : "");
-              tb.textContent = (tOpen ? "▾ " : "▸ ") + "Track " + tr + (letters.length ? "" : " (empty)");
-              tb.onclick = () => { openMap[tKey] = !tOpen; paint(); };
-              tb.ondragover = e => { e.preventDefault(); tb.classList.add('drop'); };
-              tb.ondragleave = () => tb.classList.remove('drop');
-              tb.ondrop = async e => {
-                e.preventDefault(); tb.classList.remove('drop');
-                let d; try { d = JSON.parse(e.dataTransfer.getData('text/plain')); } catch (x) { return; }
-                if (d && d.project && d.track && d.L) await copyTrackPattern(d.project, d.track, d.L, p, tr);
-              };
-              nav.appendChild(tb);
-              if (!tOpen) return;
-              letters.forEach(L => {
-                const b = document.createElement("button");
-                b.className = "navpat" + (native.projectName === p && state.track === tr && (native.pattern || "A") === L ? " active" : "");
-                b.textContent = "Pattern " + L;
-                b.draggable = true;
-                b.ondragstart = e => e.dataTransfer.setData('text/plain', JSON.stringify({ project: p, track: tr, L }));
-                b.onclick = () => open(tr, L);
-                nav.appendChild(b);
+    }
+    render() {
+      if (!this.p) return;
+      const [project, track, letter] = this.parts;
+      this.$("title").textContent =
+        project + " / Track " + track + " / Pattern " + letter;
+      const settingsDirty = Object.keys(this.model.settings).some(
+        (k) =>
+          JSON.stringify(this.model.settings[k]) !==
+          this.model.savedSettings[k],
+      );
+      this.$("dirty").textContent =
+        this.model.dirty || settingsDirty
+          ? "● Unsaved changes"
+          : "All changes saved";
+      this.$("dirty").classList.toggle(
+        "dirty",
+        this.model.dirty || settingsDirty,
+      );
+      this.$("save").disabled =
+        !this.store || this.busy || (!this.model.dirty && !settingsDirty);
+      this.$("open").disabled = this.busy;
+      this.$("length").value = this.p.length;
+      this.$("bpm").value =
+        this.model.settings[project + "/ProjectSettings.txt"]?.BPM || 120;
+      this.$("undo").disabled = !this.model.undoStack.length;
+      this.$("redo").disabled = !this.model.redoStack.length;
+      this.$("pointer").classList.toggle("active", this.mode === "pointer");
+      this.$("draw").classList.toggle("active", this.mode === "draw");
+      this.$("tracks").innerHTML = ["1", "2", "3", "D"]
+        .map(
+          (t) =>
+            '<button data-track="' +
+            t +
+            '" class="' +
+            (t === track ? "active" : "") +
+            '">' +
+            (t === "D" ? "Drums" : "Track " + t) +
+            "</button>",
+        )
+        .join("");
+      this.$("tracks")
+        .querySelectorAll("button")
+        .forEach((b) => {
+          b.onclick = this.guard(async () => {
+            const k = project + "/" + b.dataset.track + "/" + letter;
+            if (
+              !this.model.documents[k] &&
+              !(this.tree[project]?.[b.dataset.track] || []).includes(letter)
+            ) {
+              this.stop();
+              this.saveViewport();
+              this.action("New pattern", () => {
+                this.model.documents[k] = F.blank(b.dataset.track === "D");
+                this.model.key = k;
+                this.model.selection.clear();
+                this.model.cursor = 0;
               });
-            });
+              this.restoreViewport();
+              this.toast(
+                "New unsaved pattern " +
+                  letter +
+                  " on Track " +
+                  b.dataset.track,
+              );
+              return;
+            }
+            await this.switchPattern(k);
           });
-          t.appendChild(nav);
+        });
+      const ccPresent =
+          this.p.steps.some((s) => s.cc.length) ||
+          Object.keys(this.p.ccSources || {}).length ||
+          this.p.ccLanes?.length,
+        warnings = this.p.warnings.slice();
+      if (ccPresent)
+        warnings.push(
+          "CC automation requires the experimental v0.10.0-alpha.1 firmware. v0.9.0 reads chords but does not play these controller lanes.",
+        );
+      this.$("warning").hidden = !warnings.length;
+      this.$("warning").textContent = warnings.join(" ");
+      this.renderBrowser();
+      this.renderRoll();
+      this.renderInspector();
+      this.renderLanes();
+      this.renderSettings();
+    }
+    renderRoll() {
+      const scroll = this.$("viewport"),
+        top = scroll.scrollTop,
+        left = scroll.scrollLeft,
+        count = this.p.drum ? 8 : 128,
+        width = this.p.length * this.cellW,
+        height = count * this.cellH;
+      let keys = "",
+        rows = "",
+        beats = "",
+        notes = "",
+        ticks = "";
+      for (let i = 0; i < count; i++) {
+        const pitch = count - 1 - i,
+          black = !this.p.drum && [1, 3, 6, 8, 10].includes(pitch % 12);
+        keys +=
+          '<div class="key ' +
+          (black ? "black" : pitch % 12 === 0 ? "c" : "") +
+          '" data-pitch="' +
+          pitch +
+          '" style="height:' +
+          this.cellH +
+          'px">' +
+          (this.p.drum ? "Pad " + (pitch + 1) : F.displayNote(pitch)) +
+          "</div>";
+        if (black)
+          rows +=
+            '<div class="blackrow" style="top:' +
+            i * this.cellH +
+            "px;height:" +
+            this.cellH +
+            'px"></div>';
+      }
+      for (let s = 0; s < this.p.length; s++) {
+        if (!(s % 4)) {
+          beats +=
+            '<div class="beatline" style="left:' +
+            s * this.cellW +
+            "px;" +
+            (!(s % 16) ? "border-color:#9eb1c299" : "") +
+            '"></div>';
+          ticks +=
+            '<span class="tick" style="left:' +
+            s * this.cellW +
+            'px">' +
+            (s + 1) +
+            "</span>";
         }
-        const g = document.createElement("div"); g.style.cssText = "margin-top:auto;color:#8b93a1;font-size:10px;padding:6px 2px"; g.textContent = "128 steps · MIDI 0–127"; t.appendChild(g);
-      }
-      function paint() {
-        buildTrackbar();
-        const isD = state.track === "D";
-        $("hint").textContent = isD ? "Track D (drums): click a lane cell to place a trigger." : "Click to add/select · shift-click multi-select · right-click deletes · drag CC points to draw automation · Ctrl/Cmd C/V copies notes.";
-        const tl = $("trackLabel");
-        if (tl) tl.textContent = (isD ? "Showing Track D (drums)" : "Showing Track " + state.track) + " · " + state.steps + " steps" + (native.projectName ? " · " + native.projectName : "");
-        const cs = $("ccSection"); if (cs) cs.style.display = isD ? "none" : "";
-        if (isD) buildDrum(); else buildMelodic();
-      }
-
-      // ---- settings drawer ----
-      function renderFields(fields, store, onChange) {
-        const frag = document.createDocumentFragment();
-        for (const f of fields) {
-          const row = document.createElement("div"); row.className = "fld";
-          const lbl = document.createElement("span"); lbl.textContent = f.label; row.appendChild(lbl);
-          if (f.type === "sel") {
-            const s = document.createElement("select"); f.opts.forEach((o, i) => { const op = document.createElement("option"); op.value = i; op.textContent = o; s.appendChild(op); });
-            s.value = store[f.k]; s.onchange = () => { store[f.k] = +s.value; onChange && onChange(); }; row.appendChild(s);
-          } else if (f.type === "arr4") {
-            const wrap = document.createElement("div"); wrap.className = "arr4"; const arr = store[f.k] || (store[f.k] = defVal(f));
-            for (let i = 0; i < 4; i++) { const inp = document.createElement("input"); inp.type = "number"; inp.min = f.min; inp.max = f.max; inp.value = arr[i]; inp.onchange = () => { arr[i] = +inp.value; onChange && onChange(); }; wrap.appendChild(inp); }
-            row.appendChild(wrap);
-          } else {
-            const inp = document.createElement("input"); inp.type = "number"; if (f.min !== undefined) inp.min = f.min; if (f.max !== undefined) inp.max = f.max;
-            inp.value = store[f.k]; inp.onchange = () => { store[f.k] = +inp.value; onChange && onChange(); }; row.appendChild(inp);
-          }
-          frag.appendChild(row);
-        }
-        return frag;
-      }
-      function renderObj(obj, onChange) {
-        const frag = document.createDocumentFragment();
-        for (const k of Object.keys(obj)) {
-          const v = obj[k]; const row = document.createElement("div"); row.className = "fld";
-          const lbl = document.createElement("span"); lbl.textContent = k; row.appendChild(lbl);
-          if (Array.isArray(v)) {
-            const wrap = document.createElement("div"); wrap.className = "arr4";
-            v.forEach((val, i) => { const inp = document.createElement("input"); inp.style.width = "44px"; if (typeof val === "number") { inp.type = "number"; inp.value = val; inp.onchange = () => { v[i] = +inp.value; onChange && onChange(); }; } else { inp.type = "text"; inp.value = val; inp.onchange = () => { v[i] = inp.value; onChange && onChange(); }; } wrap.appendChild(inp); });
-            row.appendChild(wrap);
-          } else if (v && typeof v === "object") {
-            const ta = document.createElement("textarea"); ta.value = JSON.stringify(v); ta.style.cssText = "width:150px;height:44px;background:#0b0d10;color:#e7e9ec;border:1px solid var(--line);border-radius:4px;font:11px ui-monospace";
-            ta.onchange = () => { try { obj[k] = JSON.parse(ta.value); onChange && onChange(); } catch (e) {} }; row.appendChild(ta);
-          } else if (typeof v === "number") {
-            const inp = document.createElement("input"); inp.type = "number"; inp.value = v; inp.onchange = () => { obj[k] = +inp.value; onChange && onChange(); }; row.appendChild(inp);
-          } else {
-            const inp = document.createElement("input"); inp.type = "text"; inp.value = v; inp.onchange = () => { obj[k] = inp.value; onChange && onChange(); }; row.appendChild(inp);
-          }
-          frag.appendChild(row);
-        }
-        return frag;
-      }
-      function buildDrawer() {
-        const tabs = $("drawerTabs"); tabs.innerHTML = "";
-        // The firmware writes this note with velocity 0 for "no note" in a step.
-      const NO_NOTE = "G8#";
-      const names = ["Global", "Track", "CV"]; if (native.global || native.project) names.push("Card");
-        names.forEach(name => { const b = document.createElement("button"); b.className = "drawerTab" + (state.drawerTab === name ? " active" : ""); b.textContent = name; b.onclick = () => { state.drawerTab = name; buildDrawer(); }; tabs.appendChild(b); });
-        const body = $("drawerBody"); body.innerHTML = "";
-        if (state.drawerTab === "Global") { const sec = document.createElement("div"); sec.className = "sec"; sec.innerHTML = "<h3>Project / Global</h3>"; sec.appendChild(renderFields(GLOBAL_FIELDS, state.global)); body.appendChild(sec); }
-        else if (state.drawerTab === "Track") { const which = state.track === "D" ? "D" : state.track; const sec = document.createElement("div"); sec.className = "sec"; sec.innerHTML = "<h3>" + (state.track === "D" ? "Drum Track" : "Track " + which) + " settings</h3>"; sec.appendChild(renderFields(TRACK_FIELDS, state.tset[which])); body.appendChild(sec); }
-        else if (state.drawerTab === "CV") { for (let c = 1; c <= 4; c++) { const sec = document.createElement("div"); sec.className = "sec"; sec.innerHTML = "<h3>Ext CV " + c + "</h3>"; sec.appendChild(renderFields(CV_FIELDS, state.cv[c])); body.appendChild(sec); } }
-        else {
-          if (!native.global && !native.project) { const e = document.createElement("div"); e.className = "hint"; e.textContent = "Open the SD card to edit native settings."; body.appendChild(e); return; }
-          if (native.global) { const sec = document.createElement("div"); sec.className = "sec"; sec.innerHTML = "<h3>GlobalSettings.txt (card root)</h3>"; sec.appendChild(renderObj(native.global)); body.appendChild(sec); }
-          if (native.project) { const sec = document.createElement("div"); sec.className = "sec"; sec.innerHTML = "<h3>ProjectSettings.txt (" + (native.projectName || "project") + ")</h3>"; sec.appendChild(renderObj(native.project)); body.appendChild(sec); }
+        for (const [n, v] of this.p.steps[s].notes) {
+          const key = s + ":" + n,
+            selected = this.model.selection.has(key),
+            f = this.p.steps[s];
+          notes +=
+            '<div class="note ' +
+            (selected ? "selected" : "") +
+            '" data-note="' +
+            key +
+            '" style="left:' +
+            (s * this.cellW + 1) +
+            "px;top:" +
+            ((count - 1 - n) * this.cellH + 1) +
+            "px;width:" +
+            (this.cellW - 2) +
+            "px;height:" +
+            (this.cellH - 2) +
+            "px;background:hsl(" +
+            (this.p.drum ? 35 : 162) +
+            ",42%," +
+            (29 + v * 0.23) +
+            '%)" title="' +
+            (this.p.drum ? "Pad " + (n + 1) : F.displayNote(n)) +
+            " · velocity " +
+            v +
+            " · step " +
+            (s + 1) +
+            '">' +
+            (this.cellW >= 30
+              ? f.modifier & 1
+                ? "↗"
+                : f.ratchet
+                  ? "≋"
+                  : v
+              : "") +
+            "</div>";
         }
       }
-
-      // ---- export / import ----
-      function trackObj(t) {
-        const src = ensureMelodic(t).slice(0, state.steps).map(s => ({ modifier: s.modifier || 0, ratchet: s.ratchet || 0, notes: s.notes.map(p => [p[0], p[1]]), cc: s.cc.map(c => [c[0], c[1]]) }));
-        const legacy = src.map(s => { if (!s.notes.length) return { note: "", velocity: 0, modifier: s.modifier, ratchet: s.ratchet }; const lo = s.notes.reduce((a, b) => b[0] < a[0] ? b : a, s.notes[0]); return { note: noteName(lo[0]), velocity: lo[1], modifier: s.modifier, ratchet: s.ratchet }; });
-        const ts = state.tset[t];
-        return { index: t, scale: { Scale: ts.Scale, Root: ts.Root },
-          settings: { direction: ts.direction, slide: ts.slide, shuffle: ts.shuffle, humanize: ts.humanize, ratchet: ts.ratchet, gatelength: ts.gatelength },
-          arp: { Engaged: ts.ArpEngaged, Mode: ts.ArpMode, Latch: ts.ArpLatch, SuperLatch: ts.ArpSuperLatch },
-          polyrhythm: { From: ts.PolyFrom, To: ts.PolyTo }, modulation: { track: ts.modulationTrack, subtrack: ts.modulationSubtrack },
-          step_limit: state.steps, steps2: src, steps: legacy, ratchets: src.map(s => s.ratchet) };
+      this.$("sheet").style.cssText =
+        "width:" + (58 + width) + "px;height:" + (27 + height) + "px";
+      this.$("sheet").innerHTML =
+        '<div class="ruler" style="width:' +
+        width +
+        'px">' +
+        ticks +
+        '<div class="insert" style="left:' +
+        this.model.cursor * this.cellW +
+        "px;width:" +
+        this.cellW +
+        'px"></div><div class="loop-region" style="left:' +
+        this.loopStart * this.cellW +
+        "px;width:" +
+        ((this.loopEnd || this.p.length) - this.loopStart) * this.cellW +
+        'px"></div></div><div class="keyboard">' +
+        keys +
+        '</div><div class="grid" style="width:' +
+        width +
+        "px;height:" +
+        height +
+        "px;background-size:" +
+        this.cellW +
+        "px " +
+        this.cellH +
+        'px">' +
+        rows +
+        beats +
+        notes +
+        '</div><div class="playhead" hidden></div>';
+      scroll.scrollTop = top;
+      scroll.scrollLeft = left;
+    }
+    renderInspector() {
+      const notes = this.model.notes(),
+        values = new Set(notes.map((n) => n.v)),
+        selected = this.$("selectedVel");
+      this.$("selection").textContent = notes.length
+        ? notes.length +
+          " note(s) · " +
+          this.selectedSteps().length +
+          " step(s)"
+        : "Step " + (this.model.cursor + 1) + " · no notes selected";
+      selected.disabled = !notes.length;
+      selected.value = values.size === 1 ? notes[0].v : "";
+      selected.placeholder = values.size > 1 ? "Mixed" : "";
+      for (const [id, mask] of [
+        ["tie", 1],
+        ["slide", 2],
+        ["ratchet", 0],
+      ]) {
+        const states = this.selectedSteps().map((s) =>
+          id === "ratchet"
+            ? !!this.p.steps[s].ratchet
+            : !!(this.p.steps[s].modifier & mask),
+        );
+        this.$(id).disabled = this.p.drum;
+        this.$(id).classList.toggle("active", states.every(Boolean));
+        this.$(id).textContent =
+          id[0].toUpperCase() +
+          id.slice(1) +
+          (states.some(Boolean) && !states.every(Boolean) ? " (mixed)" : "");
       }
-      function drumObj() { const d = ensureDrum().slice(0, state.steps); const map = [38, 40, 41, 43, 45, 47, 48, 50];
-        return { lanes: DRUM, map, steps: d.map((st, idx) => ({ index: idx, triggers: Object.entries(st.pads).map(([pad, vel]) => ({ pad: +pad, note: map[pad - 1], velocity: vel })), ratchet: st.ratchet || 0, modifier: st.modifier || 0 })) }; }
-      function exportJSON() { return JSON.stringify({ app: "gc-pattern-editor", version: 2, steps: state.steps, store: "steps2",
-        global: Object.assign({}, state.global), cv: [1, 2, 3, 4].map(c => ({ Type: state.cv[c].Type, Param: state.cv[c].Param })),
-        tracks: MELODIC.map(trackObj), drum: drumObj() }, null, 2); }
-      function doExport() { const blob = new Blob([exportJSON()], { type: "application/json" }); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "gc-project.json"; a.click(); URL.revokeObjectURL(a.href); }
-      function doImport(text) {
-        const doc = JSON.parse(text);
-        if (doc.steps) { state.steps = Math.max(1, Math.min(128, doc.steps)); $("stepsNum").value = state.steps; }
-        if (doc.global) Object.assign(state.global, doc.global);
-        if (doc.cv) doc.cv.forEach((c, i) => { state.cv[i + 1] = Object.assign(state.cv[i + 1] || {}, { Type: c.Type, Param: c.Param }); });
-        state.melodic = {}; state.drum = []; ensureDrum();
-        for (const tr of (doc.tracks || [])) { const arr = ensureMelodic(tr.index); const src2 = tr.steps2 || (tr.steps || []).map(s => ({ modifier: s.modifier || 0, ratchet: s.ratchet || 0, notes: s.note ? [[nameToMidi(s.note), s.velocity || 0]] : [], cc: [] }));
-          for (let i = 0; i < src2.length && i < 128; i++) { arr[i] = { modifier: src2[i].modifier || 0, ratchet: src2[i].ratchet || 0, notes: (src2[i].notes || []).map(p => [p[0], p[1]]), cc: (src2[i].cc || []).map(c => [c[0], c[1]]) }; }
-          const ts = state.tset[tr.index] || (state.tset[tr.index] = {}); if (tr.scale) { ts.Scale = tr.scale.Scale; ts.Root = tr.scale.Root; } if (tr.settings) Object.assign(ts, tr.settings); if (tr.polyrhythm) { ts.PolyFrom = tr.polyrhythm.From; ts.PolyTo = tr.polyrhythm.To; } }
-        if (doc.drum && doc.drum.steps) { const dm = ensureDrum(); for (const st of doc.drum.steps) { if (st.index >= 128) continue; const tgt = { pads: {}, ratchet: st.ratchet || 0, modifier: st.modifier || 0 }; for (const trg of (st.triggers || [])) tgt.pads[trg.pad] = trg.velocity; dm[st.index] = tgt; } }
-        const ccNums = new Set();
-        for (const t of MELODIC) { const arr = ensureMelodic(t); for (let i = 0; i < state.steps; i++) arr[i].cc.forEach(c => ccNums.add(c[0])); }
-        if (ccNums.size) state.ccLanes = [...ccNums].sort((a, b) => a - b);
-        state.sel = new Set();
-        paint(); if ($("drawer").classList.contains("open")) buildDrawer();
+    }
+    renderLanes() {
+      const nums = new Set([
+        ...this.p.steps.flatMap((s) => s.cc.map((c) => c[0])),
+        ...Object.keys(this.p.ccSources || {}).map(Number),
+        ...(this.p.ccLanes || []),
+      ]);
+      if (this.lane !== "velocity" && !nums.has(+this.lane))
+        this.lane = "velocity";
+      this.$("lane").innerHTML =
+        '<option value="velocity">Velocity</option>' +
+        [...nums]
+          .sort((a, b) => a - b)
+          .map(
+            (n) =>
+              '<option value="' +
+              n +
+              '">CC ' +
+              n +
+              (CC_NAMES[n] ? " · " + CC_NAMES[n] : "") +
+              "</option>",
+          )
+          .join("");
+      this.$("lane").value = this.lane;
+      this.$("removeCC").disabled = this.lane === "velocity";
+      this.$("addCC").disabled = this.p.drum;
+      this.$("ccNumber").disabled = this.p.drum;
+      this.$("laneStatus").textContent =
+        this.lane === "velocity"
+          ? "Per-note values"
+          : "Requires v0.10.0-alpha.1";
+      const source = this.p.ccSources?.[this.lane];
+      for (const id of ["ccSource", "ccMin", "ccMax", "ccValue"])
+        this.$(id).disabled = this.lane === "velocity";
+      this.$("ccSource").value = source ? String(source.input + 1) : "0";
+      this.$("ccMin").value = source?.min ?? 0;
+      this.$("ccMax").value = source?.max ?? 127;
+      this.$("ccMin").disabled = this.lane === "velocity" || !source;
+      this.$("ccMax").disabled = this.lane === "velocity" || !source;
+      this.$("ccValue").value =
+        this.p.steps[this.model.cursor]?.cc.find(
+          (c) => c[0] === +this.lane,
+        )?.[1] ?? 0;
+      const lane = this.$("laneGraph"),
+        previous = this.$("laneScroll").scrollLeft;
+      lane.style.width = this.p.length * this.cellW + "px";
+      let html = "";
+      for (let s = 0; s < this.p.length; s++) {
+        const pairs =
+          this.lane === "velocity"
+            ? this.p.steps[s].notes
+            : this.p.steps[s].cc.filter((c) => c[0] === +this.lane);
+        pairs.forEach(([n, v], i) => {
+          const w =
+            this.lane === "velocity"
+              ? Math.max(4, (this.cellW - 4) / Math.max(1, pairs.length))
+              : this.cellW - 4;
+          html +=
+            '<div class="value ' +
+            ((
+              this.lane === "velocity"
+                ? this.model.selection.has(s + ":" + n)
+                : this.ccSelection?.has(s)
+            )
+              ? "selected"
+              : "") +
+            '" data-step="' +
+            s +
+            '" data-value="' +
+            n +
+            '" style="left:' +
+            (s * this.cellW + 2 + i * w) +
+            "px;width:" +
+            Math.max(3, w - 1) +
+            "px;height:" +
+            Math.max(3, (v / 127) * 98) +
+            'px" title="Step ' +
+            (s + 1) +
+            " · " +
+            (this.lane === "velocity" ? F.displayNote(n) : "CC " + n) +
+            " = " +
+            v +
+            '">' +
+            (w > 16 ? "<span>" + v + "</span>" : "") +
+            "</div>";
+        });
       }
-
-      // ---- SD card: whole-card native project / pattern browser ----
-      let sdDir = window.__gcSD || null;
-      const native = { global: null, project: null, projectName: null, tracks: {}, patterns: {}, pattern: 'A', letters: ['A'], len: {} };
-      const sdstat = $("sdstat");
-      const NOTE_RE = /^([A-G])(#?)(-?\d)(#?)$/;
-      function parseNativeNote(s) { const m = NOTE_RE.exec(String(s == null ? '' : s).trim()); if (!m) return null; const v = (parseInt(m[3], 10) + 2) * 12 + NAME.indexOf(m[1]) + ((m[2] || m[4]) ? 1 : 0); return v >= 0 && v <= 127 ? v : null; }
-      function nativeNote(midi) { if (midi == null || midi < 0 || midi > 127) return ""; const n = NAME[midi % 12], oct = Math.floor(midi / 12) - 2; return n.endsWith('#') ? n[0] + oct + '#' : n + oct; }
-      async function rd(dir, parts) { let d = dir; for (let i = 0; i < parts.length - 1; i++) d = await d.getDirectoryHandle(parts[i]); const fh = await d.getFileHandle(parts[parts.length - 1]); return await (await fh.getFile()).text(); }
-      function lenientJSON(txt) {
-        let t = String(txt).replace(/^\uFEFF/, '');
-        t = t.replace(/,\s*([}\]])/g, '$1');          // trailing commas
-        t = t.replace(/([}\]"])\s*\n\s*"/g, '$1,\n"'); // missing comma before a new key
-        t = t.replace(/(\d)\s*\n\s*"/g, '$1,\n"');      // number value then new key
-        return JSON.parse(t);
+      lane.innerHTML = html;
+      this.$("laneScroll").scrollLeft = previous;
+    }
+    renderSettings() {
+      if (this.$("settings").hidden) return;
+      const fields = this.$("settingsFields");
+      fields.innerHTML = "";
+      const durationLabel = document.createElement("label");
+      durationLabel.textContent = "Step duration ";
+      const duration = document.createElement("select");
+      [
+        "1/4",
+        "1/8",
+        "1/16",
+        "1/32",
+        "1/4 triplet",
+        "1/8 triplet",
+        "1/16 triplet",
+        "1/32 triplet",
+      ].forEach((name, i) => {
+        const option = document.createElement("option");
+        option.value = i;
+        option.textContent = name;
+        duration.append(option);
+      });
+      duration.value = this.p.base.duration ?? 2;
+      duration.onchange = () =>
+        this.action("Set step duration", () => {
+          this.p.base.duration = +duration.value;
+        });
+      durationLabel.append(duration);
+      fields.append(durationLabel);
+      const [project, track] = this.parts,
+        key = project + "/track" + track + "/TrackSettings.txt",
+        ts = this.model.settings[key] || {};
+      for (const [name, label, min, max, def] of [
+        ["gatelength", "Gate length (%)", 1, 100, 50],
+        ["direction", "Direction", 0, 3, 0],
+        ["shuffle", "Shuffle", 0, 100, 50],
+        ["slide", "Slide", 0, 127, 50],
+        ...(!this.p.drum
+          ? [
+              ["ratchet", "Ratchet amount", 0, 8, 0],
+              ["humanize", "Humanize", 0, 100, 0],
+            ]
+          : []),
+      ]) {
+        const node = document.createElement("label");
+        node.textContent = label + " ";
+        const input = document.createElement(
+          name === "direction" ? "select" : "input",
+        );
+        if (name === "direction") {
+          ["Forward", "Reverse", "Pendulum", "Random"].forEach((text, i) => {
+            const option = document.createElement("option");
+            option.value = i;
+            option.textContent = text;
+            input.append(option);
+          });
+        } else input.type = "number";
+        input.min = min;
+        input.max = max;
+        input.value =
+          name === "gatelength" && this.p.drum
+            ? (ts.triggerlength?.at(-1) ?? def)
+            : (ts[name] ?? def);
+        input.onchange = () =>
+          this.action("Set " + label, () => {
+            const v = +input.value;
+            if (!Number.isInteger(v) || v < min || v > max)
+              throw new Error(label + " must be " + min + " to " + max);
+            this.model.settings[key] ||= {};
+            if (name === "gatelength" && this.p.drum) {
+              this.model.settings[key].triggerlength ||= Array(9).fill(50);
+              this.model.settings[key].triggerlength[8] = v;
+            } else this.model.settings[key][name] = v;
+          });
+        node.append(input);
+        fields.append(node);
       }
-      async function rdJSON(dir, parts) { return lenientJSON(await rd(dir, parts)); }
-      async function wr(dir, parts, text) { let d = dir; for (let i = 0; i < parts.length - 1; i++) d = await d.getDirectoryHandle(parts[i], { create: true }); const fh = await d.getFileHandle(parts[parts.length - 1], { create: true }); const w = await fh.createWritable(); await w.write(text); await w.close(); }
-      async function wrJSON(dir, parts, obj) { await wr(dir, parts, JSON.stringify(obj, null, 1) + "\n"); }
-      async function rdBytes(dir, parts) { let d = dir; for (let i = 0; i < parts.length - 1; i++) d = await d.getDirectoryHandle(parts[i]); const fh = await d.getFileHandle(parts[parts.length - 1]); return new Uint8Array(await (await fh.getFile()).arrayBuffer()); }
-      async function wrBytes(dir, parts, u8) { let d = dir; for (let i = 0; i < parts.length - 1; i++) d = await d.getDirectoryHandle(parts[i], { create: true }); const fh = await d.getFileHandle(parts[parts.length - 1], { create: true }); const w = await fh.createWritable(); await w.write(u8); await w.close(); }
-      async function existsFile(dir, parts) { try { await rd(dir, parts); return true; } catch (e) { return false; } }
-      async function backup(dir, parts) { try { if (await existsFile(dir, parts)) await wr(dir, parts.slice(0, -1).concat(parts[parts.length - 1] + '.bak'), await rd(dir, parts)); } catch (e) {} }
-      async function backupBytes(dir, parts) { try { if (await existsFile(dir, parts)) await wrBytes(dir, parts.slice(0, -1).concat(parts[parts.length - 1] + '.bak'), await rdBytes(dir, parts)); } catch (e) {} }
-      async function dropBackup(dir, parts) { try { const p = parts.slice(0, -1).concat(parts[parts.length - 1] + '.bak'); let d = dir; for (let i = 0; i < p.length - 1; i++) d = await d.getDirectoryHandle(p[i]); await d.removeEntry(p[p.length - 1]); } catch (e) {} }
-      async function listDirs(root) { const out = []; for await (const e of root.values()) if (e.kind === 'directory') out.push(e.name); return out; }
-      async function listFiles(dir) { const out = []; for await (const e of dir.values()) if (e.kind === 'file') out.push(e.name); return out; }
-      async function projectNames() { return (await listDirs(sdDir)).filter(n => /^project/i.test(n)).sort(); }
-      async function trackLetters(project, t) {
-        const set = new Set();
-        try { const td = await (await sdDir.getDirectoryHandle(project)).getDirectoryHandle('track' + t); (await listFiles(td)).forEach(f => { const m = /^pattern([A-Z])\.txt$/i.exec(f); if (m) set.add(m[1].toUpperCase()); }); } catch (e) {}
-        return [...set].sort();
+    }
+    saveViewport() {
+      if (this.model.key)
+        this.viewports[this.model.key] = {
+          top: this.$("viewport").scrollTop,
+          left: this.$("viewport").scrollLeft,
+        };
+    }
+    restoreViewport() {
+      const v = this.viewports[this.model.key];
+      if (v) {
+        this.$("viewport").scrollTop = v.top;
+        this.$("viewport").scrollLeft = v.left;
+      } else this.fitNotes();
+    }
+    fitNotes() {
+      const ns = this.p.steps.flatMap((s) => s.notes.map((n) => n[0])),
+        pitch = this.p.drum
+          ? 4
+          : ns.length
+            ? (Math.min(...ns) + Math.max(...ns)) / 2
+            : 60;
+      this.$("viewport").scrollTop = Math.max(
+        0,
+        ((this.p.drum ? 7 : 127) - pitch) * this.cellH -
+          this.$("viewport").clientHeight / 2,
+      );
+    }
+    coordinates(ev) {
+      const grid = this.$("sheet").querySelector(".grid"),
+        r = grid.getBoundingClientRect();
+      return {
+        s: Math.floor((ev.clientX - r.left) / this.cellW),
+        n:
+          (this.p.drum ? 7 : 127) -
+          Math.floor((ev.clientY - r.top) / this.cellH),
+        x: ev.clientX - r.left,
+        y: ev.clientY - r.top,
+      };
+    }
+    selectVisuals() {
+      this.$("sheet")
+        .querySelectorAll("[data-note]")
+        .forEach((el) =>
+          el.classList.toggle(
+            "selected",
+            this.model.selection.has(el.dataset.note),
+          ),
+        );
+      this.renderInspector();
+      this.renderLanes();
+    }
+    startGesture(ev) {
+      if (ev.button !== 0 || this.busy) return;
+      this.editingLane = false;
+      const target = ev.target,
+        key = target.closest("[data-pitch]");
+      if (key) {
+        this.audition(+key.dataset.pitch, +this.$("velocity").value);
+        return;
       }
-      async function patternLetters(project) {
-        const set = new Set();
-        for (const t of ['1', '2', '3', 'D']) {
-          try { const td = await (await sdDir.getDirectoryHandle(project)).getDirectoryHandle('track' + t); (await listFiles(td)).forEach(f => { const m = /^pattern([A-Z])\.txt$/i.exec(f); if (m) set.add(m[1].toUpperCase()); }); } catch (e) {}
-        }
-        return [...set].sort();
-      }
-      async function refreshProjects(keep) {
-        const names = await projectNames();
-        native.projects = names; native.patMap = native.patMap || {}; native.tree = {};
-        for (const n of names) {
-          native.tree[n] = {};
-          for (const t of ['1', '2', '3', 'D']) { try { native.tree[n][t] = await trackLetters(n, t); } catch (e) { native.tree[n][t] = []; } }
-          native.patMap[n] = [...new Set(Object.values(native.tree[n]).flat())].sort();
-        }
-        const sel = $("projSel"); const cur = keep || native.projectName || sel.value; sel.innerHTML = "";
-        names.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o); });
-        if (cur && names.includes(cur)) sel.value = cur;
-        $("projSel").disabled = !names.length; $("delProj").disabled = !names.length; $("newProj").disabled = !sdDir;
-        $("patSel").disabled = !names.length; $("saveAll").disabled = !names.length;
-        if (sdDir) sdstat.textContent = sdDir.name + ' · ' + names.length + ' project(s)';
-        return names;
-      }
-      async function refreshPatterns(project, keep) {
-        const letters = await patternLetters(project); native.letters = letters.length ? letters : ['A'];
-        const sel = $("patSel"); const cur = keep || native.pattern || 'A'; sel.innerHTML = "";
-        native.letters.forEach(L => { const o = document.createElement('option'); o.value = L; o.textContent = 'Pattern ' + L; sel.appendChild(o); });
-        sel.value = native.letters.includes(cur) ? cur : native.letters[0];
-        $("patSel").disabled = false; $("saveAll").disabled = false;
-      }
-      function applyTrackSettings(t, ts) {
-        const s = state.tset[t] || (state.tset[t] = {});
-        const first = v => Array.isArray(v) ? v[0] : v;
-        ['direction', 'slide', 'shuffle'].forEach(k => { if (ts[k] !== undefined) s[k] = ts[k]; });
-        if (ts.humanize !== undefined) s.humanize = first(ts.humanize);
-        if (ts.ratchet !== undefined) s.ratchet = first(ts.ratchet);
-        if (ts.ArpEngaged !== undefined) s.ArpEngaged = ts.ArpEngaged;
-        if (ts.gatelength !== undefined) s.gatelength = ts.gatelength;
-        if (ts.triggerlength !== undefined) s.gatelength = first(ts.triggerlength);
-      }
-      function applyPattern(t, pat) {
-        if (!pat) return;
-        if (t === 'D') {
-          const dm = []; for (let i = 0; i < 128; i++) dm.push({ pads: {}, ratchet: 0, modifier: 0 });
-          const rows = pat.steps || []; const limit = (pat.count | 0) || 16;
-          native.len[t] = Math.max(1, Math.min(128, limit || 16));
-          for (let pad = 0; pad < 8; pad++) { const row = rows[pad] || []; for (let s = 0; s < row.length && s < 128; s++) { const v = row[s]; if (v !== undefined && v !== 128 && v > 0) dm[s].pads[pad + 1] = v; } }
-          const rr = pat.ratchets || []; for (let pad = 0; pad < 8; pad++) { const row = rr[pad] || []; for (let s = 0; s < row.length && s < 128; s++) if (row[s]) dm[s].ratchet = row[s]; }
-          state.drum = dm;
+      const ruler = target.closest(".ruler");
+      if (ruler) {
+        const r = ruler.getBoundingClientRect(),
+          s = Math.max(
+            0,
+            Math.min(
+              this.p.length - 1,
+              Math.floor((ev.clientX - r.left) / this.cellW),
+            ),
+          );
+        this.model.cursor = s;
+        if (ev.shiftKey) {
+          const anchor = this.loopStart;
+          this.loopStart = Math.min(anchor, s);
+          this.loopEnd = Math.max(anchor, s) + 1;
         } else {
-          const arr = ensureMelodic(t);
-          native.len[t] = Math.max(1, Math.min(128, (pat.step_limit | 0) || 16));
-          for (let i = 0; i < 128; i++) arr[i] = { modifier: 0, ratchet: 0, notes: [], cc: [] };
-          if (Array.isArray(pat.steps2)) {
-            pat.steps2.forEach((st, i) => { if (i >= 128) return; arr[i] = { modifier: st.modifier || 0, ratchet: st.ratchet || 0, notes: (st.notes || []).map(p => [p[0], p[1]]), cc: (st.cc || []).map(c => [c[0], c[1]]) }; });
-          } else {
-            (pat.steps || []).forEach((st, i) => { if (i >= 128) return; const midi = parseNativeNote(st.note); const v = st.velocity | 0; arr[i] = { modifier: st.modifier || 0, ratchet: st.ratchet || 0, notes: (midi != null && v > 0) ? [[midi, v]] : [], cc: [] }; });
-          }
+          this.loopStart = s;
+          this.loopEnd = null;
         }
+        this.renderRoll();
+        this.renderInspector();
+        return;
       }
-      async function loadProject(name, pattern) {
-        native.projectName = name;
-        native.project = await rdJSON(sdDir, [name, 'ProjectSettings.txt']).catch(() => null);
-        state.steps = 16; native.tracks = {}; native.patterns = {}; native.len = {};
-        let usedL = null;
-        for (const t of ['1', '2', '3', 'D']) {
-          let ts = null; try { ts = await rdJSON(sdDir, [name, 'track' + t, 'TrackSettings.txt']); } catch (e) {}
-          native.tracks[t] = ts || {}; applyTrackSettings(t, ts || {});
-          const L = pattern || 'A';
-          if (!usedL) usedL = L;
-          let pat = null; try { pat = await rdJSON(sdDir, [name, 'track' + t, 'pattern' + L + '.txt']); } catch (e) { try { pat = await rdJSON(sdDir, [name, 'track' + t, 'patternA.txt']); } catch (e2) {} }
-          native.patterns[t] = pat; applyPattern(t, pat);
-          if (t !== 'D') { try { const pb = await rdBytes(sdDir, [name, 'track' + t, 'poly' + L]); if (pb.length >= 2176) { decodePoly(t, pb); migratePolyOffset(t); } } catch (e) {} }
-        }
-        if (native.project && typeof native.project.BPM === 'number') state.global.BPM = native.project.BPM;
-        state.track = '1';
-        state.steps = native.len[state.track] || native.len['1'] || 16;
-        { const sn = $("stepsNum"); if (sn) sn.value = state.steps; }
-        await refreshPatterns(name, usedL || pattern || native.pattern);
-        state.sel = new Set(); paint();
-        if ($("drawer").classList.contains("open")) buildDrawer();
-        sdstat.textContent = name + ' loaded · pattern ' + ($("patSel").value || 'A');
-        toast(name + " · pattern " + ($("patSel").value || "A") + " loaded");
-        state.dirty = false;
-      }
-      function serializePattern(t) {
-        const N = Math.max(1, Math.min(128, native.len[t] || state.steps)), base = native.patterns[t] || {};
-        if (t === 'D') {
-          const dm = ensureDrum(), steps = [], rats = [];
-          for (let pad = 0; pad < 8; pad++) { const row = [], rrow = []; for (let s = 0; s < N; s++) { const v = dm[s] && dm[s].pads[pad + 1]; row.push(v ? v : 128); rrow.push((dm[s] && dm[s].ratchet) || 0); } steps.push(row); rats.push(rrow); }
-          const lim = Array.isArray(base.step_limit) ? base.step_limit : [N, 16, 16, 16, 16, 16, 16, 16, 16];
-          const used = steps.some(row => row.some(v => v !== 128));
-          return Object.assign({}, base, { step_limit: lim, count: used ? N : 0, steps: steps, ratchets: rats });
-        }
-        const arr = ensureMelodic(t), steps = [];
-        for (let s = 0; s < N; s++) { const st = arr[s]; const n = st.notes && st.notes.length ? st.notes[0] : null; steps.push({ note: n ? nativeNote(n[0]) : NO_NOTE, velocity: n ? n[1] : 0, modifier: st.modifier || 0, ratchet: st.ratchet || 0 }); }
-        // The firmware runs `count` steps and treats 0 as "nothing programmed". Writing
-        // count = N on an empty pattern makes the module run N steps of silence, which
-        // lights the track LED on every step with no MIDI. Empty steps must also carry
-        // the firmware's own sentinel note, not an empty string.
-        const used = steps.some(s => s.velocity > 0);
-        return Object.assign({}, base, { step_limit: N, count: used ? N : 0, steps: steps });
-      }
-      function encodePoly(t) {
-        const arr = ensureMelodic(t), out = new Uint8Array(2176);
-        for (let s = 0; s < 128; s++) {
-          const ns = (arr[s].notes || []).slice(0, 8);
-          out[s * 17] = ns.length;
-          for (let k = 0; k < ns.length; k++) { out[s * 17 + 1 + k * 2] = ns[k][0] & 0x7f; out[s * 17 + 2 + k * 2] = ns[k][1] & 0x7f; }
-        }
-        return out;
-      }
-      function migratePolyOffset(t) {
-        const arr = ensureMelodic(t), pat = native.patterns[t];
-        if (!pat || !Array.isArray(pat.steps)) return;
-        for (let s = 0; s < 128 && s < pat.steps.length; s++) {
-          const ns = arr[s].notes; if (!ns.length) continue;
-          const want = parseNativeNote(pat.steps[s].note);
-          const d = want == null ? 0 : want - ns[0][0];
-          if (!d || Math.abs(d) > 24 || Math.abs(d) % 12) continue;
-          const moved = ns.map(n => [n[0] + d, n[1]]).filter(n => n[0] >= 0 && n[0] <= 127);
-          if (moved.length === ns.length) arr[s].notes = moved;
-        }
-      }
-      function decodePoly(t, u8) {
-        const arr = ensureMelodic(t);
-        for (let s = 0; s < 128; s++) {
-          const c = Math.min(8, u8[s * 17] | 0), notes = [];
-          for (let k = 0; k < c; k++) notes.push([u8[s * 17 + 1 + k * 2], u8[s * 17 + 2 + k * 2]]);
-          arr[s].notes = notes;
-        }
-      }
-      async function saveAll() {
-        if (!sdDir || !native.projectName) { sdstat.textContent = 'open a project first'; return; }
-        const name = native.projectName, L = $("patSel").value || 'A';
-        try {
-          if (native.global) { await dropBackup(sdDir, ['GlobalSettings.txt']); await wrJSON(sdDir, ['GlobalSettings.txt'], native.global); }
-          if (native.project) { native.project.BPM = state.global.BPM; await dropBackup(sdDir, [name, 'ProjectSettings.txt']); await wrJSON(sdDir, [name, 'ProjectSettings.txt'], native.project); }
-          for (const t of ['1', '2', '3', 'D']) {
-            const ts = native.tracks[t] || {}, s = state.tset[t] || {};
-            ['direction', 'slide', 'shuffle'].forEach(k => { if (s[k] !== undefined) ts[k] = s[k]; });
-            if (ts.gatelength !== undefined) ts.gatelength = s.gatelength;
-            if (ts.triggerlength !== undefined && s.gatelength !== undefined) ts.triggerlength = ts.triggerlength.map((x, i) => i === ts.triggerlength.length - 1 ? s.gatelength : x);
-            await dropBackup(sdDir, [name, 'track' + t, 'TrackSettings.txt']); await wrJSON(sdDir, [name, 'track' + t, 'TrackSettings.txt'], ts);
-            await backup(sdDir, [name, 'track' + t, 'pattern' + L + '.txt']); await wrJSON(sdDir, [name, 'track' + t, 'pattern' + L + '.txt'], serializePattern(t));
-            if (t !== 'D') { await dropBackup(sdDir, [name, 'track' + t, 'poly' + L]); await wrBytes(sdDir, [name, 'track' + t, 'poly' + L], encodePoly(t)); }
-          }
-          sdstat.textContent = 'saved ' + name + ' · pattern ' + L + ' (pattern .bak + poly' + L + ')';
-          state.dirty = false; try { localStorage.removeItem("gc-editor-draft"); } catch (e) {}
-          toast("Saved " + name + " · pattern " + L + " to SD");
-        } catch (e) { sdstat.textContent = 'save err: ' + e.message; toast("Save failed: " + e.message); }
-      }
-      async function newProject() {
-        const names = await projectNames(); let def = 'project' + String.fromCharCode(65 + (names.length % 26));
-        let name = prompt('New project folder name', def); if (!name) return; if (!/^project/i.test(name)) name = 'project' + name;
-        try {
-          await sdDir.getDirectoryHandle(name, { create: true });
-          const scales = {}; [1, 2, 3].forEach(n => { scales['Track' + n + 'Scale'] = { Scale: 0, Root: 0, Custom: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] }; });
-          await wrJSON(sdDir, [name, 'ProjectSettings.txt'], Object.assign({ BPM: 120, Muted: Array(12).fill("0"), QuantizedMute: Array(12).fill("0"), modulationTrack: 1, modulationSubtrack: 1, modulationPolarity: "Unipolar", modulationSource: "Velocity", modulationSlideMode: "Instant", DrumMap: ["C1", "C1#", "D1", "D1#", "E1", "F1", "F1#", "G1"], Cv0: { Type: 0, Param: 0 }, Cv1: { Type: 0, Param: 0 }, Cv2: { Type: 0, Param: 0 }, Cv3: { Type: 0, Param: 0 } }, scales));
-          for (const t of ['1', '2', '3']) {
-            await wrJSON(sdDir, [name, 'track' + t, 'TrackSettings.txt'], { direction: 0, slide: 50, shuffle: 50, humanize: 0, ratchet: 0, ArpEngaged: 0, gatelength: 50, patternChain: ["A"] });
-            const steps = []; for (let i = 0; i < 16; i++) steps.push({ note: "", velocity: 0, modifier: 0, ratchet: 0 });
-            await wrJSON(sdDir, [name, 'track' + t, 'patternA.txt'], { step_limit: 16, count: 16, duration: 2, Polyrhythm: { From: 4, To: 4 }, steps: steps });
-            await wrBytes(sdDir, [name, 'track' + t, 'polyA'], new Uint8Array(2176));
-          }
-          await wrJSON(sdDir, [name, 'trackD', 'TrackSettings.txt'], { direction: 0, slide: 50, shuffle: 50, humanize: [0, 0, 0, 0, 0, 0, 0, 0, 0], ratchet: [0, 0, 0, 0, 0, 0, 0, 0, 0], ArpEngaged: 0, triggerlength: [10, 10, 10, 10, 10, 10, 10, 10, 50], patternChain: ["A"] });
-          const dsteps = [], drats = []; for (let p = 0; p < 8; p++) { dsteps.push(Array(16).fill(128)); drats.push(Array(16).fill(0)); }
-          await wrJSON(sdDir, [name, 'trackD', 'patternA.txt'], { step_limit: [128, 16, 16, 16, 16, 16, 16, 16, 16], count: 16, duration: 2, Polyrhythm: { From: 4, To: 4 }, modulations: Array(128).fill(128), steps: dsteps, ratchets: drats });
-          await refreshProjects(name); $("projSel").value = name; await loadProject(name, 'A'); sdstat.textContent = 'created ' + name;
-        } catch (e) { sdstat.textContent = 'new err: ' + e.message; }
-      }
-      async function delProject() {
-        const name = $("projSel").value; if (!name) return;
-        if (!confirm('Delete ' + name + ' from the SD card? This removes the whole project folder.')) return;
-        try { await sdDir.removeEntry(name, { recursive: true }); native.projectName = null; await refreshProjects(); sdstat.textContent = 'deleted ' + name; }
-        catch (e) { sdstat.textContent = 'del err: ' + e.message; }
-      }
-      $("connectSD").onclick = async () => {
-        if (!window.showDirectoryPicker && !window.__gcSD) { sdstat.textContent = 'needs Chrome/Edge over https'; return; }
-        try {
-          sdDir = window.__gcSD || null;
-          if (!sdDir && window.GCModder && window.GCModder.connectSD) {
-            const h = await window.GCModder.connectSD();   // same picker/flow as the patcher
-            if (!h) return;
-            sdDir = h;
-          }
-          if (!sdDir) sdDir = await window.showDirectoryPicker({ mode: 'readwrite' });
-          window.__gcSD = sdDir; $("sdbar").hidden = false;
-          try { native.global = await rdJSON(sdDir, ['GlobalSettings.txt']); } catch (e) { native.global = null; }
-          const names = await refreshProjects();
-          let chosen = names.find(n => n.toLowerCase() === 'projecta') || names[0];   // always default to Project A
-          if (chosen) await loadProject(chosen, 'A');                                  // and Pattern A
-          sdstat.textContent = 'SD: ' + sdDir.name + ' · ' + names.length + ' project(s)';
-          if ($("drawer").classList.contains('open')) buildDrawer();
-        } catch (e) { if (!e || e.name !== 'AbortError') sdstat.textContent = 'err: ' + e.message; }
+      if (!target.closest(".grid")) return;
+      ev.preventDefault();
+      this.$("viewport").focus();
+      const at = this.coordinates(ev);
+      if (at.s < 0 || at.s >= this.p.length || at.n < 0) return;
+      this.model.cursor = at.s;
+      const note = target.closest("[data-note]"),
+        k = at.s + ":" + at.n;
+      const g = {
+        before: this.model.snapshot(),
+        x: ev.clientX,
+        y: ev.clientY,
+        start: at,
+        moved: false,
+        type: this.mode === "draw" ? "draw" : note ? "move" : "marquee",
+        copy: ev.altKey,
+        visited: new Set(),
+        oldSelection: new Set(this.model.selection),
+        erase: !!note,
       };
-      $("projSel").onchange = async () => { const n = $("projSel").value; if (!n) return; await maybeSave("project"); await loadProject(n, "A"); };
-      $("newProj").onclick = newProject;
-      $("delProj").onclick = delProject;
-      $("patSel").onchange = async () => { if (!native.projectName) return; await maybeSave("pattern"); await loadProject(native.projectName, $("patSel").value); };
-      $("saveAll").onclick = saveAll;
-      if (sdDir) { $("sdbar").hidden = false; sdstat.textContent = 'SD: ' + (sdDir.name || 'connected'); refreshProjects().catch(() => {}); }
-
-      // ---- wire ----
-      $("applyVel").onclick = () => {
-        if (state.track === "D") return;
-        const v = Math.max(1, Math.min(127, +$("vel").value || 100));
-        const arr = ensureMelodic(state.track);
-        state.sel.forEach(k => { const [s, p] = k.split(":").map(Number); const x = arr[s].notes.find(q => q[0] === p); if (x) { x[1] = v; updateCell(s, p); } });
-      };
-      $("addCC").onclick = () => { const num = Math.max(0, Math.min(127, +$("ccAdd").value || 0)); if (!state.ccLanes.includes(num)) state.ccLanes.push(num); buildCC(); };
-      let clip = null;
-      window.addEventListener("keydown", ev => {
-        if (!this.isConnected) return;
-        const t = (ev.composedPath && ev.composedPath()[0]) || {}; const tag = (t.tagName || "").toUpperCase();
-        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-        if (state.track === "D") return;
-        if (ev.key === "Delete" || ev.key === "Backspace") {
-          if (state.sel.size) {
-            Array.from(state.sel).forEach(k => { const [s, p] = k.split(":").map(Number); removeNote(s, p); });
-            state.sel.clear(); markDirty(); paint(); ev.preventDefault();
-          }
+      if (g.type === "move") {
+        if (ev.shiftKey) {
+          if (this.model.selection.has(k)) this.model.selection.delete(k);
+          else this.model.selection.add(k);
+        } else if (!this.model.selection.has(k))
+          this.model.selection = new Set([k]);
+        g.source = this.model.notes();
+      }
+      if (g.type === "marquee" && !ev.shiftKey) this.model.selection.clear();
+      this.gesture = g;
+      this.$("viewport").setPointerCapture(ev.pointerId);
+      if (g.type === "draw") this.drawAt(at);
+      this.selectVisuals();
+    }
+    drawAt(at) {
+      const g = this.gesture,
+        p = this.p;
+      if (at.s < 0 || at.s >= p.length || at.n < 0 || at.n > (p.drum ? 7 : 127))
+        return;
+      const key = at.s + ":" + at.n;
+      if (g.visited.has(key)) return;
+      g.visited.add(key);
+      const notes = p.steps[at.s].notes,
+        i = notes.findIndex((n) => n[0] === at.n);
+      if (g.erase) {
+        if (i >= 0) notes.splice(i, 1);
+        this.model.selection.delete(key);
+      } else if (i < 0) {
+        if (notes.length >= 8) {
+          this.toast("A step can contain at most eight notes");
           return;
         }
-        if ((ev.ctrlKey || ev.metaKey) && (ev.key === "c" || ev.key === "C")) {
-          const arr = ensureMelodic(state.track); let minS = Infinity; const got = [];
-          state.sel.forEach(k => { const [s, p] = k.split(":").map(Number); const n = arr[s].notes.find(q => q[0] === p); if (n) { got.push([s, p, n[1]]); if (s < minS) minS = s; } });
-          if (got.length) { clip = got.map(([s, p, v]) => [s - minS, p, v]); state.pasteStep = minS; ev.preventDefault(); }
-        } else if ((ev.ctrlKey || ev.metaKey) && (ev.key === "v" || ev.key === "V")) {
-          if (!clip || !clip.length) return;
-          const arr = ensureMelodic(state.track), dest = state.pasteStep || 0;
-          clip.forEach(([ds, p, v]) => { const s = dest + ds; if (s >= 0 && s < state.steps) { if (!arr[s].notes.find(q => q[0] === p) && arr[s].notes.length < 8) arr[s].notes.push([p, v]); } });
-          paint(); ev.preventDefault();
+        notes.push([
+          at.n,
+          Math.max(1, Math.min(127, +this.$("velocity").value || 100)),
+        ]);
+        this.model.selection.add(key);
+      }
+      this.renderRoll();
+      this.renderLanes();
+    }
+    moveGesture(ev) {
+      const g = this.gesture;
+      if (!g) return;
+      const dx = ev.clientX - g.x,
+        dy = ev.clientY - g.y;
+      if (!g.moved && Math.hypot(dx, dy) < 4) return;
+      g.moved = true;
+      const v = this.$("viewport"),
+        r = v.getBoundingClientRect();
+      if (ev.clientX > r.right - 25) v.scrollLeft += 12;
+      if (ev.clientX < r.left + 70) v.scrollLeft -= 12;
+      if (ev.clientY > r.bottom - 25) v.scrollTop += 12;
+      if (ev.clientY < r.top + 45) v.scrollTop -= 12;
+      const at = this.coordinates(ev);
+      if (g.type === "draw") {
+        const prev = g.previous || g.start,
+          steps = Math.max(Math.abs(at.s - prev.s), Math.abs(at.n - prev.n), 1);
+        for (let i = 1; i <= steps; i++)
+          this.drawAt({
+            s: Math.round(prev.s + ((at.s - prev.s) * i) / steps),
+            n: Math.round(prev.n + ((at.n - prev.n) * i) / steps),
+          });
+        g.previous = at;
+        return;
+      }
+      if (g.type === "move") {
+        this.model.restore(g.before);
+        this.model.selection = new Set(g.oldSelection);
+        try {
+          this.model.transform(
+            at.s - g.start.s,
+            at.n - g.start.n,
+            g.copy,
+            g.source,
+          );
+          g.error = null;
+        } catch (e) {
+          g.error = e.message;
+        }
+        this.renderRoll();
+        this.renderInspector();
+        this.renderLanes();
+        return;
+      }
+      const minS = Math.max(0, Math.min(at.s, g.start.s)),
+        maxS = Math.min(this.p.length - 1, Math.max(at.s, g.start.s)),
+        minN = Math.min(at.n, g.start.n),
+        maxN = Math.max(at.n, g.start.n);
+      this.model.selection = ev.shiftKey ? new Set(g.oldSelection) : new Set();
+      for (let s = minS; s <= maxS; s++)
+        for (const [n] of this.p.steps[s].notes)
+          if (n >= minN && n <= maxN) this.model.selection.add(s + ":" + n);
+      this.selectVisuals();
+      let box = this.$("sheet").querySelector(".marquee");
+      if (!box) {
+        box = document.createElement("div");
+        box.className = "marquee";
+        this.$("sheet").querySelector(".grid").append(box);
+      }
+      box.style.cssText =
+        "left:" +
+        Math.min(at.x, g.start.x) +
+        "px;top:" +
+        Math.min(at.y, g.start.y) +
+        "px;width:" +
+        Math.abs(at.x - g.start.x) +
+        "px;height:" +
+        Math.abs(at.y - g.start.y) +
+        "px";
+    }
+    endGesture(cancel = false) {
+      const g = this.gesture;
+      if (!g) return;
+      this.gesture = null;
+      this.preventDouble = !!g.moved;
+      if (cancel || g.error) {
+        this.model.restore(g.before);
+        if (g.error) this.toast(g.error);
+      } else
+        this.model.commit(
+          g.type === "draw"
+            ? "Draw notes"
+            : g.copy
+              ? "Copy notes"
+              : "Move notes",
+          g.before,
+        );
+      if (g.moved || g.type === "draw" || cancel || g.error) this.renderRoll();
+      this.renderInspector();
+      this.renderLanes();
+    }
+    doubleClick(ev) {
+      if (this.mode !== "pointer" || this.preventDouble) {
+        this.preventDouble = false;
+        return;
+      }
+      const at = this.coordinates(ev);
+      if (
+        at.s < 0 ||
+        at.s >= this.p.length ||
+        at.n < 0 ||
+        at.n > (this.p.drum ? 7 : 127)
+      )
+        return;
+      const k = at.s + ":" + at.n;
+      this.action("Toggle note", () => {
+        const ns = this.p.steps[at.s].notes,
+          i = ns.findIndex((n) => n[0] === at.n);
+        if (i >= 0) {
+          ns.splice(i, 1);
+          this.model.selection.delete(k);
+        } else {
+          if (ns.length === 8)
+            throw new Error("A step can contain at most eight notes");
+          ns.push([at.n, +this.$("velocity").value || 100]);
+          this.model.selection = new Set([k]);
+          this.audition(at.n, +this.$("velocity").value || 100);
         }
       });
-      $("rollWrap").addEventListener("pointerdown", ev => {
-        const c = ev.target.closest && ev.target.closest(".cell");
-        if (!c || c.dataset.s === undefined) return;
-        state.drag = { s: +c.dataset.s, p: +c.dataset.p, moved: false };
+    }
+    startLane(ev) {
+      if (ev.button !== 0 || this.busy) return;
+      ev.preventDefault();
+      this.editingLane = true;
+      this.$("viewport").focus();
+      const bar = ev.target.closest("[data-step]"),
+        r = this.$("laneGraph").getBoundingClientRect();
+      if (this.lane !== "velocity" && ev.shiftKey && bar) {
+        const s = +bar.dataset.step;
+        this.ccSelection ||= new Set();
+        if (this.ccSelection.has(s)) this.ccSelection.delete(s);
+        else this.ccSelection.add(s);
+        this.model.cursor = s;
+        this.renderLanes();
+        return;
+      }
+      this.laneGesture = {
+        before: this.model.snapshot(),
+        rect: r,
+        relative: ev.shiftKey,
+        startY: ev.clientY,
+        source: this.model.notes(),
+        pitch: bar ? +bar.dataset.value : null,
+        step: bar ? +bar.dataset.step : null,
+      };
+      this.$("laneGraph").setPointerCapture(ev.pointerId);
+      this.moveLane(ev);
+    }
+    moveLane(ev) {
+      const g = this.laneGesture;
+      if (!g) return;
+      const s = Math.max(
+          0,
+          Math.min(
+            this.p.length - 1,
+            Math.floor((ev.clientX - g.rect.left) / this.cellW),
+          ),
+        ),
+        v = Math.max(
+          this.lane === "velocity" ? 1 : 0,
+          Math.min(
+            127,
+            Math.round(((g.rect.bottom - ev.clientY) / g.rect.height) * 127),
+          ),
+        );
+      this.model.cursor = s;
+      if (this.lane !== "velocity") {
+        this.ccSelection = new Set([s]);
+      }
+      if (this.lane === "velocity") {
+        if (g.relative && g.source.length) {
+          this.model.restore(g.before);
+          const d = Math.round(((g.startY - ev.clientY) / g.rect.height) * 127);
+          for (const n of g.source)
+            this.p.steps[n.s].notes.find((pair) => pair[0] === n.n)[1] =
+              Math.max(1, Math.min(127, n.v + d));
+        } else {
+          const ns = this.p.steps[s].notes;
+          for (const pair of ns)
+            if (g.pitch === null || s !== g.step || pair[0] === g.pitch)
+              pair[1] = v;
+        }
+      } else {
+        const previous = g.last || { s, v },
+          distance = Math.abs(s - previous.s),
+          direction = s >= previous.s ? 1 : -1;
+        for (let i = 0; i <= distance; i++) {
+          const step = previous.s + i * direction,
+            value = distance
+              ? Math.round(previous.v + ((v - previous.v) * i) / distance)
+              : v,
+            ns = this.p.steps[step].cc,
+            pair = ns.find((c) => c[0] === +this.lane);
+          if (pair) pair[1] = value;
+          else ns.push([+this.lane, value]);
+        }
+        g.last = { s, v };
+      }
+      this.renderLanes();
+      this.renderInspector();
+    }
+    endLane(cancel = false) {
+      const g = this.laneGesture;
+      if (!g) return;
+      this.laneGesture = null;
+      if (cancel) this.model.restore(g.before);
+      else
+        this.model.commit(
+          "Edit " + (this.lane === "velocity" ? "velocity" : "CC automation"),
+          g.before,
+        );
+      this.renderRoll();
+      this.renderLanes();
+    }
+    copy() {
+      const notes = this.model.notes();
+      if (!notes.length) return;
+      const start = Math.min(...notes.map((n) => n.s));
+      this.clipboard = notes.map((n) => ({ ...n, s: n.s - start }));
+      this.toast("Copied " + notes.length + " notes");
+    }
+    paste() {
+      if (!this.clipboard.length) return;
+      this.action("Paste notes", () => {
+        this.model.transform(this.model.cursor, 0, true, this.clipboard);
+      });
+    }
+    duplicate() {
+      const notes = this.model.notes();
+      if (!notes.length) return;
+      const ds =
+        Math.max(...notes.map((n) => n.s)) -
+        Math.min(...notes.map((n) => n.s)) +
+        1;
+      this.action("Duplicate notes", () =>
+        this.model.transform(ds, 0, true, notes),
+      );
+    }
+    keydown(ev) {
+      const tag = ev.composedPath()[0]?.tagName;
+      if (
+        ["INPUT", "TEXTAREA", "SELECT"].includes(tag) ||
+        this.$("dialog").open
+      )
+        return;
+      const cmd = ev.ctrlKey || ev.metaKey,
+        key = ev.key.toLowerCase();
+      if (this.busy) return;
+      if (
+        this.editingLane &&
+        this.lane !== "velocity" &&
+        this.laneKey(ev, cmd, key)
+      ) {
         ev.preventDefault();
-      });
-      window.addEventListener("pointermove", ev => {
-        if (!state.drag) return;
-        const root = $("rollWrap").getRootNode();
-        const el = root.elementFromPoint ? root.elementFromPoint(ev.clientX, ev.clientY) : document.elementFromPoint(ev.clientX, ev.clientY);
-        const c = el && el.closest && el.closest(".cell");
-        if (!c || c.dataset.s === undefined) return;
-        state.drag.moved = true;
-        dragApply(state.drag.s, state.drag.p, +c.dataset.s, +c.dataset.p);
+        return;
+      }
+      if ((this.gesture || this.laneGesture) && key !== "escape") {
         ev.preventDefault();
+        return;
+      }
+      let handled = true;
+      if (key === "escape") {
+        this.endGesture(true);
+        this.endLane(true);
+        this.stop();
+      } else if (cmd && key === "z") {
+        if (ev.shiftKey) this.model.redo();
+        else this.model.undo();
+      } else if (cmd && key === "y") this.model.redo();
+      else if (cmd && key === "s") this.guard(() => this.saveAll())();
+      else if (cmd && key === "a") {
+        this.model.selection = new Set(
+          this.p.steps
+            .slice(0, this.p.length)
+            .flatMap((s, i) => s.notes.map((n) => i + ":" + n[0])),
+        );
+        this.selectVisuals();
+      } else if (cmd && key === "c") this.copy();
+      else if (cmd && key === "x") {
+        this.copy();
+        this.model.deleteSelection();
+      } else if (cmd && key === "v") this.paste();
+      else if (cmd && key === "d") this.duplicate();
+      else if (key === "delete" || key === "backspace")
+        this.model.deleteSelection();
+      else if (key === "b") {
+        this.mode = this.mode === "draw" ? "pointer" : "draw";
+        this.render();
+      } else if (key === " ") {
+        if (this.playing) this.stop();
+        else this.guard(() => this.startPlayback())();
+      } else if (
+        ["arrowleft", "arrowright", "arrowup", "arrowdown"].includes(key)
+      ) {
+        const ds = key === "arrowleft" ? -1 : key === "arrowright" ? 1 : 0,
+          dn =
+            key === "arrowup"
+              ? ev.shiftKey
+                ? 12
+                : 1
+              : key === "arrowdown"
+                ? -(ev.shiftKey ? 12 : 1)
+                : 0;
+        if (this.model.selection.size)
+          this.action("Nudge notes", () => this.model.transform(ds, dn));
+        else {
+          this.model.cursor = Math.max(
+            0,
+            Math.min(this.p.length - 1, this.model.cursor + ds),
+          );
+          this.renderRoll();
+          this.renderInspector();
+        }
+      } else handled = false;
+      if (handled) ev.preventDefault();
+    }
+    laneKey(ev, cmd, key) {
+      const points = this.ccSelection || new Set([this.model.cursor]);
+      if (cmd && key === "a") {
+        this.ccSelection = new Set(
+          this.p.steps
+            .map((s, i) => (s.cc.some((c) => c[0] === +this.lane) ? i : null))
+            .filter((i) => i !== null),
+        );
+        this.renderLanes();
+        return true;
+      }
+      if (cmd && ["c", "x"].includes(key)) {
+        const selected = [...points]
+          .map((s) => [
+            s,
+            this.p.steps[s].cc.find((c) => c[0] === +this.lane)?.[1],
+          ])
+          .filter((p) => p[1] !== undefined);
+        if (selected.length) {
+          const first = Math.min(...selected.map((p) => p[0]));
+          this.ccClipboard = selected.map(([s, v]) => [s - first, v]);
+        }
+        if (key === "x")
+          this.action("Cut CC points", () => {
+            for (const s of points)
+              this.p.steps[s].cc = this.p.steps[s].cc.filter(
+                (c) => c[0] !== +this.lane,
+              );
+          });
+        return true;
+      }
+      if (cmd && key === "v") {
+        if (!this.ccClipboard) return true;
+        this.action("Paste CC points", () => {
+          if (
+            this.ccClipboard.some(
+              ([s]) => s + this.model.cursor >= this.p.length,
+            )
+          )
+            throw new Error("All CC points must fit inside the pattern");
+          for (const [s, v] of this.ccClipboard) {
+            const ns = this.p.steps[s + this.model.cursor].cc,
+              pair = ns.find((c) => c[0] === +this.lane);
+            if (pair) pair[1] = v;
+            else ns.push([+this.lane, v]);
+          }
+        });
+        return true;
+      }
+      if (["delete", "backspace"].includes(key)) {
+        this.action("Delete CC points", () => {
+          for (const s of points)
+            this.p.steps[s].cc = this.p.steps[s].cc.filter(
+              (c) => c[0] !== +this.lane,
+            );
+        });
+        return true;
+      }
+      return false;
+    }
+    audioContext() {
+      if (!this.audio)
+        this.audio = new (window.AudioContext || window.webkitAudioContext)();
+      return this.audio;
+    }
+    async audition(pitch, velocity) {
+      if (this.p.drum) pitch = 36 + pitch * 2;
+      const ctx = this.audioContext();
+      await ctx.resume();
+      this.voice(pitch, velocity, ctx.currentTime, 0.15, this.p.drum);
+    }
+    voice(pitch, velocity, time, length, drum = false) {
+      const ctx = this.audioContext(),
+        osc = ctx.createOscillator(),
+        gain = ctx.createGain();
+      osc.type = drum ? "triangle" : "sine";
+      osc.frequency.setValueAtTime(440 * Math.pow(2, (pitch - 69) / 12), time);
+      gain.gain.setValueAtTime(0, time);
+      gain.gain.linearRampToValueAtTime((0.09 * velocity) / 127, time + 0.005);
+      gain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        time + Math.max(0.02, length),
+      );
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(time);
+      osc.stop(time + Math.max(0.03, length) + 0.02);
+      this.voices ||= new Set();
+      this.voices.add(osc);
+      osc.onended = () => this.voices.delete(osc);
+    }
+    async startPlayback() {
+      if (this.playing) return;
+      const ctx = this.audioContext();
+      await ctx.resume();
+      this.playing = true;
+      this.playStep = this.loopStart;
+      this.nextTime = ctx.currentTime + 0.03;
+      this.$("play").textContent = "Ⅱ Pause";
+      this.timer = setInterval(() => this.schedule(), 20);
+      this.schedule();
+    }
+    schedule() {
+      if (!this.playing) return;
+      const ctx = this.audioContext(),
+        bpm = Math.max(30, Math.min(300, +this.$("bpm").value || 120));
+      const ticks =
+        [384, 192, 96, 48, 256, 128, 64, 32][this.p.base.duration ?? 2] || 96;
+      const stepTime = ((60 / bpm / 4) * ticks) / 96;
+      const trackSettings =
+          this.model.settings[
+            this.parts[0] + "/track" + this.parts[1] + "/TrackSettings.txt"
+          ] || {},
+        gate = Math.max(
+          0.01,
+          Math.min(1, (trackSettings.gatelength ?? 50) / 100),
+        );
+      while (this.nextTime < ctx.currentTime + 0.08) {
+        if (this.playStep >= this.p.length)
+          this.playStep = this.loopStart < this.p.length ? this.loopStart : 0;
+        const s = this.playStep,
+          st = this.p.steps[s],
+          at = this.nextTime,
+          key = this.model.key;
+        for (const [n, v] of st.notes) {
+          let ties = 0;
+          while (
+            s + ties < this.p.length - 1 &&
+            this.p.steps[s + ties].modifier & 1
+          )
+            ties++;
+          const previous = s > 0 ? this.p.steps[s - 1] : null;
+          if (
+            previous?.modifier & 1 &&
+            previous.notes.some((pair) => pair[0] === n)
+          )
+            continue;
+          this.voice(
+            this.p.drum ? 36 + n * 2 : n,
+            v,
+            at,
+            stepTime * (ties + gate),
+            this.p.drum,
+          );
+        }
+        const delay = Math.max(0, (at - ctx.currentTime) * 1000);
+        const timer = setTimeout(() => {
+          if (!this.playing || key !== this.model.key) return;
+          const line = this.$("sheet").querySelector(".playhead");
+          line.hidden = false;
+          line.style.left = 58 + s * this.cellW + "px";
+        }, delay);
+        this.visualTimers ||= new Set();
+        this.visualTimers.add(timer);
+        setTimeout(() => this.visualTimers.delete(timer), delay + 5);
+        this.nextTime += stepTime;
+        this.playStep++;
+        if (this.playStep >= (this.loopEnd || this.p.length)) {
+          if (this.looping) this.playStep = this.loopStart;
+          else {
+            clearInterval(this.timer);
+            this.stopTimer = setTimeout(
+              () => this.stop(),
+              Math.max(0, (this.nextTime - ctx.currentTime) * 1000),
+            );
+            break;
+          }
+        }
+      }
+    }
+    stop() {
+      this.playing = false;
+      clearInterval(this.timer);
+      clearTimeout(this.stopTimer);
+      this.visualTimers?.forEach(clearTimeout);
+      this.visualTimers?.clear();
+      this.voices?.forEach((o) => {
+        try {
+          o.stop();
+        } catch {}
       });
-      window.addEventListener("pointerup", () => {
-        if (!state.drag) return;
-        if (state.drag.moved) state.suppressClick = true;
-        state.drag = null;
+      this.voices?.clear();
+      if (this.$) {
+        this.$("play").textContent = "▶ Play";
+        const line = this.$("sheet").querySelector(".playhead");
+        if (line) line.hidden = true;
+      }
+    }
+    wire() {
+      const on = (id, fn) => {
+        this.$(id).onclick = this.guard(fn);
+      };
+      this.shadowRoot.addEventListener("keydown", (ev) => this.keydown(ev));
+      on("open", () => this.connect());
+      on("save", () => this.saveAll());
+      on("newProject", () => this.newProject());
+      on("newPattern", () => this.newPattern());
+      on("copyPattern", () => this.newPattern(true));
+      on("export", () =>
+        this.download(
+          "gc-editor-project.json",
+          JSON.stringify(this.model.export(), null, 2),
+          "application/json",
+        ),
+      );
+      on("exportPattern", () =>
+        this.download(
+          "pattern" + this.parts[2] + ".txt",
+          F.encode(this.p),
+          "application/octet-stream",
+        ),
+      );
+      on("exportNotes", async () => {
+        if (
+          (await this.modal(
+            "Export notes only",
+            "This creates a separate pattern file with notes and step flags, omitting all CC automation and CV assignments. Your editor document stays intact.",
+            [
+              ["cancel", "Cancel"],
+              ["ok", "Export notes"],
+            ],
+          )) !== "ok"
+        )
+          return;
+        const p = F.clone(this.p);
+        p.steps.forEach((s) => {
+          s.cc = [];
+        });
+        p.ccSources = {};
+        p.ccLanes = [];
+        this.download(
+          "pattern" + this.parts[2] + ".txt",
+          F.encode(p),
+          "application/octet-stream",
+        );
       });
-      window.addEventListener("beforeunload", ev => {
-        if (!state.dirty) return;
-        ev.preventDefault(); ev.returnValue = "";
+      on("import", () => this.$("file").click());
+      this.$("file").onchange = this.guard(async () => {
+        await this.importFile(this.$("file").files[0]);
+        this.$("file").value = "";
       });
-      $("stepsNum").onchange = e => { state.steps = Math.max(1, Math.min(128, +e.target.value || 1)); native.len[state.track] = state.steps; e.target.value = state.steps; markDirty(); paint(); };
-      $("tieStep").onclick = () => { const st = flagAt(); st.modifier ^= 1; markDirty(); syncFlags(); paint(); };
-      $("slideStep").onclick = () => { const st = flagAt(); st.modifier ^= 2; markDirty(); syncFlags(); paint(); };
-      $("ratStep").onclick = () => { const st = flagAt(); st.ratchet = st.ratchet ? 0 : 1; markDirty(); syncFlags(); paint(); };
-      $("clear").onclick = () => { if (state.track === "D") { state.drum = []; ensureDrum(); } else { state.melodic[state.track] = null; ensureMelodic(state.track); } markDirty(); paint(); };
-      $("exportBtn").onclick = doExport;
-      $("importBtn").onclick = () => $("importFile").click();
-      $("importFile").onchange = e => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => doImport(rd.result); rd.readAsText(f); };
-      $("settingsBtn").onclick = () => { $("drawer").classList.toggle("open"); if ($("drawer").classList.contains("open")) buildDrawer(); };
-      $("closeDrawer").onclick = () => $("drawer").classList.remove("open");
-
-      for (const t of MELODIC) ensureMelodic(t); ensureDrum(); paint();
-      // tiny API for tests
-      this._api = { state, exportJSON, toggleNote, toggleDrum, setCC, setCCval, delCCval, selectOrToggle, removeNote, paint, buildCC, noteName, nameToMidi, native, loadProject, saveAll, refreshProjects, projectNames, parseNativeNote, nativeNote, serializePattern, refreshPatterns };
+      on("restore", async () => {
+        const saved = localStorage.getItem("gc-editor-v2-draft");
+        if (!saved) return;
+        if (
+          this.model.dirty &&
+          (await this.modal(
+            "Recover draft",
+            "Replace this workspace with the saved browser draft?",
+            [
+              ["cancel", "Cancel"],
+              ["ok", "Recover"],
+            ],
+          )) !== "ok"
+        )
+          return;
+        this.model.import(JSON.parse(saved));
+        this.$("restore").hidden = true;
+        this.fitNotes();
+      });
+      on("pointer", () => {
+        this.mode = "pointer";
+        this.render();
+      });
+      on("draw", () => {
+        this.mode = "draw";
+        this.render();
+      });
+      on("undo", () => this.model.undo());
+      on("redo", () => this.model.redo());
+      on("duplicate", () => this.duplicate());
+      on("delete", () => this.model.deleteSelection());
+      on("clear", async () => {
+        if (
+          (await this.modal(
+            "Clear pattern",
+            "Remove all notes and automation from this pattern? You can undo this.",
+            [
+              ["cancel", "Cancel"],
+              ["ok", "Clear"],
+            ],
+          )) === "ok"
+        )
+          this.action("Clear pattern", () => {
+            this.p.steps = Array.from({ length: 128 }, () => ({
+              notes: [],
+              cc: [],
+              modifier: 0,
+              ratchet: 0,
+            }));
+            this.p.ccSources = {};
+            this.p.ccLanes = [];
+            if (this.p.drum)
+              this.p.base.ratchets = Array.from({ length: 8 }, () =>
+                Array(this.p.length).fill(0),
+              );
+            this.model.selection.clear();
+          });
+      });
+      on("settingsBtn", () => {
+        this.$("settings").hidden = !this.$("settings").hidden;
+        this.renderSettings();
+      });
+      on("fit", () => this.fitNotes());
+      on("fitTime", () => {
+        this.cellW = Math.max(
+          18,
+          Math.min(80, (this.$("viewport").clientWidth - 60) / this.p.length),
+        );
+        this.$("zoomX").value = this.cellW;
+        this.renderRoll();
+        this.renderLanes();
+      });
+      this.$("zoomX").oninput = () => {
+        this.cellW = +this.$("zoomX").value;
+        this.renderRoll();
+        this.renderLanes();
+      };
+      this.$("zoomY").oninput = () => {
+        const pitch =
+          (this.p.drum ? 7 : 127) -
+          (this.$("viewport").scrollTop + this.$("viewport").clientHeight / 2) /
+            this.cellH;
+        this.cellH = +this.$("zoomY").value;
+        this.renderRoll();
+        this.$("viewport").scrollTop =
+          ((this.p.drum ? 7 : 127) - pitch) * this.cellH -
+          this.$("viewport").clientHeight / 2;
+      };
+      this.$("length").onchange = () => {
+        const n = +this.$("length").value;
+        this.action("Set pattern length", () => {
+          if (
+            n < this.p.length &&
+            this.p.steps.slice(n).some((s) => s.notes.length || s.cc.length)
+          )
+            throw new Error(
+              "Clear notes and automation beyond the new end before shortening the pattern",
+            );
+          this.p.length = n;
+          this.model.cursor = Math.min(this.model.cursor, n - 1);
+          this.loopStart = 0;
+          this.loopEnd = null;
+        });
+      };
+      this.$("selectedVel").onchange = () =>
+        this.action("Set velocity", () => {
+          const v = +this.$("selectedVel").value;
+          if (!Number.isInteger(v) || v < 1 || v > 127)
+            throw new Error("Velocity must be 1 to 127");
+          for (const { s, n } of this.model.notes())
+            this.p.steps[s].notes.find((pair) => pair[0] === n)[1] = v;
+        });
+      for (const [id, mask] of [
+        ["tie", 1],
+        ["slide", 2],
+        ["ratchet", 0],
+      ])
+        on(id, () =>
+          this.action("Set " + id, () => {
+            const steps = this.selectedSteps(),
+              all = steps.every((s) =>
+                id === "ratchet"
+                  ? this.p.steps[s].ratchet
+                  : this.p.steps[s].modifier & mask,
+              );
+            for (const s of steps) {
+              if (id === "ratchet") this.p.steps[s].ratchet = all ? 0 : 1;
+              else
+                this.p.steps[s].modifier = all
+                  ? this.p.steps[s].modifier & ~mask
+                  : this.p.steps[s].modifier | mask;
+            }
+          }),
+        );
+      this.$("lane").onchange = () => {
+        this.lane = this.$("lane").value;
+        this.renderLanes();
+      };
+      on("addCC", () => {
+        const n = +this.$("ccNumber").value;
+        if (!Number.isInteger(n) || n < 0 || n > 127)
+          throw new Error("CC must be 0 to 127");
+        const nums = new Set([
+          ...this.p.steps.flatMap((s) => s.cc.map((c) => c[0])),
+          ...Object.keys(this.p.ccSources || {}).map(Number),
+          ...(this.p.ccLanes || []),
+        ]);
+        if (!nums.has(n) && nums.size >= F.MAX_CC)
+          throw new Error("A track supports at most four CC lanes");
+        if (this.p.drum)
+          throw new Error("CC lanes belong to melodic tracks 1–3");
+        this.action("Add CC lane", () => {
+          this.p.ccLanes ||= [];
+          if (!this.p.ccLanes.includes(n)) this.p.ccLanes.push(n);
+        });
+        this.extraLanes.add(n);
+        this.lane = String(n);
+        this.renderLanes();
+      });
+      on("removeCC", async () => {
+        if (this.lane === "velocity") return;
+        const n = +this.lane;
+        if (
+          (await this.modal(
+            "Remove CC " + n,
+            "Remove all points in this controller lane? You can undo this.",
+            [
+              ["cancel", "Cancel"],
+              ["ok", "Remove"],
+            ],
+          )) !== "ok"
+        )
+          return;
+        this.action("Remove CC lane", () => {
+          this.p.steps.forEach((s) => {
+            s.cc = s.cc.filter((c) => c[0] !== n);
+          });
+          if (this.p.ccSources) delete this.p.ccSources[n];
+          this.p.ccLanes = (this.p.ccLanes || []).filter(
+            (number) => number !== n,
+          );
+        });
+        this.extraLanes.delete(n);
+        this.lane = "velocity";
+        this.renderLanes();
+      });
+      const vp = this.$("viewport");
+      vp.addEventListener("pointerdown", (ev) => this.startGesture(ev));
+      vp.addEventListener("pointermove", (ev) => this.moveGesture(ev));
+      vp.addEventListener("pointerup", () => this.endGesture());
+      vp.addEventListener("pointercancel", () => this.endGesture(true));
+      vp.addEventListener("dblclick", (ev) => this.doubleClick(ev));
+      vp.addEventListener("scroll", () => {
+        this.$("laneScroll").scrollLeft = vp.scrollLeft;
+      });
+      vp.addEventListener("contextmenu", (ev) => {
+        const note = ev.target.closest("[data-note]");
+        if (!note) return;
+        ev.preventDefault();
+        this.model.selection = new Set([note.dataset.note]);
+        this.model.deleteSelection();
+      });
+      const lane = this.$("laneGraph");
+      lane.addEventListener("pointerdown", (ev) => this.startLane(ev));
+      lane.addEventListener("pointermove", (ev) => this.moveLane(ev));
+      lane.addEventListener("pointerup", () => this.endLane());
+      lane.addEventListener("pointercancel", () => this.endLane(true));
+      lane.addEventListener("contextmenu", (ev) => {
+        if (this.lane === "velocity") return;
+        ev.preventDefault();
+        const r = lane.getBoundingClientRect(),
+          s = Math.floor((ev.clientX - r.left) / this.cellW);
+        if (s >= 0 && s < this.p.length)
+          this.action("Remove CC point", () => {
+            this.p.steps[s].cc = this.p.steps[s].cc.filter(
+              (c) => c[0] !== +this.lane,
+            );
+          });
+      });
+      this.$("laneScroll").addEventListener("scroll", () => {
+        const n = this.$("laneScroll").scrollLeft;
+        if (Math.abs(vp.scrollLeft - n) > 1) vp.scrollLeft = n;
+      });
+      this.$("bpm").onchange = () =>
+        this.action("Set tempo", () => {
+          const v = +this.$("bpm").value;
+          if (!Number.isInteger(v) || v < 30 || v > 300)
+            throw new Error("Tempo must be 30 to 300 BPM");
+          const key = this.parts[0] + "/ProjectSettings.txt";
+          this.model.settings[key] ||= {};
+          this.model.settings[key].BPM = v;
+        });
+      this.$("ccSource").onchange = () =>
+        this.action("Set CC recording source", () => {
+          this.p.ccSources ||= {};
+          const input = +this.$("ccSource").value;
+          if (input)
+            this.p.ccSources[this.lane] = {
+              input: input - 1,
+              min: 0,
+              max: 127,
+            };
+          else delete this.p.ccSources[this.lane];
+        });
+      for (const [id, key] of [
+        ["ccMin", "min"],
+        ["ccMax", "max"],
+      ])
+        this.$(id).onchange = () =>
+          this.action("Set CV range", () => {
+            this.p.ccSources[this.lane][key] = +this.$(id).value;
+          });
+      this.$("ccValue").onchange = () =>
+        this.action("Set CC value", () => {
+          const st = this.p.steps[this.model.cursor],
+            v = +this.$("ccValue").value,
+            pair = st.cc.find((c) => c[0] === +this.lane);
+          if (pair) pair[1] = v;
+          else st.cc.push([+this.lane, v]);
+        });
+      on("play", () => (this.playing ? this.stop() : this.startPlayback()));
+      on("stop", () => this.stop());
+      on("loop", () => {
+        this.looping = !this.looping;
+        this.$("loop").classList.toggle("active", this.looping);
+      });
     }
   }
-  if (!customElements.get("gc-editor")) customElements.define("gc-editor", GCEditor);
+  if (!customElements.get("gc-editor"))
+    customElements.define("gc-editor", GCEditor);
 })();

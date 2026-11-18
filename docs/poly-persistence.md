@@ -1,5 +1,7 @@
 # Polyphony persistence — what is still missing (status: NOT ready to flash)
 
+> Historical research and version-specific observations. Use [current documentation](README.md) for installation, compatibility and release status. Sidecar references describe abandoned formats.
+
 ## Bottom line
 
 The shipped v1 patch (clock + poly-record + velocity hook + playback gate) makes chords play when

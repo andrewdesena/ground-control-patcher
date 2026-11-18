@@ -1,0 +1,13 @@
+{
+  "name": "poly-lifecycle-save",
+  "status": "experimental",
+  "description": "Resolve all four slots and 24 pattern addresses directly. Write only the bank owner, independent of the selected letter and ASCII arithmetic.",
+  "requires": {},
+  "patches": [
+    {
+      "addr": "0x8047e00",
+      "bytes": "ec462de9f041e046204602f0f9f800282cd004460d46184b53f82530511c994224d1164b53f822301e7898f80f10b1421cd146f67070c7f66c10c8f8080088f80c60002088f80d000d4808f108010a22ccf78cfd002809d10948214640f68002084bccf716ff0648cdf756f808f11800cdf752f8bde8f08140d700101083030800e0001000e30010",
+      "note": "cave routine"
+    }
+  ]
+}

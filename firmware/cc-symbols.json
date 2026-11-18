@@ -1,0 +1,12 @@
+{
+  "cc_input": "0x804d000",
+  "cc_tick": "0x804d1cc",
+  "cc_read": "0x804d3c8",
+  "cc_publish": "0x804d594",
+  "cc_snapshot": "0x804d604",
+  "cc_write": "0x804d734",
+  "cc_clear": "0x804d770",
+  "cc_clear_step": "0x804d7dc",
+  "cc_rotate": "0x804d84c",
+  "cc_allow_stock": "0x804d918"
+}

@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "confirmed": {
+    "version": "0.9.0",
+    "legacyBuild": "1.20-boot1",
+    "source": "mods/v1-poly-v120-boot1.json",
+    "bundle": "mods/poly-0.9.0.json",
+    "filename": "gc-v3.26_poly-v0.9.0.hex",
+    "cardFilename": "GCV326B0.HEX"
+  },
+  "candidate": {
+    "version": "0.10.0-alpha.1",
+    "legacyBuild": "1.21-cc1",
+    "bundle": "mods/poly-0.10.0-alpha.1.json",
+    "filename": "gc-v3.26_poly-v0.10.0-alpha.1.hex",
+    "cardFilename": "GCV326C1.HEX"
+  }
+}

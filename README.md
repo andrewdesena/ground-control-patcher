@@ -1,221 +1,118 @@
-# Ground Control — Polyphony patcher
+# Ground Control firmware and pattern tools
 
-Unofficial customization of **Endorphin.es Ground Control** firmware **v3.26**, applied **locally in
-your browser**. Firmware is never uploaded. This repo contains only the static site, patch
-definitions, emulator/test tooling, and docs — **not** the vendor firmware; you bring your own stock
-`gc-*.hex`.
+Local browser tools for unofficial customization of Endorphin.es Ground Control v3.26 and editing its patterns.
 
-> **Status: v1.1 is emulator-proven; hardware validation pending.** v1.1 = clock fix + live chord
-> capture with real velocity + stock-gate playback + **hardware chord entry** + **poly sidecar
-> load/save** (`trackN/poly<letter>`). Every layer passes Unicorn tests and `verify.py` shows zero
-> collateral. See [`docs/poly-persistence.md`](docs/poly-persistence.md).
+[Open firmware tool](https://andrewdesena.github.io/ground-control-patcher/) · [Open pattern editor](https://andrewdesena.github.io/ground-control-patcher/#editor) · [Installation guide](docs/reference/guide.html) · [Editor instructions](docs/reference/editor.html) · [Features and release notes](docs/releases.md) · [Report a problem](https://github.com/andrewdesena/ground-control-patcher/issues)
 
-Open the patcher: **https://andrewdesena.github.io/ground-control-patcher/**
-Requires **Chrome or Edge over https** (the SD-card step uses the File System Access API).
+## Disclaimer and support
 
-The **Pattern Editor** is built into the same page — switch to the **Editor** tab: full MIDI 0–127
-piano roll, left track bar for Tracks 1/2/3/D, polyphonic note entry, **per-note velocity with
-multi-select and velocity-shaded notes**, **stacked CC automation lanes** (draggable points), and
-**copy/paste** of note patterns. It also **opens the whole SD card**: browse/create/delete `projectA/B/…`
-folders, switch **patterns A/B/C/…** within a project, edit **`GlobalSettings.txt`** and the native
-project/track files, and **save back in the GC's own format** (originals are backed up as `.bak`).
-Our own JSON export/import remains available too.
+**Unofficial firmware. Use at your own risk.** This project is not affiliated with, endorsed by, or supported by Endorphin.es in any way. The tools and patches are provided as-is, without warranty. To the fullest extent permitted by law, the authors and contributors accept no responsibility for device damage, lost data, failed updates, or other problems arising from their use.
 
-Printable docs: [reference guide (Letter)](docs/reference/guide-letter.pdf) ·
-[reference guide (A4)](docs/reference/guide-a4.pdf) ·
-[quick card (Letter)](docs/reference/quick-card-letter.pdf) ·
-[quick card (A4)](docs/reference/quick-card-a4.pdf)
+**Do not contact Endorphin.es for support with these tools or modified firmware.** Use [this repository’s issue tracker](https://github.com/andrewdesena/ground-control-patcher/issues). Back up the whole SD card and retain the original stock firmware before installing anything. Ground Control is a product of Endorphin.es. The tooling is MIT-licensed; no vendor firmware is distributed here.
 
-## Use
+## Release status
 
-1. **Back up your whole microSD card.**
-2. Download the official Ground Control firmware (`gc-*.hex`) from endorphin.es.
-3. Open the patcher → select that `.hex` → tick **Polyphony v1** → **Build modded firmware**.
-4. Hold **PROJ ~5 s** on the module to mount the SD over USB → **Connect GC SD card** → **Install to
-   GC**. It writes the patched file to the **card ROOT** as **`<stock-name>-poly1.hex`** — a
-   `gc-*.hex` name that still satisfies the updater but is clearly marked as patched (keep only one
-   firmware `.hex` there).
-5. **PROJ ~5 s** again: the module reboots and flashes. Power-cycle when done.
+| Component | Version / status |
+| --- | --- |
+| Confirmed firmware baseline | **v0.9.0**, reported working on the maintainer’s module |
+| CC automation firmware | **v0.10.0-alpha.1**, experimental candidate with emulator tests; physical validation pending |
+| Web tools | Source in this checkout; deployed site changes only after publication |
 
-The patcher **creates a file; it does not flash the module itself** — the module's own bootloader
-flashes a `gc-*.hex` found at the card root.
+The patcher defaults to the confirmed baseline. Selecting the CC candidate is explicit. Neither a passing emulator test nor a verified SD write proves that a firmware build works on physical hardware.
 
-## What Polyphony v1.1 changes
+Public versions are pre-1.0: **1.0.0 is reserved for the complete, hardware-tested experience.** The previous firmware IDs were engineering build counters. Preview 0.9.0 contains the same patch bytes as internal build 1.20-boot1; alpha 0.10.0-alpha.1 continues the CC work previously called 1.21-cc1. Older filenames remain as historical test inputs.
 
-- **Clock priority** — `0xF8`/`0xFA`/`0xFB`/`0xFC` go to the front of the MIDI event queue instead of
-  waiting behind notes.
-- **Polyphonic note capture** for melodic tracks 1–3 — every held note is stored per step with its
-  **real velocity** (not just the last note).
-- **Stock-gate chord playback** — each chord note replays through the real note emitter with the
-  **same timing and gate as the primary note**, so chords hold exactly like stock.
-- **Hardware chord entry** — a note-on while editing a step appends to that step's poly record
-  (deduped, max 8 notes), so step-edit mode accepts chords instead of overwriting one note.
-- **Step-record chords** — holding the first key and adding notes keeps them on the same step
-  instead of advancing; the next first-key press advances normally.
-- **Transpose follow** — a track transpose/shift also moves the stored chord notes (clamped 0–127).
-- **SD persistence** — each save also writes `trackN/poly<letter>` (2,176 bytes = 128 × [count,
-  note/vel pairs]); loading a pattern reads it straight into the poly array. Chords survive power
-  cycles, and browser-authored chords play on the module.
+## Features and improvements
 
-## Limits (v1.1)
+### Confirmed firmware baseline
 
-- Melodic tracks 1–3 only; assumes default channels 1/2/3.
-- Stock projects still load as mono until a chord is recorded or authored and saved by v1.1/editor.
-- Captured velocity falls back to 100 if a note-on velocity wasn't seen.
-- Up to 8 notes per step.
-- Overlapping keys in step record now build a chord; they no longer create `SLIDE`.
-- EDIT-mode chord key lights are **not in this build**; the first integration was pulled because it used the wrong EDIT cursor/pattern letter and could light wrong keys.
-- Module pattern copy/rename may not carry the `poly<letter>` sidecar yet.
+- Up to eight MIDI notes per step on melodic tracks 1–3, with per-note velocity.
+- Live polyphonic recording and hardware step editing, including note removal and chord-key LEDs.
+- Chord data embedded in `pattern<letter>.txt`; no separate polyphony files.
+- Single-file pattern saving, Save As, loading, clearing and chord transposition.
+- Pattern ownership and deferred switching keep incoming and outgoing chord banks separate.
+- Locked pattern-switch handling and quiet startup project restore.
+- DIN MIDI realtime clock priority while retaining the existing byte formatter.
+- Stock mono patterns remain readable. The drum track keeps its native file format; CV/gate outputs remain monophonic.
 
-## Hardware validation checklist (v1.1)
+### Web tool and editor improvements
 
-1. Flash the `-poly1.hex` from the card root (PROJ ~5 s → `BURN` → 10–15 s → reboot).
-2. Play a stock project: tracks and clock behave as before.
-3. In the editor, save a chord pattern to the card; load it on the module and play — all chord notes sound.
-4. Enter a chord in step-edit mode on the module and play.
-5. In EDIT mode on a stored chord step, confirm **all** chord notes light on the keys.
-6. In step record, hold the first key, add the rest of the chord, release, and play the step.
-7. Save the pattern on the module, power-cycle, reload — the chord persists.
-8. If anything fails: return to stock (original `gc-*.hex` at root, PROJ ~5 s) and keep the pattern/SD state for diagnosis.
+- Guided installation with stock-image verification, a pinned release bundle, output checksums and byte-for-byte card-write verification.
+- Clear distinction between writing a firmware file and flashing it on the module.
+- Ableton-style note selection and movement, marquee selection, double-click insertion/removal and Alt/Option-drag duplication.
+- Draw/erase mode, clipboard operations, keyboard nudging, semitone/octave transposition and undo/redo.
+- Per-note velocity lane and inspector, with relative velocity adjustment for selections.
+- Horizontal/vertical zoom, fit controls, shared timeline scrolling and a responsive layout.
+- Simple browser sound preview with play/stop, looping and a moving playhead.
+- Binary-safe single-file pattern imports, exports, backups, copies and verified saves.
+- Separate project/track/letter documents, unsaved-change indicators and browser draft recovery.
+- Step-level tie, slide and ratchet controls; native pattern and track settings are preserved.
+- Explicit limits, compatibility notices, installation instructions and project-owned support links.
 
-## Entering chords on the hardware (v1.1)
+### Experimental CC candidate
 
-| Mode | How to get there | Chord entry |
-|---|---|---|
-| **Live recording** | `PLAY` (running) → `RECORD` | **Yes** — hold the whole chord across the step; every held note is captured with its velocity and quantized to the grid. This is the reliable path. |
-| **Step editor (EDIT)** | Hold `RECORD` > 1.5 s (works stopped or running) | **Yes (v1.1)** — `PAGE` to the step, then press each note key; each note-on appends to that step's poly record (max 8). Switch tracks with `TRACK D/1/2/3`. |
-| **Step recording** | Stopped → press `RECORD` once | **Yes (v1.1)** — press and **hold the first key**, then press the remaining chord notes before releasing; they join the same step. Release all keys and the next key press advances. Trade-off: overlapping keys no longer create `SLIDE` by that gesture. |
-| **Browser editor** | Editor tab → open SD card | **Yes** — click notes per step (max 8), save; the module reads the `poly<letter>` sidecar on load. |
+- Four controller lanes per melodic track, stored in the same pattern file as notes.
+- Draw, paint, numerically edit and remove CC values in the browser.
+- Record incoming MIDI CC messages while transport and live record are enabled.
+- Assign each lane to incoming MIDI/editor data or one of the four external CV inputs.
+- Record external CV at step boundaries, with configurable CC minimum/maximum values, including inverted ranges.
+- Play automation once per step, including rests; preserve explicit zero values.
+- Preserve notes and other controller lanes when overdubbing one controller.
+- Checksum validation and bank ownership prevent damaged or foreign automation from being played.
 
-Caveats for the first hardware run: the editor entry-append is emulator-proven but not yet hardware-tested, and
-stock editor **removal** (pressing a lit key again, or `REST` to clear a step) does not yet clear the poly
-record. If a note will not go away, clear the step and re-enter it, or fix it in the browser editor. Treat this
-as the one behavior to verify on the module.
+**CC requires v0.10.0-alpha.1.** The default v0.9.0 build does not record or play the new automation. Physical CV input order, voltage mapping, MIDI timing under dense traffic and power-cycle persistence still need the [hardware acceptance pass](docs/cc-automation.md#hardware-acceptance).
 
-## Key LED map
+## Install
 
-The key LEDs are on the 56-bit SPI shift chain. The full bit→key table was decoded on hardware
-(five binary-plane probes) and is documented in `docs/led-bitmap.md`. It is compiled into the poly
-build; the temporary diagnostic mods have been removed from the patcher.
+1. Back up your whole microSD card outside the card itself. Keep the original official v3.26 HEX file for rollback.
+2. Open the [firmware tool](https://andrewdesena.github.io/ground-control-patcher/) in Chrome or Edge on HTTPS. Choose the confirmed release unless deliberately testing CC.
+3. Select your official stock v3.26 HEX. The build button remains disabled until its canonical SHA-256 matches the supported image.
+4. Build the firmware. Hold **PROJ for about five seconds** on the module to enter USB storage, then connect the card root in the tool.
+5. Choose **Write firmware to SD card**, or download the HEX and copy it yourself. Keep only one firmware HEX at the card root. Conflicting firmware files are never deleted automatically. Direct writes use short 8.3 card names: `GCV326B0.HEX` for 0.9.0 and `GCV326C1.HEX` for the alpha. Downloaded files retain descriptive versioned names; use the corresponding short name when copying manually.
+6. After the write verifies, safely disconnect USB storage and follow the module’s firmware-update procedure. Keep power stable during updating.
 
-Rules for any future LED patch: OR/set bits only, never clear low bytes (`0x20001E74`); bits 0–1 drive
-matrix lines and can make the driver hum; byte 2 (bits 16–23) is quiet.
+The browser writes a file; the module’s bootloader performs the update. To return to stock, put only the original vendor HEX at the card root and follow the same module update procedure. Stock firmware plays native mono notes and removes embedded extensions when it rewrites patterns, so keep your backup.
 
-## Verify / return to stock
+Supported stock canonical SHA-256:
 
-- Supported base: firmware **v3.26**, canonical image SHA-256
-  `e1db4815f8cf2983f832493aa8b2085586cb5ea10446e133774bdfc91bca9f52`.
-- `tools/verify.py` proves a bundle moves **0** untouched bytes; the tool re-parses its output before
-  writing.
-- To return to stock: put the original vendor `gc-*.hex` back at the card root, **PROJ ~5 s**.
-
----
-
-# Technical / development
-
-Status: **Polyphony v1.1 builds and is emulator-verified** (clock fix, capture w/ real velocity,
-stock-gate chord playback, hardware entry append, poly sidecar load/save); **EXPERIMENTAL /
-PENDING HARDWARE VALIDATION.** The **Unicorn emulator harness**
-(`tools/fw_sandbox.py`) runs real firmware functions including the player's **FPU/VFP** path
-(set a Cortex-M7/M4 core *before* mapping memory, or VFP won't decode). Playback step cursor is
-solved (`docs/polyphony-capture.md`). Toolchain: `tools/thumbfix.py` encodes far branches as
-`addend - instr_off`; `tools/verify.py` proves zero collateral; `tools/apply.py` writes the new-flash
-cave records the stock file omits, then re-checks content identity.
-
-```
-index.html          THE TOOL. Single self-contained file: double-click it, it works. UI + engine inside.
-src/hexfile.js      Intel HEX parse / in-place patch / emit   (reference copy for the Node tests)
-src/mods.js         mod bundle format, preconditions, applier (reference copy for the Node tests)
-mods/index.json     list of shipped bundles ([] today)
-test/roundtrip.mjs  parse -> emit byte-identical to the vendor file, patch, revert
-test/mods.mjs       bundle apply, precondition abort, code-cave append, re-parse
-testdata/           a stock v3.26 image for local testing
+```text
+e1db4815f8cf2983f832493aa8b2085586cb5ea10446e133774bdfc91bca9f52
 ```
 
-`index.html` must run from `file://` with no server, because that is how a normal person opens a
-downloaded HTML file. That is why the engine is inlined instead of imported as an ES module: Chrome
-blocks module imports on `file://`, and the page then renders but every button is dead. Keep
-`src/*.js` in sync with the inlined copy when either changes; `src/` is what the tests exercise.
+## Edit patterns
 
-Run the tests: `node test/roundtrip.mjs && node test/mods.mjs`
-Run the page: double-click `index.html`. Optional override for automated checks:
-`python3 -m http.server 8899` then `http://127.0.0.1:8899/?sample=testdata/gc326.hex`
+Open the [pattern editor](https://andrewdesena.github.io/ground-control-patcher/#editor). Use **Open SD card** to browse native projects, or import a pattern file/editor project. Select the exact project, track and pattern letter. Save changes to the card or export a pattern file.
 
-## Why it is shaped like this
+Each melodic pattern is a native text prefix followed by binary data. **Do not edit these files in a plain text editor or parse the whole file as JSON.** Legacy `poly<letter>` files are ignored; this tool neither reads, writes, migrates nor deletes them. A missing letter never silently loads A.
 
-The image has **694,256 blank bytes** of flash at `0x08046810–0x080EFFFF`, and the running app keeps its
-hot MIDI path in SRAM, copied from flash at boot. So most real mods are not byte edits, they are
-*small routines injected into the cave plus a 2 or 4 byte hop at the call site*. A patcher therefore has
-to do three things and nothing else:
+**Export editor project** creates a browser-workspace JSON backup, which the module does not read. Native pattern export uses `pattern<letter>.txt`. Existing card files receive a byte-preserving `.bak` before replacement; a backup failure or conflicting card edit stops the save. These on-card backups do not replace a full off-card backup.
 
-1. rewrite bytes **in place** inside the vendor's existing record grid (never re-lay-out the image),
-2. **append** new data records for the cave, with the `EXT_LIN` records the target address needs,
-3. recompute each touched record's checksum and re-parse the result before offering it for download.
+Notes use fixed steps, up to 128. Tie, slide and ratchet apply to a whole step. Independent note lengths are not supported. Preview uses a basic browser instrument; it is not a hardware synthesizer or a complete simulation of the module’s modulation, generators, swing, routing or CV outputs.
 
-That is what `hexfile.js` does. Round-trip on stock v3.26 is byte-identical, which is the property that
-makes diffs of two builds readable and keeps any change scrolling in a `.hex` viewer as a small hunk.
+## Development and checks
 
-## Bundle format
+Serve locally with `python3 -m http.server 8765 --bind 127.0.0.1`, then open `http://127.0.0.1:8765`. Direct card access and SHA-256 verification need HTTPS or localhost. No backend or upload service is used.
 
-```json
-{
-  "name": "clock-priority",
-  "status": "experimental",
-  "description": "0xF8/0xFA/0xFC bypass the event queue; clock only waits on the byte in flight.",
-  "requires": { "blank": ["0x08046810", "0x080EFFFF"] },
-  "patches": [
-    { "addr": "0x08019620", "bytes": "...", "note": "clock builder -> cave stub" },
-    { "addr": "0x08046810", "bytes": "...", "note": "injected routine" }
-  ]
-}
+- `assets/pattern-format.js`: independent binary codec shared by every editor file operation.
+- `assets/editor-model.js`: undoable document and settings state.
+- `assets/card-store.js`: exact card paths, backups, conflict detection and read-back verification.
+- `tools/web_release.py`: generate/check the browser release against pinned firmware bundles.
+- `firmware/cc_automation.c` and `tools/build_cc.py`: bounded CC candidate and freestanding Thumb build.
+- [Pattern formats and firmware compatibility](docs/project-schema.md), [CC implementation and acceptance](docs/cc-automation.md), [documentation index](docs/README.md).
+
+Install the local emulator dependencies into a virtual environment: `unicorn`, `capstone` and `pyelftools`. A working `clang` targeting Cortex-M4 is needed to rebuild the CC candidate. Put your own official firmware at `testdata/gc326.hex`; it is ignored by Git.
+
+```sh
+python3 tools/web_release.py --check
+node --test test/web/*.test.cjs
+.venv/bin/python tools/build_cc.py
+.venv/bin/python tools/test_cc_automation.py
+.venv/bin/python tools/test_poly_live_record.py mods/poly-0.10.0-alpha.1.json
+.venv/bin/python tools/verify.py mods/poly-0.10.0-alpha.1.json
 ```
 
-Rules the applier enforces:
+`test_cc_automation.py` regenerates the cross-language pattern fixture consumed by the JavaScript tests. Browser checks use Playwright with a local Chrome installation; see `test/web/browser.cjs`. The standalone older HEX tests use `testdata/gc326.hex` as their local input.
 
-* any patch below `0x08010000` throws (bootloader territory, not ours),
-* `requires.blank` ranges are verified before a byte is written; failure means no download at all,
-* the patched result is re-parsed before the download starts, so a broken emit can't reach a card.
+## Repository hygiene
 
-## Roadmap
-
-| mod | difficulty | needs |
-|---|---|---|
-| clock priority bypass | small: one hop + ~40 bytes of cave code | a spare RAM byte for the pending-realtime flag |
-| CC number remap for external inputs | small: table patch | the exact CV -> CC mapper (one more RE pass) |
-| polyphonic record for tracks 1-3 | large: capture, storage and playback | new step array + `steps2` JSON key + parser fallback |
-
-The polyphony mod is the one that decides the project's shape: it is a real feature port, not a patch,
-so the bundle needs a code-cave routine that is big enough to have its own tests. Design sketch lives
-in `../GC_RE_v3.26_findings.md` §2.
-
-## Dynamic analysis tooling (emulator)
-
-No hardware needed to run firmware functions. All tools use `.venv/bin/python` (Unicorn + capstone).
-
-```
-tools/fw_sandbox.py   reusable Unicorn sandbox: loads the full image, maps FLASH/SRAM/CCM/wide
-                      peripherals, calls any function with set registers/memory, steps + traces.
-tools/trace_emit.py   runs the note-on / note-off / pair primitives, captures the real MIDI bytes.
-tools/boot_trace.py   boots from reset with a small RCC model; reports init progress + stalls.
-```
-
-Run: `.venv/bin/python tools/trace_emit.py` (prints captured messages, e.g. `90 3C 64`).
-
-**Critical gotcha (do not remove):** the sandbox sets a **Cortex-M7/M4 CPU model before mapping any
-memory** and enables CPACR. The audio player uses hardware FPU/VFP instructions; on Unicorn's default
-core they fail to decode (`UC_ERR_INSN_INVALID`) and the player cannot run at all. Setting the model
-after `mem_map` does not work. This is the key that makes emulator-testing the playback path possible.
-
-**Pick up here:** the playback step cursor is solved (`docs/polyphony-capture.md`). To finish the
-chord fan-out, construct a real track/voice object in the sandbox and drive `0x8021A14` to observe
-its per-step emits (`0x8021748` -> `0x8019A92`), then splice the fan-out cave and prove it with
-`verify.py` before flashing. Boots past reset still need an RCC/PLL peripheral model (clock init
-returns error -> fatal loop `0x0801245A`); a full boot is optional if the track object can be faked.
-
-## Open risk
-
-The bootloader at `0x08000000–0x0800FFFF` is **not in the hex**, so whether it validates the app image is
-unverified. Nothing in the app uses the hardware CRC unit or a CRC32 table, which is encouraging, but the
-first modded image should be flashed on a unit with a recovery path (SD-card boot from v2.x procedure)
-before this is published. If the bootloader does verify, the whole approach changes to "reflash via the
-bootloader's own recovery path".
+Firmware images, real card data, `.bak` files, local staging folders and session handoffs stay on disk but are ignored. The browser contains patch bytes only. Historical research remains clearly labeled under [the documentation index](docs/README.md); it is not current installation guidance. No changes are published just by editing this checkout.

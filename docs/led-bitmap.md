@@ -1,5 +1,7 @@
 # Ground Control key LED bit map (v3.26)
 
+> Historical research and version-specific observations. Use [current documentation](README.md) for installation, compatibility and release status. Sidecar references describe abandoned formats.
+
 Decoded on hardware 2026-11-13 using five binary-plane probes. Each probe ORed a
 mask into the 56-bit phase output buffer `0x20001E74` immediately before SPI
 shift-out (`0x08012068`). Keys were reported as note + low/high octave.

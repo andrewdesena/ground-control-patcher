@@ -1,0 +1,29 @@
+{
+  "name": "Quiet startup project load",
+  "status": "experimental",
+  "description": "During power-on project restore, load patterns without overlaying their key indicators on the startup display.",
+  "bundle_description": "Ground Control v1.20 with live polyphonic recording, locked pattern switching, and quiet startup project restore.",
+  "cave": {
+    "addr": "0x0804C800",
+    "asm": [
+      "mov r3, r2",
+      "cmp r3, #2",
+      "it eq",
+      "moveq r3, #0",
+      "movs r2, #0x62",
+      "bx lr"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x0801DCE2",
+      "asm": ["movs r1, #2"],
+      "note": "Tag power-on restore while preserving the stock nonzero startup mode"
+    },
+    {
+      "addr": "0x0801D1F0",
+      "asm": ["bl 0x0804C800"],
+      "note": "Translate the startup tag to a quiet indicator argument for all four tracks"
+    }
+  ]
+}

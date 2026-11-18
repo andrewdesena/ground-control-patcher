@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import { HexFile } from '../src/hexfile.js';
 import { applyBundle, identify, APP_BASE } from '../src/mods.js';
 
-const SRC = '/Users/andrewdesena/Downloads/Ground_Control_update/gc-v3.26_latest_release_300925.hex';
+const SRC = process.env.GC_STOCK || new URL('../testdata/gc326.hex', import.meta.url);
 const hex = new HexFile(fs.readFileSync(SRC, 'utf8'));
 
 let pass = 0, fail = 0;

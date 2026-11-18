@@ -1,0 +1,73 @@
+{
+  "name": "Deferred locked pattern restart",
+  "status": "experimental",
+  "description": "Run the stock all-track restart and chord file reads on the SD task. Keep the native boundary holds asserted until the restart completes.",
+  "cave": {
+    "addr": "0x0804C700",
+    "asm": [
+      "ldr r0, =0x1000D731",
+      "ldrb r1, [r0]",
+      "cmp r1, #3",
+      "beq release",
+      "cbnz r1, wait",
+      "movs r1, #1",
+      "strb r1, [r0]",
+      "wait:",
+      "b.w 0x08022304",
+      "release:",
+      "movs r1, #0",
+      "strb r1, [r0]",
+      "b.w 0x080223E0",
+      ".ltorg"
+    ]
+  },
+  "patches": [
+    {
+      "addr": "0x080223DC",
+      "asm": ["b.w 0x0804C700"],
+      "note": "Hand off the all-track restart without releasing the stock boundary holds"
+    },
+    {
+      "addr": "0x0804BF00",
+      "asm": [
+        "push {r4-r6, lr}",
+        "mov r4, r0",
+        "mov r5, r1",
+        "receive_again:",
+        "bl 0x0804C740",
+        "mov r0, r4",
+        "mov r1, r5",
+        "movs r2, #1",
+        "bl 0x08033256",
+        "cmp r0, #0",
+        "beq receive_again",
+        "pop {r4-r6, pc}"
+      ],
+      "note": "Service a locked transition before an ordinary per-track request"
+    },
+    {
+      "addr": "0x0804C740",
+      "asm": [
+        "ldr r0, =0x1000D731",
+        "ldrb r1, [r0]",
+        "cmp r1, #1",
+        "beq restart",
+        "cmp r1, #0",
+        "it ne",
+        "bxne lr",
+        "b.w 0x0804C000",
+        "restart:",
+        "push {r4, lr}",
+        "mov r4, r0",
+        "movs r1, #2",
+        "strb r1, [r4]",
+        "bl 0x080214F8",
+        "movs r1, #3",
+        "strb r1, [r4]",
+        "pop {r4, pc}",
+        ".ltorg"
+      ],
+      "note": "Finish native restart and bank publication on the SD task before allowing playback to resume"
+    }
+  ]
+}

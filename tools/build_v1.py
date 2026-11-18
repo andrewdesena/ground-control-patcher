@@ -32,8 +32,14 @@ def build(out_path=None, hex_path=None):
     import asm
     bundle = json.load(open(BASE))
     patches = [dict(p) for p in bundle['patches']]
+    description = ('Known-good v1.1 polyphony build plus a post-switch reload: after the commit '
+                   'installs the incoming patterns and letters, each melodic track republishes '
+                   'its own poly sidecar into the chord bank. FR_NO_FILE zeroes the bank; any '
+                   'other FRESULT leaves it untouched.')
     for path in EXTRA:
-        built = asm.build(json.load(open(path)))
+        source = json.load(open(path))
+        description = source.get("bundle_description", description)
+        built = asm.build(source)
         for site in built['patches']:
             addr = int(site['addr'], 16)
             for i, cur in enumerate(patches):
@@ -48,10 +54,7 @@ def build(out_path=None, hex_path=None):
         'name': 'Polyphony',
         'version': os.environ.get('GC_VERSION', '1.2'),
         'status': 'experimental',
-        'description': ('Known-good v1.1 polyphony build plus a post-switch reload: after the commit '
-                        'installs the incoming patterns and letters, each melodic track republishes '
-                        'its own poly sidecar into the chord bank. FR_NO_FILE zeroes the bank; any '
-                        'other FRESULT leaves it untouched.'),
+        'description': description,
         'requires': dict(bundle.get('requires', {})),
         'patches': patches,
     }
@@ -72,6 +75,11 @@ def build(out_path=None, hex_path=None):
 
 def embedded(html_text):
     """Pull the patcher's embedded V1 patch list out of index.html (JS object literal)."""
+    if '  var V1 = ' not in html_text:
+        release_text=open(os.path.join(ROOT,'assets','release.js')).read()
+        release=json.loads(release_text.split('window.GCRelease = ',1)[1].rstrip('\n;'))
+        bundle=release['patchBundle']
+        return {'name':bundle['name'],'version':bundle['version'],'patches':[{'addr':p['addr'],'bytes':p['bytes'].lower()} for p in bundle['patches']]}
     body = html_text.split('  var V1 = ', 1)[1].split(';\n  var mods', 1)[0]
     patches = [{'addr': a, 'bytes': b.lower()} for a, b in
                re.findall(r"addr: '(0x[0-9a-fA-F]+)', bytes: '([0-9a-fA-F]+)'", body)]
@@ -100,6 +108,8 @@ def write_html(bundle, filename=None):
     """Rewrite index.html's embedded V1 to match the built bundle, then verify it."""
     text = open(HTML).read()
     head = '  var V1 = '
+    if head not in text:
+        raise SystemExit('The guided web tool uses tools/web_release.py and firmware/releases.json; no inline V1 block is rewritten.')
     start = text.index(head) + len(head)
     end = text.index(';\n  var mods', start)
     desc = bundle['description'].replace('\\', '\\\\').replace("'", "\\'")

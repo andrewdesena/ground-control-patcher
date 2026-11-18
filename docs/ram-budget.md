@@ -1,5 +1,7 @@
 # RAM budget (stock v3.26)
 
+> Historical research and version-specific observations. Use [current documentation](README.md) for installation, compatibility and release status. Sidecar references describe abandoned formats.
+
 From the C startup (reset handler at `0x08030C14`), which copies `.data` and zeroes `.bss`.
 
 | region | range | size |

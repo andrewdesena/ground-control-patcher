@@ -1,0 +1,18 @@
+{
+  "name": "poly-lifecycle-commit",
+  "status": "experimental",
+  "description": "v1.9 republish path and cost gate, with exact owner publication and scratch reads.",
+  "requires": {},
+  "patches": [
+    {
+      "addr": "0x8047a00",
+      "bytes": "2de9f04f81b094f82ea0dbf7a5fb94f82eb0354a127812b9d34500d1ffe794f82d20002a5dd13148002550f82510a14203d00135042df8d353e0042d51d22a480078002808d1d34506d1294850f825001bf10101884244d0bbf1180f41d2254850f82b000678244890f84972182f38d2204850f8270007784ef22048c1f200081e480021425c08f8012001311029f9d388f8087030222a4488f80f202f2288f81020702288f811206f2288f812206c2288f81320792288f8142088f81560002288f816204bf23059c1f200092a46d20202ebc5129144484629465a46434602f00ffb01b0bde8f08fd8c500207083030840d700101083030850b200201b700308",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8021528",
+      "bytes": "26f06afa",
+      "note": "playback-start per-track letter select -> publish from the committed letter"
+    }
+  ]
+}

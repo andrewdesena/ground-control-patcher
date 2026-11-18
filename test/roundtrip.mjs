@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { HexFile, freeRuns, isBlank } from '../src/hexfile.js';
 
-const SRC = '/Users/andrewdesena/Downloads/Ground_Control_update/gc-v3.26_latest_release_300925.hex';
+const SRC = process.env.GC_STOCK || new URL('../testdata/gc326.hex', import.meta.url);
 const orig = fs.readFileSync(SRC, 'utf8');
 let pass = 0, fail = 0;
 const ok = (cond, msg) => { if (cond) { pass++; console.log('  ok  ' + msg); } else { fail++; console.log('  FAIL ' + msg); } };

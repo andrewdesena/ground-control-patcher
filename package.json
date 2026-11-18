@@ -1,0 +1,17 @@
+{
+  "name": "ground-control-patcher",
+  "private": true,
+  "version": "0.9.0",
+  "description": "Local Ground Control firmware patcher and pattern editor",
+  "scripts": {
+    "test": "node --test test/web/*.test.cjs",
+    "test:hex": "node test/roundtrip.mjs && node test/mods.mjs",
+    "test:browser": "node test/web/browser.cjs && node test/web/card-flow.cjs",
+    "check:release": "python3 tools/web_release.py --check",
+    "lint:style": "bash scripts/prose-lint.sh README.md index.html assets docs/reference docs/releases.md docs/project-schema.md docs/cc-automation.md docs/README.md",
+    "docs:pdf": "node tools/render_guides.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}

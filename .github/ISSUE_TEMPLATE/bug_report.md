@@ -1,27 +1,36 @@
 ---
 name: Bug report
-about: Something broke in the patcher, the pattern editor, or a build
+about: Report a problem with these unofficial tools or a firmware candidate
 title: "[bug] "
 labels: bug
 ---
 
+This project has no affiliation with Endorphin.es. Please report patch/editor problems here, not to the manufacturer. Do not attach vendor firmware, credentials or private card data.
+
 **What happened**
-<!-- A clear description of the problem. -->
 
 **What you expected**
 
 **Setup**
-- Browser + version (Chrome/Edge over https is required for SD access):
-- Firmware base (this project targets Ground Control **v3.26**; did the tool show `✓ Ground Control v3.26`?):
-- Operating system:
+
+- Public release selected (0.9.0 or 0.10.0-alpha.1):
+- Did this happen in the browser, on the physical module, or both?
+- Browser/version and operating system:
+- Did the stock-image check pass?
+- Stock/output SHA-256 from build diagnostics, if relevant:
+- Pattern source (stock, GCP1, or GCC1 CC candidate), if known:
 
 **Steps to reproduce**
+
 1.
 2.
 
-**Console / build log (optional)**
-```
-paste any errors here
+**Verification message or log**
+
+```text
+Paste relevant messages here. No vendor HEX files or private data.
 ```
 
-> Do **not** paste or attach the vendor firmware file. Describe the base by its SHA-256 instead.
+**Minimal pattern**
+
+Attach a small test pattern only if you are comfortable making it public. Keep a backup of the original.

@@ -11,3 +11,25 @@ __pycache__/
 secrets.md
 # local staging copy of a real SD card (test fixture, never commit user data)
 testdata/sdcard/
+
+# Local firmware images, card backups and development artifacts (keep on disk).
+*.[hH][eE][xX]
+*.bak
+card-staging/
+node_modules/
+.test-results/
+docs-ui.png
+# Private session handoffs and scratch investigations are not public documentation.
+docs/SESSION-PROMPT*.md
+docs/NEXT-SESSION*.md
+docs/next-session.md
+docs/prompt-edit-lights.md
+docs/editlights6-investigation.md
+
+# Private working instructions and pre-public-version candidate outputs.
+docs/live-polyphony-plan.md
+docs/flash-v*.md
+mods/v1-poly-v121-cc1.json
+# Local renderer/test outputs.
+output/
+tmp/

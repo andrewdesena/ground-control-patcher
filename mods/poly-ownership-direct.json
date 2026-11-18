@@ -1,0 +1,13 @@
+{
+  "name": "Direct bank publication",
+  "status": "experimental",
+  "description": "Replaces the ownership overlay's 0x0804A100 publisher. It used to read the sidecar into a 2176 byte staging buffer at 0x1000E500 and then copy it into the chord bank word by word, which cost 544 word moves per publish and held 2176 bytes of CCM for no benefit. It now zeroes the bank and reads straight into it, the way the hardware confirmed v1.9 cave did. A partial read can no longer leave mixed old and new data: the bank is already zeroed, and any read, close or short-read failure falls through to the same zero fill and then records ownership, so an empty bank is always the honest empty representation of that letter. Only a failed open leaves the bank and its owner untouched.",
+  "requires": {},
+  "patches": [
+    {
+      "addr": "0x804a100",
+      "bytes": "2de9f04f81b004460d4616461f461d4839460122caf72afc042824d000282dd12046002140f6800201600430043afbd11448214640f68002134b5ff00008c3f80080caf7f5fc80460e48caf7e5fe002809d1b8f1000f06d10b48006840f68001884200d106e00021002262500431b1f5086ffad10548013640f8256001b0bde8f08f000000e0001000e3001040d70010",
+      "note": "direct publication into the bank, no staging buffer"
+    }
+  ]
+}

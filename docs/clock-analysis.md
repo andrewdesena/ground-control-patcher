@@ -1,5 +1,7 @@
 # MIDI clock: how it actually works, and what a safe fix looks like
 
+> Historical research and version-specific observations. Use [current documentation](README.md) for installation, compatibility and release status. Sidecar references describe abandoned formats.
+
 Confirmed in v3.26 by disassembly. Addresses are flash; SRAM functions are shown with their
 flash alias (`SRAM = flash 0x080398A4 → 0x20000000`, so `flash = sram - 0x17FC675C`).
 

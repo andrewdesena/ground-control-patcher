@@ -1,0 +1,18 @@
+{
+  "name": "Chord-aware transpose",
+  "status": "experimental",
+  "description": "One hook inside the stock note transpose 0x08028194 at 0x08028224, where stock stores the dirty flag while it still holds its state lock, after it has rewritten the step notes. The cave replays that store, resolves the track slot by matching the block base against 0x08038E18, then rebuilds each step's chord record by the same delta: it reads only the pairs the record declares, drops notes that would leave 1..126, compacts the survivors, zeroes the unused tail so a dropped voice cannot come back on a later transpose, and finally repairs a record only when its MINIMUM note no longer equals the step note. Chords whose first stored note is not their lowest, which is the normal case for entered chords, are left intact. Runs inside stock's lock so nothing can land between the note move and the record move. Makes no calls, takes no lock, cannot recurse. Drum, empty steps and empty records are left alone; out-of-range transposes never reach the cave because stock refuses first.",
+  "requires": {},
+  "patches": [
+    {
+      "addr": "0x8048c00",
+      "bytes": "2de9ff51acf83840a8463648002750f8271091f82e5040f2941205fb0212624503d00137042ff2d350e091f82d20012a4cd04bf23051c1f2000140f6800207fb02110cf13c0300221d780e78082e40d8beb3802d3dd016eb060c1cf1010c012001270026604511d20d5c6db14544012d0adb7e2d08dccd55401c0d5c7f1ccd557f1c401c761cede7801cebe70e700025112f02d2cd557f1cfae796b17f2501200027b74206d20c5cac4200d22546801c7f1cf6e71c78ac4203d04c7001250d70ffe7033311310132802abdd3bde8ff51704700250d7001201128f2d20d54401cfae70000188e0308",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x8028224",
+      "bytes": "20f0ecfc",
+      "note": "inside the transpose lock, after notes are rewritten, before unlock"
+    }
+  ]
+}

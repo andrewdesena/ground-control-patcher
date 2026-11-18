@@ -1,5 +1,7 @@
 # Project-switch preload: stock map (v2, QA-corrected)
 
+> Historical research and version-specific observations. Use [current documentation](README.md) for installation, compatibility and release status. Sidecar references describe abandoned formats.
+
 Answers "which stock caller loads patterns on a project switch, and why does the
 chord bank end up wrong?". Addresses are Stock v3.26 (`testdata/gc326.hex`).
 

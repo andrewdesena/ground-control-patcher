@@ -1,0 +1,33 @@
+{
+  "name": "poly-lifecycle-ownership",
+  "status": "experimental",
+  "description": "Direct pattern identity and transactional bank publication. Owners are four index+1 words at CCM D740; reset zeroes banks and owners before constructors. No selector relabels an unchanged bank.",
+  "requires": {},
+  "patches": [
+    {
+      "addr": "0x804a000",
+      "bytes": "f0b504460e4f002157f8213003f134050022a54209d005f5ca750132182af8d301310429f0d30020f0bd93f82d60012ef9d0044840f6800601fb0600f0bd00007083030830b50010",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x804a100",
+      "bytes": "2de9f04f81b004460d4616461f461d4839460122caf72afc042824d000282dd11848194940f68002184b5ff00008c3f80080caf7fdfc80461248caf7edfe00281cd1b8f1000f19d11048006840f68001884208d10c480021425862500431b1f5086ff9d106e00021002262500431b1f5086ffad10648013640f8256001b0bde8f08f000000e0001000e5001000e3001040d70010",
+      "note": "Read to scratch before publishing bank and its owner"
+    },
+    {
+      "addr": "0x804a300",
+      "bytes": "2de9f0418046caf7d6fe0746002801d0042826d12046fff773fe002821d004460d461646104b53f8253001329a4206d10021002262500431b1f5086ffad146f67070c7f66c10c8f80000084850f82600007888f80400002088f805004046caf7aafe3846bde8f08140d7001010830308",
+      "note": "Empty native save unlinks the matching sidecar and clears its owned bank"
+    },
+    {
+      "addr": "0x801c49a",
+      "bytes": "2df031ff",
+      "note": "Empty-pattern save extends the existing unlink route"
+    },
+    {
+      "addr": "0x8030c9c",
+      "bytes": "50d70010",
+      "note": "Extend reset CCM zero bound through all banks and ownership words"
+    }
+  ]
+}

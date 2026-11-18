@@ -1,0 +1,13 @@
+{
+  "name": "poly-lifecycle-load",
+  "status": "experimental",
+  "description": "v1.9 active-letter loader with all 24 direct pattern identities and transactional ownership publication.",
+  "requires": {},
+  "patches": [
+    {
+      "addr": "0x8049000",
+      "bytes": "ec462de9f041e046204600f0f9ff002817d007460d4693f82e60182e11d20b4850f8260000780a4b46f67071c7f66c11196018710020587138462946324601f05ff84ff0ff33bde8f08100001083030800e40010",
+      "note": "cave routine"
+    }
+  ]
+}

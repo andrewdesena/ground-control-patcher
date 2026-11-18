@@ -1,0 +1,43 @@
+{
+  "name": "Chord lifecycle mutation consistency",
+  "status": "experimental",
+  "description": "Whole clear, fill clear and both rotation directions keep owned chord records synchronized under stock mutation locking. No file I/O or lock acquisition. Ownership words at 0x1000D740 contain letter index plus one, or zero for unknown.",
+  "requires": {},
+  "patches": [
+    {
+      "addr": "0x804b000",
+      "bytes": "f0b581b00446114d002655f8261091f82d20012a08d034310027a14209d001f294110137182ff8d30136042eedd300200ae0074951f826200137ba42f7d1054840f6800106fb010001b0f0bd7083030840d7001030b50010",
+      "note": "cave routine"
+    },
+    {
+      "addr": "0x804b100",
+      "bytes": "2de9ff5f002b0ad1fff77aff002806d0002140f6800200f8011b013afbd1bde8ff5f16725572cff7e0b9",
+      "note": "whole clear owned bank helper"
+    },
+    {
+      "addr": "0x804b180",
+      "bytes": "2de9ff5f2046fff73bff002806d0802f04d200eb0710384400210170bde8ff5f1a724ff00002e4f74bb9",
+      "note": "fill clear owned record helper"
+    },
+    {
+      "addr": "0x804b200",
+      "bytes": "2de9ff5f86b02046fff7fafe00283cd0b4f88841022c38d3802c36d80546013c112104fb01f405eb04060027b8f1000f01d0304600e02846c15d0df807100137112ff9d3b8f1000f0cd030460027a0f11102d15dc1550137112ffad31138a842f4d80be02846002700f11102d15dc1550137112ffad31130b042f4d300271df80710c1550137112ff9d306b0bde8ff5fd619b8f1000fdef749bf",
+      "note": "rotate complete 17-byte records before stock note rotation"
+    },
+    {
+      "addr": "0x801a4e6",
+      "bytes": "30f00bbe",
+      "note": "whole-pattern clear clears its owned chord bank"
+    },
+    {
+      "addr": "0x802f43a",
+      "bytes": "1bf0a1be00bf",
+      "note": "fill clear clears owned step count"
+    },
+    {
+      "addr": "0x802a126",
+      "bytes": "21f06bb800bf",
+      "note": "both melodic rotation directions move chord records under stock lock"
+    }
+  ]
+}

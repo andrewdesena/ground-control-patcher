@@ -1,5 +1,7 @@
 # Polyphony, layer 1: capture
 
+> Historical research and version-specific observations. Use [current documentation](README.md) for installation, compatibility and release status. Sidecar references describe abandoned formats.
+
 Goal: record all simultaneously-held notes per step for tracks 1-3 instead of collapsing to
 the last note. Built in layers (capture -> new step array -> `steps2` writer -> reader
 fallback -> playback fan-out), each with its own test.
