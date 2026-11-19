@@ -3,7 +3,8 @@
   "use strict";
   const F = window.GCFormat,
     Model = window.GCEditorModel,
-    Store = window.GCCardStore;
+    Store = window.GCCardStore,
+    Project = window.GCProjectExport;
   const esc = (s) =>
     String(s).replace(
       /[&<>"']/g,
@@ -16,41 +17,8 @@
           "'": "&#39;",
         })[c],
     );
-  function projectDefaults() {
-    const out = {
-      BPM: 120,
-      Muted: Array(12).fill("0"),
-      QuantizedMute: Array(12).fill("0"),
-      modulationTrack: 1,
-      modulationSubtrack: 1,
-      modulationPolarity: "Unipolar",
-      modulationSource: "Velocity",
-      modulationSlideMode: "Instant",
-      DrumMap: ["C1", "C1#", "D1", "D1#", "E1", "F1", "F1#", "G1"],
-    };
-    for (let t = 1; t <= 3; t++)
-      out["Track" + t + "Scale"] = {
-        Scale: 0,
-        Root: 0,
-        Custom: Array.from({ length: 12 }, (_, i) => i),
-      };
-    for (let i = 0; i < 4; i++) out["Cv" + i] = { Type: 0, Param: 0 };
-    return out;
-  }
-  function trackDefaults(track) {
-    return {
-      direction: 0,
-      slide: 50,
-      shuffle: 50,
-      humanize: track === "D" ? Array(9).fill(0) : 0,
-      ratchet: track === "D" ? Array(9).fill(0) : 0,
-      ArpEngaged: 0,
-      ...(track === "D"
-        ? { triggerlength: Array(9).fill(50) }
-        : { gatelength: 50 }),
-      patternChain: ["A"],
-    };
-  }
+  const projectDefaults = Project.projectDefaults,
+    trackDefaults = Project.trackDefaults;
   const DURATIONS = [
     "1/4",
     "1/8",
@@ -84,7 +52,7 @@
     <label>BPM <input id="bpm" type="number" min="30" max="300" value="120"></label><button id="loop" class="active">Loop</button>
     <span class="spacer"></span><span id="dirty" class="status" role="status">Saved locally</span><button id="open">Open SD card</button><button id="save" class="primary" disabled>Save changes</button>
   </div>
-  <div class="shell"><aside><h2>PROJECTS & PATTERNS</h2><div id="browser"></div><button id="newProject">+ New project</button><button id="import">Import file</button><input id="file" type="file" accept=".txt,.json" hidden><button id="export">Export editor project</button><button id="exportPattern">Export pattern file</button><button id="exportNotes">Export notes only</button><a class="help" href="docs/reference/editor.html" target="_blank" style="display:block;padding:6px;color:var(--accent)">Controls &amp; instructions ↗</a><button id="restore" hidden>Recover browser draft</button></aside>
+  <div class="shell"><aside><h2>PROJECTS & PATTERNS</h2><div id="browser"></div><button id="newProject">+ New project</button><button id="import">Import file</button><input id="file" type="file" accept=".txt,.json" hidden><button id="exportFolder" class="primary">Download project ZIP</button><button id="export" title="Workspace backup for reopening in the editor">Export editor project</button><p class="help">ZIP: SD-ready project folder.<br>JSON: editor workspace backup.</p><button id="exportPattern">Export pattern file</button><button id="exportNotes">Export notes only</button><a class="help" href="docs/reference/editor.html" target="_blank" style="display:block;padding:6px;color:var(--accent)">Controls &amp; instructions ↗</a><button id="restore" hidden>Recover browser draft</button></aside>
   <main class="work"><div id="emptyWorkspace" hidden><h2>No pattern selected</h2><p class="help">Choose a pattern in the tree, add a pattern to an empty track, or create a new project.</p></div><div id="patternWork"><div class="title"><strong id="title"></strong><span class="spacer"></span><button id="newPattern">+ Pattern</button><button id="copyPattern">Copy pattern</button><button id="settingsBtn">Settings</button></div>
   <div id="warning" class="warning" role="status" hidden></div>
   <div class="tools"><button id="pointer" class="active" title="Select and move notes">↖ Select</button><button id="draw" title="Draw / erase (B)">✎ Draw</button><span class="split"></span><button id="undo" title="Undo (Cmd/Ctrl Z)">↶ Undo</button><button id="redo" title="Redo (Cmd/Ctrl Shift Z)">↷ Redo</button><button id="duplicate" title="Duplicate selection (Cmd/Ctrl D)">Duplicate</button><button id="delete">Delete</button><span class="split"></span><label>Steps <input id="length" type="number" min="1" max="128"></label><label>Step duration <select id="duration" aria-label="Step duration" title="Duration of every step in this pattern">${DURATIONS.map((name, i) => `<option value="${i}">${name}</option>`).join("")}</select></label><label>New velocity <input id="velocity" type="number" min="1" max="127" value="100"></label><span class="spacer"></span><label>Time zoom <input id="zoomX" type="range" min="18" max="80" value="36" aria-label="Horizontal zoom" style="width:65px"></label><label>Pitch <input id="zoomY" type="range" min="12" max="30" value="20" aria-label="Vertical zoom" style="width:55px"></label><button id="fit">Fit notes</button><button id="fitTime">Fit pattern</button></div>
@@ -567,6 +535,74 @@
       if (this.store) await this.loadPattern(key);
       else this.fitNotes();
     }
+    exportableProjects() {
+      return [
+        ...new Set([
+          ...Object.keys(this.tree),
+          ...Object.keys(this.model.documents).map((key) => key.split("/")[0]),
+          ...Object.keys(this.model.settings).map((key) => key.split("/")[0]),
+        ]),
+      ]
+        .filter((name) => /^project[A-Z0-9_-]*$/i.test(name))
+        .sort();
+    }
+    async exportProjectFolder() {
+      if (this.busy) return;
+      const projects = this.exportableProjects();
+      if (!projects.length) throw new Error("Create or import a project first");
+      if (
+        (await this.modal(
+          "Download project folder",
+          "Download a ZIP containing the selected project's current patterns and track/project settings. Unsaved edits are included. Extract it on your computer, then copy the project folder to the SD card root using your file manager. This does not save to the card or mark edits as saved.",
+          [
+            ["cancel", "Cancel"],
+            ["ok", "Download ZIP"],
+          ],
+          '<label>Project <select id="exportProject">' +
+            projects
+              .map(
+                (name) =>
+                  "<option" +
+                  (name === this.parts[0] ? " selected" : "") +
+                  ">" +
+                  esc(name) +
+                  "</option>",
+              )
+              .join("") +
+            "</select></label>",
+        )) !== "ok"
+      )
+        return;
+      const project = this.$("exportProject").value;
+      this.busy = true;
+      this.inert = true;
+      this.stop();
+      this.render();
+      try {
+        const entries = await Project.files({
+          project,
+          documents: this.model.documents,
+          settings: this.model.settings,
+          store: this.store,
+        });
+        this.download(
+          project + ".zip",
+          Project.zip(entries),
+          "application/zip",
+        );
+        this.toast(
+          "Downloaded " +
+            project +
+            ".zip. Extract it and copy the " +
+            project +
+            " folder to the card root. Back up any same-named folder first.",
+        );
+      } finally {
+        this.busy = false;
+        this.inert = false;
+        this.render();
+      }
+    }
     download(name, bytes, type) {
       const url = URL.createObjectURL(new Blob([bytes], { type })),
         a = document.createElement("a");
@@ -924,6 +960,8 @@
         "exportNotes",
       ])
         this.$(id).disabled = empty || this.busy;
+      this.$("exportFolder").disabled =
+        this.busy || !this.exportableProjects().length;
       this.$("export").disabled =
         this.busy ||
         (!Object.keys(this.model.documents).length &&
@@ -1953,6 +1991,7 @@
       on("newProject", () => this.newProject());
       on("newPattern", () => this.newPattern());
       on("copyPattern", () => this.newPattern(true));
+      on("exportFolder", () => this.exportProjectFolder());
       on("export", () =>
         this.download(
           "gc-editor-project.json",

@@ -2,6 +2,10 @@
 
 Current status: [features and releases](releases.md). Historical implementation discussions are indexed in [documentation](README.md).
 
+## Baseline issue under investigation
+
+- Reproduce v0.9.0 TRS/DIN note loss after approximately 30 minutes in storage mode. Clock appeared to continue and rebooting restored notes; CV/gate was not tested. Collect a raw MIDI capture and compare short/long sessions before changing firmware. [Evidence and test limits](storage-midi-investigation.md).
+
 ## Before promoting the CC candidate
 
 - Complete physical CV input-order, range, noise and inverted-mapping checks.

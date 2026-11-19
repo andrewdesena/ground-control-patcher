@@ -16,7 +16,7 @@ RELEASE = {
     'baseHash': 'e1db4815f8cf2983f832493aa8b2085586cb5ea10446e133774bdfc91bca9f52',
     'filename': CATALOG['confirmed']['cardFilename'],
     'features': ['Eight-note MIDI chords on melodic tracks 1–3', 'Live polyphonic recording and step editing', 'Single-file patterns with embedded chord data', 'Locked pattern switching and quiet startup restore', 'DIN MIDI realtime clock priority'],
-    'limitations': ['CC automation recording and playback are not included in this release.', 'CV/gate outputs remain monophonic.', 'Save chord edits before leaving a pattern on the module.', 'Back up your card before installing unofficial firmware.'],
+    'limitations': ['CC automation recording and playback are not included in this release.', 'Open v0.9.0 report: TRS/DIN notes stopped after prolonged USB storage; rebooting restored output. Cause and fix are unconfirmed.', 'CV/gate outputs remain monophonic.', 'Save chord edits before leaving a pattern on the module.', 'Back up your card before installing unofficial firmware.'],
 }
 def generated():
     bundle = json.loads((ROOT / RELEASE['bundle']).read_text())

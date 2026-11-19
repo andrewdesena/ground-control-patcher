@@ -45,6 +45,7 @@ Public versions are pre-1.0: **1.0.0 is reserved for the complete, hardware-test
 - Persistent Velocity and CC lane buttons, with recorded controller lanes loaded from module-saved patterns.
 - Project, track and pattern navigation in the sidebar tree, with Add pattern actions on empty tracks.
 - Confirmed pattern and project deletion from the editor and connected SD card, including pattern backups or the complete project folder.
+- Offline project ZIP downloads containing SD-ready project folders, native patterns and track/project settings.
 - Per-note velocity lane and inspector, with relative velocity adjustment for selections.
 - Horizontal/vertical zoom, fit controls, shared timeline scrolling and a responsive layout.
 - Simple browser sound preview with play/stop, looping and a moving playhead.
@@ -85,11 +86,15 @@ Supported stock canonical SHA-256:
 e1db4815f8cf2983f832493aa8b2085586cb5ea10446e133774bdfc91bca9f52
 ```
 
+**Known v0.9.0 report:** TRS/DIN MIDI note output stopped after approximately 30 minutes in USB storage and returning to normal operation. Clock appeared to continue, and a reboot restored notes. The cause and a firmware fix are not confirmed. See the [investigation and hardware follow-up](docs/storage-midi-investigation.md). The CC candidate remains untested on hardware.
+
 ## Edit patterns
 
 Open the [pattern editor](https://andrewdesena.github.io/ground-control-patcher/#editor). Use **Open SD card** to browse native projects, or import a pattern file/editor project. Select the exact project, track and pattern letter. Save changes to the card or export a pattern file.
 
-Each melodic pattern is a native text prefix followed by binary data. **Do not edit these files in a plain text editor or parse the whole file as JSON.** Legacy `poly<letter>` files are ignored; this tool neither reads, writes, migrates nor deletes them. A missing letter never silently loads A.
+Each melodic pattern is a native text prefix followed by binary data. **Do not edit these files in a plain text editor or parse the whole file as JSON.** Legacy `poly<letter>` files are ignored; the editor does not read, write or migrate them. Deleting an entire project folder removes all of its contents. A missing letter never silently loads A.
+
+**Download project ZIP** exports the selected project as an SD-ready folder inside a ZIP, including unsaved edits, native single-file patterns and project/track settings. It works without the module connected. With a card connected, unopened patterns from that project are also included. Extract the ZIP on your computer, then use your file manager to copy the project folder to the card root. Move any existing same-named folder off the card first to avoid merging old files. Wait for copying to finish and safely eject the card. The module does not load ZIP files. Downloads do not mark editor changes as saved; keep an editor-project backup to resume offline work.
 
 **Export editor project** creates a browser-workspace JSON backup, which the module does not read. Native pattern export uses `pattern<letter>.txt`. Existing card files receive a byte-preserving `.bak` before replacement; a backup failure or conflicting card edit stops the save. These on-card backups do not replace a full off-card backup.
 
@@ -102,6 +107,7 @@ Serve locally with `python3 -m http.server 8765 --bind 127.0.0.1`, then open `ht
 - `assets/pattern-format.js`: independent binary codec shared by every editor file operation.
 - `assets/editor-model.js`: undoable document and settings state.
 - `assets/card-store.js`: exact card paths, backups, conflict detection and read-back verification.
+- `assets/project-export.js`: native project-folder assembly and offline ZIP downloads.
 - `tools/web_release.py`: generate/check the browser release against pinned firmware bundles.
 - `firmware/cc_automation.c` and `tools/build_cc.py`: bounded CC candidate and freestanding Thumb build.
 - [Pattern formats and firmware compatibility](docs/project-schema.md), [CC implementation and acceptance](docs/cc-automation.md), [documentation index](docs/README.md).

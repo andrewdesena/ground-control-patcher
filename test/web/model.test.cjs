@@ -344,3 +344,18 @@ test("an empty project retains settings through export and recovery after its la
   assert.deepEqual(n.documents, {});
   assert.deepEqual(n.settings["projectA/ProjectSettings.txt"], { BPM: 123 });
 });
+
+test("read-only export reads preserve conflict detection baselines, including missing files", async () => {
+  const store = new Store(new Dir()),
+    path = Store.path("projectA/1/A");
+  const bytes = F.encode(F.blank());
+  await store.write(path, bytes);
+  const expected = store.originals.get(path.join("/"));
+  (await store.handle(path)).bytes[0] ^= 1;
+  await store.optional(path, { remember: false });
+  assert.deepEqual(store.originals.get(path.join("/")), expected);
+  await assert.rejects(() => store.write(path, bytes), /changed since opening/);
+  const missing = Store.path("projectA/1/B");
+  assert.equal(await store.optional(missing, { remember: false }), null);
+  assert.equal(store.originals.has(missing.join("/")), false);
+});

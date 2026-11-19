@@ -24,6 +24,7 @@ try {
     const original = [...F.encode(p)];
     const files = {
       "projectA/track1/patternE.txt": original,
+      "projectA/track2/patternB.txt": [...F.encode(F.blank())],
       "projectA/ProjectSettings.txt": [
         ...new TextEncoder().encode(
           JSON.stringify({ BPM: 123, unknown: "keep me" }),
@@ -167,6 +168,36 @@ try {
     assert.equal(parsed.steps[0].notes.find((n) => n[0] === 60)[1], 77);
     assert.deepEqual(parsed.steps[2].cc, [[74, 0]]);
     assert.deepEqual(parsed.ccSources[74], { input: 0, min: 0, max: 127 });
+    // A complete project ZIP includes an unopened track without saving to the card.
+    await e.locator("#exportFolder").click();
+    const zipEvent = page.waitForEvent("download");
+    await e
+      .locator("#dialog")
+      .getByRole("button", { name: "Download ZIP", exact: true })
+      .click();
+    const archive = await zipEvent;
+    assert.equal(archive.suggestedFilename(), "projectA.zip");
+    const zipCheck = require("node:child_process").spawnSync(
+      "python3",
+      [
+        "-c",
+        `import sys,io,zipfile
+with zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read())) as z:
+ assert z.testzip() is None
+ assert 'projectA/track2/patternB.txt' in z.namelist()
+ assert not any(n.endswith('.bak') for n in z.namelist())`,
+      ],
+      {
+        input: require("node:fs").readFileSync(await archive.path()),
+        encoding: null,
+      },
+    );
+    assert.equal(zipCheck.status, 0, zipCheck.stderr.toString());
+    assert.deepEqual(
+      await page.evaluate(() => __bytes("projectA/track1/patternE.txt")),
+      bytes,
+    );
+    assert.equal(await e.evaluate((el) => el.model.dirty), false);
     // Backups failing must leave the original card data intact and the document dirty.
     await e.evaluate((el) => {
       el.model.selection = new Set(["0:60"]);

@@ -172,6 +172,48 @@ const { chromium } = playwright;
     await e.locator('#laneGraph [data-step="2"]').getAttribute("title"),
     "Step 3 · CC 74 = 127",
   );
+  // SD-ready export works offline and must not turn unsaved edits into saved ones.
+  const beforeArchive = await e.evaluate((el) =>
+    JSON.stringify(el.model.export()),
+  );
+  const encodedPattern = await e.evaluate((el) =>
+    Array.from(GCFormat.encode(el.p)),
+  );
+  await e.locator("#exportFolder").click();
+  const projectDownloadEvent = page.waitForEvent("download");
+  await e
+    .locator("#dialog")
+    .getByRole("button", { name: "Download ZIP", exact: true })
+    .click();
+  const projectDownload = await projectDownloadEvent;
+  assert.equal(projectDownload.suggestedFilename(), "projectA.zip");
+  const archiveResult = require("node:child_process").spawnSync(
+    "python3",
+    [
+      "-c",
+      `import sys,io,zipfile,json,base64
+with zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read())) as z:
+ assert z.testzip() is None
+ print(json.dumps({n:base64.b64encode(z.read(n)).decode() for n in z.namelist()}))`,
+    ],
+    {
+      input: require("node:fs").readFileSync(await projectDownload.path()),
+      encoding: null,
+    },
+  );
+  assert.equal(archiveResult.status, 0, archiveResult.stderr.toString());
+  const archiveContents = JSON.parse(archiveResult.stdout.toString());
+  assert.equal(Object.keys(archiveContents).length, 9);
+  assert.deepEqual(
+    [...Buffer.from(archiveContents["projectA/track1/patternA.txt"], "base64")],
+    encodedPattern,
+  );
+  assert.ok(archiveContents["projectA/trackD/TrackSettings.txt"]);
+  assert.equal(
+    await e.evaluate((el) => JSON.stringify(el.model.export())),
+    beforeArchive,
+  );
+  assert.equal(await page.evaluate(() => window.__firmwarePickerCalls), 0);
   await page.screenshot({ path: "/tmp/gc-editor.png", fullPage: true });
   assert.deepEqual(errors, []);
   await page.setViewportSize({ width: 390, height: 844 });

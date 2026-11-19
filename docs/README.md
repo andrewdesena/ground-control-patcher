@@ -13,6 +13,10 @@
 
 Printable guides are generated from the current HTML pages. The confirmed firmware baseline is v0.9.0. The CC candidate is v0.10.0-alpha.1 and still needs physical testing. No affiliation with Endorphin.es; support belongs in this repository.
 
+## Open hardware report
+
+- [TRS/DIN notes after USB storage](storage-midi-investigation.md): maintainer report, checked reset paths, limits and reproduction steps. No verified firmware fix yet.
+
 ## Historical research
 
 The remaining technical notes record investigations and previous builds. Their version-specific statements, proposed features and sidecar references are historical evidence, not current product instructions. In particular, `poly-persistence.md`, `polyphony-capture.md`, `project-switch-preload.md`, `known-good.md`, `clock-analysis.md`, `ram-budget.md` and `led-bitmap.md` should be read with their original version context.

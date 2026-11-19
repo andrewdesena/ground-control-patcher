@@ -14,19 +14,20 @@
         dir = await dir.getDirectoryHandle(part, { create });
       return dir.getFileHandle(parts.at(-1), { create });
     }
-    async read(parts) {
+    async read(parts, { remember = true } = {}) {
       const bytes = new Uint8Array(
         await (await (await this.handle(parts)).getFile()).arrayBuffer(),
       );
-      this.originals.set(parts.join("/"), bytes.slice());
+      if (remember) this.originals.set(parts.join("/"), bytes.slice());
       return bytes;
     }
-    async optional(parts) {
+    async optional(parts, options = {}) {
       try {
-        return await this.read(parts);
+        return await this.read(parts, options);
       } catch (e) {
         if (e.name === "NotFoundError") {
-          this.originals.set(parts.join("/"), null);
+          if (options.remember !== false)
+            this.originals.set(parts.join("/"), null);
           return null;
         }
         throw e;

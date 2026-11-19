@@ -4,7 +4,11 @@ Updated 18 November 2026. [Firmware tool](../index.html) · [Pattern editor](../
 
 ## Status matters
 
-The confirmed baseline is **v0.9.0**, reported working by the maintainer. **v0.10.0-alpha.1** is a separate experimental candidate. Its CC paths have emulator tests; physical hardware validation is pending. The new web interface is local source until published.
+The confirmed baseline is **v0.9.0**, reported working by the maintainer. **v0.10.0-alpha.1** is a separate experimental candidate. Its CC paths have emulator tests; physical hardware validation is pending. The web tools are published through this repository’s GitHub Pages site.
+
+## Open baseline report
+
+On v0.9.0, the maintainer reported missing TRS/DIN MIDI notes after approximately 30 minutes idle in USB storage and exiting to normal operation. Clock appeared to continue; a reboot restored notes. The cause is unconfirmed, and no firmware fix has been verified. See the [investigation and test limits](storage-midi-investigation.md). The CC candidate is still untested on hardware.
 
 ## Public version scheme
 
@@ -32,6 +36,9 @@ Use 0.x while the complete v1 experience is being built. Preview **0.9.0** maps 
 - Velocity lane, selection inspector and relative velocity adjustment.
 - Zoom, fit controls, timeline scrolling, browser sound preview and loop controls.
 - Binary pattern I/O, exact-path navigation, independent document state and browser recovery.
+- Sidebar tree navigation and confirmed pattern/project deletion, including connected-card file removal.
+- Visible step-duration controls and persistent Velocity/CC lane buttons.
+- SD-ready project ZIP downloads for offline work, including unsaved patterns and track/project settings.
 - Card backups, conflict detection, full read-back verification and explicit save failures.
 - Contextual instructions, backup/compatibility notices, disclaimer and project-owned support links.
 
