@@ -122,6 +122,9 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   function showView(view) {
+    document.body.dataset.view = view;
+    if (view !== "editor")
+      document.querySelector("gc-editor")?.setExpanded?.(false);
     $("viewPatcher").hidden = view !== "patcher";
     $("viewEditor").hidden = view !== "editor";
     for (const [id, v] of [
@@ -188,6 +191,14 @@
     });
   $("build").onclick = build;
   $("dl").onclick = download;
+  document.body.dataset.view = "patcher";
+  document.querySelectorAll("[data-info]").forEach((button) => {
+    button.onclick = () => {
+      $("patcherInfo").showModal();
+      $(button.dataset.info).scrollIntoView({ block: "start" });
+    };
+  });
+  $("closePatcherInfo").onclick = () => $("patcherInfo").close();
   $("firmwareTab").onclick = () => showView("patcher");
   $("editorTab").onclick = () => showView("editor");
   window.__gcShowView = showView;

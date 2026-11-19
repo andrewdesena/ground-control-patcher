@@ -149,7 +149,7 @@ const { chromium } = playwright;
   assert.equal(await e.locator("#ccControls").isVisible(), true);
   await e.locator("#laneGraph").scrollIntoViewIfNeeded();
   const lane = await e.locator("#laneGraph").boundingBox();
-  await page.mouse.click(lane.x + 36 * 2 + 10, lane.y + 80);
+  await page.mouse.click(lane.x + 36 * 2 + 10, lane.y + lane.height * 0.75);
   assert.ok(await e.evaluate((el) => el.model.pattern.steps[2].cc.length));
   assert.equal(await e.evaluate((el) => el.model.dirty), true);
   // Firmware-emulator-generated recording must expose its lanes and zero values.

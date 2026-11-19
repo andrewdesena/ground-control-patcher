@@ -47,7 +47,8 @@ Public versions are pre-1.0: **1.0.0 is reserved for the complete, hardware-test
 - Confirmed pattern and project deletion from the editor and connected SD card, including pattern backups or the complete project folder.
 - Offline project ZIP downloads containing SD-ready project folders, native patterns and track/project settings.
 - Per-note velocity lane and inspector, with relative velocity adjustment for selections.
-- Horizontal/vertical zoom, fit controls, shared timeline scrolling and a responsive layout.
+- A compact desktop patcher and editor that fit the browser window, with mobile scrolling where needed.
+- Horizontal/vertical zoom, fit controls, contained piano-roll scrolling and an expanded roll with browser fullscreen support.
 - Simple browser sound preview with play/stop, looping and a moving playhead.
 - Binary-safe single-file pattern imports, exports, backups, copies and verified saves.
 - Separate project/track/letter documents, unsaved-change indicators and browser draft recovery.

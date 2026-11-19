@@ -1,0 +1,507 @@
+:root {
+  color-scheme: dark;
+  --bg: #101318;
+  --panel: #191e25;
+  --line: #303844;
+  --muted: #a0adbd;
+  --fg: #eef2f7;
+  --accent: #74dac1;
+}
+* {
+  box-sizing: border-box;
+}
+[hidden] {
+  display: none !important;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font:
+    14px/1.45 system-ui,
+    sans-serif;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+button,
+input,
+select {
+  font: inherit;
+}
+button,
+.button {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 9px 15px;
+  background: #242d38;
+  color: var(--fg);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+button:hover,
+.button:hover {
+  background: #344253;
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #122b23;
+  font-weight: 650;
+}
+.primary:hover {
+  background: #9eebd7;
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+a {
+  color: var(--accent);
+}
+h1 {
+  font-size: 28px;
+  line-height: 1.15;
+  margin: 4px 0 6px;
+  letter-spacing: -0.025em;
+}
+h2 {
+  font-size: 18px;
+  margin: 0 0 10px;
+}
+p {
+  margin: 9px 0 18px;
+}
+.site-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  border-bottom: 1px solid var(--line);
+  padding: 9px 24px;
+  flex: none;
+}
+.wordmark {
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: 0.13em;
+}
+.wordmark small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  font-weight: 400;
+}
+.nav {
+  display: flex;
+  gap: 5px;
+  margin-left: auto;
+}
+.nav button {
+  background: transparent;
+  border-color: transparent;
+  padding: 6px 12px;
+}
+.nav button.active {
+  color: var(--accent);
+  border-color: var(--line);
+  background: var(--panel);
+}
+#viewPatcher {
+  flex: 1;
+  min-height: 0;
+}
+main.installer {
+  max-width: 1440px;
+  padding: 14px 24px;
+  margin: auto;
+}
+.patch-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 12px;
+}
+.eyebrow {
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 11px;
+  font-weight: 700;
+}
+.lead {
+  font-size: 13px;
+  margin: 0;
+  color: var(--muted);
+}
+.release {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  max-width: 450px;
+  justify-content: flex-end;
+}
+.release label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+}
+.release select {
+  background: #222a34;
+  color: inherit;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 6px;
+  max-width: 100%;
+}
+.release #releaseLabel {
+  font-size: 11px;
+}
+.pill {
+  font-size: 10px;
+  padding: 3px 9px;
+  border: 1px solid #3f6d60;
+  border-radius: 20px;
+  color: var(--accent);
+}
+.muted {
+  color: var(--muted);
+  font-size: 13px;
+}
+.notice {
+  background: #30291b;
+  border: 1px solid #645537;
+  color: #f0d6a0;
+  border-radius: 7px;
+  padding: 9px 12px;
+  font-size: 12px;
+  margin: 8px 0;
+}
+.disclaimer {
+  line-height: 1.55;
+}
+.text-button {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.text-button:hover {
+  background: none;
+  color: #b4f4e2;
+}
+.steps {
+  display: flex;
+  gap: 10px;
+  margin: 13px 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.steps span {
+  flex: 1;
+  border-top: 2px solid var(--line);
+  padding-top: 5px;
+}
+.steps .current {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.patch-workflow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 0;
+}
+.card-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 9px;
+}
+.card-head h2 {
+  font-size: 15px;
+  margin: 0;
+}
+.number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  width: 23px;
+  height: 23px;
+  font-size: 11px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.card p {
+  margin: 6px 0 8px;
+  font-size: 12px;
+}
+.drop {
+  display: block;
+  width: 100%;
+  padding: 12px 8px;
+  text-align: center;
+  border: 1px dashed #526171;
+  background: #131a22;
+  color: var(--fg);
+  border-radius: 8px;
+}
+.drop.hot {
+  border-color: var(--accent);
+  background: #1d3630;
+}
+.drop strong {
+  display: block;
+  font-size: 13px;
+}
+.drop small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 3px;
+}
+.result {
+  padding: 6px 0;
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.success {
+  color: var(--accent);
+}
+.error {
+  color: #ffb39f;
+}
+.card .text-button {
+  font-size: 11px;
+}
+.filename {
+  line-height: 1.7;
+}
+.copy-card {
+  grid-column: 1/-1;
+}
+.copy-card .card-head {
+  margin-bottom: 8px;
+}
+.copy-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 25px;
+  margin: 0;
+  padding-left: 20px;
+  font-size: 12px;
+}
+.copy-steps li {
+  padding-left: 2px;
+}
+.patch-more {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 13px;
+  font-size: 12px;
+}
+footer {
+  border-top: 1px solid var(--line);
+  padding: 8px 24px;
+  color: var(--muted);
+  font-size: 10px;
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  flex: none;
+}
+footer a {
+  color: var(--muted);
+}
+footer span {
+  margin-left: auto;
+}
+kbd {
+  font:
+    12px ui-monospace,
+    monospace;
+  padding: 1px 4px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+}
+.info-dialog {
+  background: var(--panel);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  width: min(720px, 94vw);
+  max-height: 85dvh;
+  padding: 0 22px 22px;
+  overflow: auto;
+  font-size: 13px;
+}
+.info-dialog::backdrop {
+  background: #000a;
+}
+.info-head {
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 0;
+  z-index: 2;
+  border-bottom: 1px solid var(--line);
+}
+.info-head h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.info-dialog section {
+  padding-top: 20px;
+  scroll-margin-top: 72px;
+}
+.info-dialog h2 {
+  font-size: 17px;
+}
+.info-dialog h3 {
+  font-size: 13px;
+}
+.info-dialog p {
+  margin: 8px 0;
+}
+.info-dialog li {
+  margin: 6px 0;
+}
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font:
+    11px/1.6 ui-monospace,
+    monospace;
+  max-height: 260px;
+  overflow: auto;
+  padding: 12px;
+  background: #10151c;
+  border-radius: 6px;
+}
+.editor-notice {
+  padding: 4px 16px;
+  background: #30291b;
+  font-size: 11px;
+}
+body[data-view="editor"] {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+#viewEditor {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+gc-editor {
+  flex: 1;
+  min-height: 0;
+}
+body.piano-expanded {
+  overflow: hidden;
+}
+@media (min-width: 1000px) and (min-height: 640px) {
+  body {
+    height: 100dvh;
+  }
+  .patch-workflow .card:not(.copy-card) {
+    min-height: 205px;
+  }
+}
+@media (max-width: 999px) {
+  main.installer {
+    padding: 16px;
+  }
+  .patch-heading {
+    align-items: flex-start;
+  }
+  .copy-steps {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 28px;
+  }
+  .release {
+    max-width: 350px;
+  }
+  body[data-view="editor"] {
+    height: auto;
+    overflow: auto;
+    min-height: 100dvh;
+  }
+}
+@media (max-width: 700px) {
+  .site-header {
+    padding: 9px 12px;
+    gap: 10px;
+  }
+  .wordmark {
+    font-size: 11px;
+  }
+  .nav button {
+    padding: 8px 10px;
+  }
+  .patch-heading {
+    display: block;
+  }
+  .release {
+    justify-content: flex-start;
+    max-width: none;
+    margin-top: 12px;
+  }
+  .patch-workflow {
+    grid-template-columns: 1fr;
+  }
+  .copy-steps {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .patch-more {
+    gap: 12px;
+  }
+  .steps {
+    font-size: 10px;
+  }
+  .card {
+    padding: 14px;
+  }
+  .lead {
+    font-size: 12px;
+  }
+  footer {
+    padding: 12px;
+    gap: 10px;
+  }
+  footer span {
+    margin-left: 0;
+    width: 100%;
+  }
+  .editor-notice {
+    font-size: 10px;
+  }
+}

@@ -8,372 +8,7 @@
       content="Build Ground Control polyphonic firmware locally and edit patterns with a step-native piano roll."
     />
     <title>Ground Control / Firmware & Pattern Editor</title>
-    <style>
-      :root {
-        color-scheme: dark;
-        --bg: #101318;
-        --panel: #191e25;
-        --line: #303844;
-        --muted: #a0adbd;
-        --fg: #eef2f7;
-        --accent: #74dac1;
-      }
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        margin: 0;
-        background: var(--bg);
-        color: var(--fg);
-        font:
-          15px/1.6 system-ui,
-          -apple-system,
-          sans-serif;
-      }
-      button,
-      input {
-        font: inherit;
-      }
-      button,
-      .button {
-        border: 1px solid var(--line);
-        border-radius: 6px;
-        padding: 9px 15px;
-        background: #242d38;
-        color: var(--fg);
-        cursor: pointer;
-        text-decoration: none;
-        display: inline-block;
-      }
-      button:hover,
-      .button:hover {
-        background: #344253;
-      }
-      button:disabled {
-        opacity: 0.4;
-        cursor: default;
-      }
-      .primary {
-        background: var(--accent);
-        border-color: var(--accent);
-        color: #122b23;
-        font-weight: 650;
-      }
-      .primary:hover {
-        background: #9eebd7;
-      }
-      :focus-visible {
-        outline: 2px solid var(--accent);
-        outline-offset: 3px;
-      }
-      a {
-        color: var(--accent);
-      }
-      .site-header {
-        display: flex;
-        align-items: center;
-        gap: 24px;
-        border-bottom: 1px solid var(--line);
-        padding: 17px 30px;
-      }
-      .wordmark {
-        font-size: 13px;
-        font-weight: 750;
-        letter-spacing: 0.13em;
-      }
-      .wordmark small {
-        display: block;
-        color: var(--muted);
-        font-size: 10px;
-        letter-spacing: 0.12em;
-        font-weight: 400;
-      }
-      .nav {
-        display: flex;
-        gap: 5px;
-        margin-left: auto;
-      }
-      .nav button {
-        background: transparent;
-        border-color: transparent;
-        padding: 8px 15px;
-      }
-      .nav button.active {
-        color: var(--accent);
-        border-color: var(--line);
-        background: var(--panel);
-      }
-      main.installer {
-        max-width: 1060px;
-        margin: auto;
-        padding: 52px 30px 70px;
-      }
-      .eyebrow {
-        color: var(--accent);
-        text-transform: uppercase;
-        letter-spacing: 0.15em;
-        font-size: 11px;
-        font-weight: 700;
-      }
-      h1 {
-        font-size: clamp(30px, 4vw, 48px);
-        line-height: 1.13;
-        letter-spacing: -0.035em;
-        margin: 14px 0 18px;
-        max-width: 700px;
-      }
-      h2 {
-        font-size: 18px;
-        margin: 0 0 10px;
-      }
-      p {
-        margin: 9px 0 18px;
-      }
-      .lead {
-        font-size: 17px;
-        color: var(--muted);
-        max-width: 640px;
-      }
-      .release {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        flex-wrap: wrap;
-        margin: 24px 0;
-      }
-      .pill {
-        font-size: 11px;
-        padding: 3px 9px;
-        border: 1px solid #3f6d60;
-        border-radius: 20px;
-        color: var(--accent);
-      }
-      .muted {
-        color: var(--muted);
-        font-size: 13px;
-      }
-      .intro {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) 290px;
-        gap: 40px;
-        margin-bottom: 36px;
-      }
-      .feature-box {
-        border-left: 1px solid var(--line);
-        padding-left: 24px;
-        align-self: center;
-      }
-      .feature-box h2 {
-        font-size: 11px;
-        letter-spacing: 0.1em;
-        color: var(--muted);
-        text-transform: uppercase;
-      }
-      .feature-box ul {
-        padding-left: 17px;
-        font-size: 13px;
-      }
-      .feature-box li {
-        margin: 8px 0;
-      }
-      .steps {
-        display: flex;
-        gap: 4px;
-        margin: 26px 0;
-        color: var(--muted);
-        font-size: 12px;
-      }
-      .steps span {
-        flex: 1;
-        border-top: 2px solid var(--line);
-        padding-top: 10px;
-      }
-      .steps .current {
-        color: var(--accent);
-        border-color: var(--accent);
-      }
-      .card {
-        background: var(--panel);
-        border: 1px solid var(--line);
-        border-radius: 10px;
-        padding: 24px;
-        margin: 16px 0;
-      }
-      .card-head {
-        display: flex;
-        gap: 12px;
-        align-items: center;
-        margin-bottom: 12px;
-      }
-      .number {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 1px solid var(--line);
-        border-radius: 50%;
-        width: 28px;
-        height: 28px;
-        font-size: 12px;
-        color: var(--accent);
-        flex-shrink: 0;
-      }
-      .card-head h2 {
-        margin: 0;
-      }
-      .drop {
-        display: block;
-        width: 100%;
-        padding: 30px 16px;
-        text-align: center;
-        border: 1px dashed #526171;
-        background: #131a22;
-        color: var(--fg);
-        border-radius: 8px;
-      }
-      .drop.hot {
-        border-color: var(--accent);
-        background: #1d3630;
-      }
-      .drop strong {
-        display: block;
-        font-size: 15px;
-      }
-      .drop small {
-        display: block;
-        color: var(--muted);
-        margin-top: 5px;
-      }
-      .row {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        flex-wrap: wrap;
-      }
-      .result {
-        padding: 12px 0;
-        color: var(--muted);
-        font-size: 13px;
-      }
-      .success {
-        color: var(--accent);
-      }
-      .error {
-        color: #ffb39f;
-      }
-      .notice {
-        background: #30291b;
-        border: 1px solid #645537;
-        color: #f0d6a0;
-        border-radius: 7px;
-        padding: 13px;
-        font-size: 13px;
-        margin: 16px 0;
-      }
-      .notice[hidden],
-      [hidden] {
-        display: none !important;
-      }
-      details {
-        border-top: 1px solid var(--line);
-        padding: 14px 0;
-        margin-top: 10px;
-      }
-      summary {
-        cursor: pointer;
-        color: var(--muted);
-        font-size: 13px;
-      }
-      pre {
-        white-space: pre-wrap;
-        overflow-wrap: anywhere;
-        font:
-          11px/1.6 ui-monospace,
-          monospace;
-        max-height: 260px;
-        overflow: auto;
-        padding: 12px;
-        background: #10151c;
-        border-radius: 6px;
-      }
-      .guide {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 26px;
-        margin-top: 28px;
-      }
-      .guide h2 {
-        font-size: 16px;
-      }
-      .guide ol,
-      .guide ul {
-        padding-left: 20px;
-        color: var(--muted);
-        font-size: 13px;
-      }
-      .guide li {
-        margin: 9px 0;
-      }
-      footer {
-        border-top: 1px solid var(--line);
-        padding: 22px 30px;
-        color: var(--muted);
-        font-size: 12px;
-        display: flex;
-        gap: 20px;
-        flex-wrap: wrap;
-      }
-      footer a {
-        color: var(--muted);
-      }
-      #viewEditor {
-        padding: 0;
-      }
-      #banner {
-        margin-bottom: 20px;
-      }
-      kbd {
-        font:
-          12px ui-monospace,
-          monospace;
-        padding: 1px 4px;
-        border: 1px solid var(--line);
-        border-radius: 3px;
-      }
-      @media (max-width: 760px) {
-        .intro {
-          grid-template-columns: 1fr;
-          gap: 20px;
-        }
-        .feature-box {
-          border-left: 0;
-          border-top: 1px solid var(--line);
-          padding: 18px 0 0;
-        }
-        .guide {
-          grid-template-columns: 1fr;
-          gap: 8px;
-        }
-        .site-header {
-          padding: 14px 15px;
-          gap: 10px;
-        }
-        .wordmark {
-          font-size: 11px;
-        }
-        .nav button {
-          padding: 8px 10px;
-        }
-        main.installer {
-          padding: 32px 18px;
-        }
-        .card {
-          padding: 18px;
-        }
-        .steps {
-          font-size: 10px;
-        }
-      }
-    </style>
+    <link rel="stylesheet" href="assets/site.css" />
   </head>
   <body>
     <header class="site-header">
@@ -386,235 +21,234 @@
     </header>
     <section id="viewPatcher">
       <main class="installer">
-        <div class="intro">
+        <div class="patch-heading">
           <div>
-            <div class="eyebrow">Polyphonic firmware</div>
-            <h1>More voices.<br />Same Ground Control.</h1>
+            <div class="eyebrow">Unofficial Ground Control tools</div>
+            <h1>Build your firmware.</h1>
             <p class="lead">
-              Build your firmware locally, then take it to the module. Chords,
-              live recording, and patterns that travel as one file.
-            </p>
-            <div class="release">
-              <span class="pill" id="releaseVersion"></span
-              ><label class="muted"
-                >Release
-                <select
-                  id="releaseSelect"
-                  style="
-                    background: #222a34;
-                    color: inherit;
-                    padding: 5px;
-                    border: 1px solid var(--line);
-                    border-radius: 5px;
-                  "
-                >
-                  <option value="confirmed">v0.9.0 · confirmed baseline</option>
-                  <option value="candidate">
-                    v0.10.0-alpha.1 · experimental CC candidate
-                  </option>
-                </select></label
-              ><span class="muted" id="releaseLabel"></span>
-            </div>
-            <p class="muted">
-              Your firmware and patterns stay on this computer. Nothing is
+              Choose stock v3.26, build locally, then download. Nothing is
               uploaded.
             </p>
           </div>
-          <div class="feature-box">
-            <h2>In this release</h2>
-            <ul id="features"></ul>
+          <div class="release">
+            <label
+              >Release
+              <select id="releaseSelect">
+                <option value="confirmed">v0.9.0 · confirmed baseline</option>
+                <option value="candidate">
+                  v0.10.0-alpha.1 · experimental CC
+                </option>
+              </select></label
+            ><span class="pill" id="releaseVersion"></span
+            ><span class="muted" id="releaseLabel"></span>
           </div>
         </div>
-        <section class="notice" aria-labelledby="disclaimerTitle">
+        <section class="notice disclaimer" aria-labelledby="disclaimerTitle">
           <strong id="disclaimerTitle"
             >Unofficial firmware. Use at your own risk.</strong
           >
-          <p>
-            This project is not affiliated with, endorsed by, or supported by
-            Endorphin.es in any way. The tools and patches are provided as-is,
-            without warranty. To the fullest extent permitted by law, the
-            authors and contributors accept no responsibility for device damage,
-            lost data, failed updates, or other problems arising from their use.
-          </p>
-          <p>
-            Back up your card and keep the stock firmware before installing.
-            <strong
-              >Do not contact Endorphin.es for support with these tools or
-              modified firmware.</strong
-            >
-            Report problems in
-            <a
-              href="https://github.com/andrewdesena/ground-control-patcher/issues"
-              target="_blank"
-              rel="noopener"
-              >this project’s issue tracker</a
-            >.
-          </p>
-        </section>
-        <details style="margin: 18px 0">
-          <summary>New in the web tools and editor</summary>
-          <ul class="muted">
-            <li>
-              A download-only patcher with supported-image checks, release
-              selection and verified firmware builds.
-            </li>
-            <li>
-              DAW-style selection, dragging, duplication, draw mode, clipboard
-              editing and undo/redo.
-            </li>
-            <li>
-              Per-note velocity, zoom, loop controls and browser sound preview.
-            </li>
-            <li>
-              Single-file pattern editing, binary-safe backups and browser draft
-              recovery.
-            </li>
-            <li>
-              CC lanes with external CV recording assignments for the
-              experimental candidate.
-            </li>
-          </ul>
+          No affiliation with, endorsement by, or support from Endorphin.es.
+          Supplied as-is without warranty; authors and contributors accept no
+          responsibility for problems to the fullest extent permitted by law.
+          <strong>Do not contact Endorphin.es for support.</strong> Back up your
+          card and stock firmware.
+          <button class="text-button" data-info="legalDetails">
+            Full disclaimer
+          </button>
+          ·
           <a
-            href="https://github.com/andrewdesena/ground-control-patcher/blob/main/docs/releases.md"
+            href="https://github.com/andrewdesena/ground-control-patcher/issues"
             target="_blank"
             rel="noopener"
-            >Full features and release notes in the repo</a
+            >Project support</a
           >
-        </details>
+          ·
+          <a
+            href="https://github.com/andrewdesena/ground-control-patcher/blob/main/docs/storage-midi-investigation.md"
+            target="_blank"
+            rel="noopener"
+            >Open storage/MIDI report</a
+          >
+        </section>
         <div id="banner" class="notice" role="status" hidden></div>
         <div class="steps" aria-label="Installation progress">
-          <span class="current" id="progress1">01 Choose & verify</span
+          <span class="current" id="progress1">01 Choose &amp; verify</span
           ><span id="progress2">02 Build</span
           ><span id="progress3">03 Download</span
           ><span id="progress4">04 Copy &amp; update</span>
         </div>
-        <section class="card">
-          <div class="card-head">
-            <span class="number">1</span>
-            <h2>Choose your stock firmware</h2>
-          </div>
-          <p class="muted">
-            Use the official Ground Control v3.26 HEX file. We verify its
-            contents before enabling the build.
-          </p>
-          <button id="drop" class="drop">
-            <strong>Choose a .hex file or drop it here</strong
-            ><small>Official stock v3.26 firmware required</small></button
-          ><input id="file" type="file" accept=".hex,.HEX" hidden />
-          <div id="verification" class="result" role="status">
-            No file selected
-          </div>
-          <details>
-            <summary>Compatibility and local processing</summary>
+        <div class="patch-workflow">
+          <section class="card">
+            <div class="card-head">
+              <span class="number">1</span>
+              <h2>Choose stock firmware</h2>
+            </div>
             <p class="muted">
-              Only the verified stock v3.26 image is supported. Already-patched
-              and unknown firmware files are rejected. Building requires a
-              browser with SHA-256 support, available on HTTPS or localhost. You
-              supply the vendor firmware; this tool contains patch definitions
-              only.
+              Original official v3.26 HEX required. Unknown and already-patched
+              images are rejected.
             </p>
-          </details>
-        </section>
-        <section class="card">
-          <div class="card-head">
-            <span class="number">2</span>
-            <h2>Build polyphonic firmware</h2>
-          </div>
-          <p class="muted">
-            The release includes the tested polyphony, recording, pattern
-            switching, and startup changes as one bundle.
-          </p>
-          <button id="build" class="primary" disabled>Build firmware</button
-          ><span id="buildStatus" class="result" role="status"></span>
-          <details>
-            <summary>Build diagnostics and checksums</summary>
-            <pre id="log">Choose a stock firmware file to begin.</pre>
-          </details>
-        </section>
-        <section class="card">
-          <div class="card-head">
-            <span class="number">3</span>
-            <h2>Download the firmware</h2>
-          </div>
-          <p class="muted">
-            Download the HEX to your computer, then copy it to the card using
-            your operating system’s file manager. The patcher builds and
-            downloads files; it does not access your SD card.
-          </p>
-          <button id="dl" class="primary" disabled>Download .hex</button>
-          <p class="muted">
-            Filename: <code id="downloadFilename">GCV326B0.HEX</code>. Downloads
-            use short 8.3 filenames for the module. Keep this filename when
-            moving the file to the card.
-          </p>
-        </section>
-        <section id="finish" class="card">
-          <div class="card-head">
-            <span class="number">4</span>
-            <h2>Copy to the card and update</h2>
-          </div>
-          <ol class="muted">
-            <li>
-              Back up your card and keep the original stock firmware for
-              rollback.
-            </li>
-            <li>
-              Hold <kbd>PROJ</kbd> for about five seconds to enter USB storage,
-              then open the card in Finder, File Explorer, or your file manager.
-            </li>
-            <li>
-              Copy the downloaded HEX to the card root, outside the project
-              folders. Keep only one firmware HEX there. If the browser added a
-              suffix such as “(1)”, rename it to the filename shown above.
-            </li>
-            <li>
-              Wait for copying to finish and safely eject the volume using your
-              operating system. Follow the module’s firmware-update procedure
-              and keep power stable.
-            </li>
-          </ol>
-          <p class="muted">
-            The module’s bootloader performs the update after you transfer the
-            file.
-          </p>
-        </section>
-        <div class="guide">
-          <section>
-            <h2>Before installing</h2>
-            <ul id="limitations"></ul>
-            <details>
-              <summary>Release notes</summary>
-              <p class="muted">
-                Preview 0.9.0 includes live polyphonic recording, locked pattern
-                switching and quiet startup restore. Public versions remain
-                below 1.0 until the complete experience passes hardware
-                acceptance. Melodic patterns store chord data inside each
-                pattern file. The drum track retains its native format.
-              </p>
-            </details>
+            <button id="drop" class="drop">
+              <strong>Choose or drop a .hex file</strong
+              ><small>Verified on this computer</small></button
+            ><input id="file" type="file" accept=".hex,.HEX" hidden />
+            <div id="verification" class="result" role="status">
+              No file selected
+            </div>
+            <button class="text-button" data-info="compatibilityInfo">
+              Compatibility &amp; privacy
+            </button>
           </section>
-          <section>
-            <h2>Return to stock</h2>
-            <ol>
+          <section class="card">
+            <div class="card-head">
+              <span class="number">2</span>
+              <h2>Build firmware</h2>
+            </div>
+            <p class="muted">
+              Apply the selected release bundle and verify the generated HEX
+              before downloading.
+            </p>
+            <button id="build" class="primary" disabled>Build firmware</button>
+            <div id="buildStatus" class="result" role="status"></div>
+            <button class="text-button" data-info="diagnosticsInfo">
+              Diagnostics &amp; checksums
+            </button>
+          </section>
+          <section class="card">
+            <div class="card-head">
+              <span class="number">3</span>
+              <h2>Download HEX</h2>
+            </div>
+            <p class="muted">
+              Save to your computer. The patcher does not connect to or write to
+              SD cards.
+            </p>
+            <button id="dl" class="primary" disabled>Download .hex</button>
+            <p class="muted filename">
+              Filename: <code id="downloadFilename">GCV326B0.HEX</code
+              ><br />Keep this short filename on the card.
+            </p>
+          </section>
+          <section id="finish" class="card copy-card">
+            <div class="card-head">
+              <span class="number">4</span>
+              <h2>Copy with your file manager, then update</h2>
+            </div>
+            <ol class="copy-steps muted">
               <li>
-                Keep a backup of your original stock v3.26 firmware and SD card.
+                <strong>Back up.</strong> Keep a full card backup and the
+                original stock firmware.
               </li>
               <li>
-                Place only the original stock HEX file at the card root and use
-                the module’s normal firmware update procedure.
+                <strong>Open storage.</strong> Hold <kbd>PROJ</kbd> about five
+                seconds, then open the card in Finder or File Explorer.
               </li>
               <li>
-                Stock firmware plays the native mono notes. Saving a pattern
-                from stock firmware removes its embedded chord data, so retain
-                your backup.
+                <strong>Copy the HEX.</strong> Use the card root, outside
+                project folders. Keep only one firmware HEX; remove any “(1)”
+                suffix.
+              </li>
+              <li>
+                <strong>Eject &amp; update.</strong> Wait for copying, safely
+                eject in your OS, then follow the module’s update procedure with
+                stable power.
               </li>
             </ol>
           </section>
         </div>
+        <div class="patch-more">
+          <button class="text-button" data-info="releaseInfo">
+            Release features &amp; limitations</button
+          ><button class="text-button" data-info="rollbackInfo">
+            Return to stock</button
+          ><a href="docs/reference/guide.html" target="_blank"
+            >Installation guide ↗</a
+          ><a href="docs/reference/quick-card-letter.pdf" target="_blank"
+            >Printable quick card ↗</a
+          >
+        </div>
       </main>
+      <dialog
+        id="patcherInfo"
+        class="info-dialog"
+        aria-labelledby="firmwareInfoTitle"
+      >
+        <div class="info-head">
+          <h2 id="firmwareInfoTitle">Firmware information</h2>
+          <button id="closePatcherInfo" autofocus>Close</button>
+        </div>
+        <section id="releaseInfo">
+          <h2>Release features &amp; limitations</h2>
+          <h3>In this release</h3>
+          <ul id="features"></ul>
+          <h3>Before installing</h3>
+          <ul id="limitations"></ul>
+          <p>
+            Public versions remain below 1.0 until the complete experience
+            passes hardware acceptance. CC automation belongs to the
+            experimental candidate and remains untested on hardware.
+          </p>
+          <p>
+            The editor includes DAW-style selection and drawing, undo/redo,
+            Velocity and CC lanes, native single-file patterns, backups,
+            recovery and SD-ready project ZIPs.
+          </p>
+          <a
+            href="https://github.com/andrewdesena/ground-control-patcher/blob/main/docs/releases.md"
+            target="_blank"
+            rel="noopener"
+            >Full features and release notes</a
+          >
+        </section>
+        <section id="compatibilityInfo">
+          <h2>Compatibility &amp; local processing</h2>
+          <p>
+            Only the verified stock v3.26 image is supported. Already-patched
+            and unknown firmware files are rejected. Building needs SHA-256
+            support on HTTPS or localhost. You supply the vendor firmware; this
+            tool contains patch definitions only. Firmware and patterns stay on
+            your computer. No files are uploaded.
+          </p>
+        </section>
+        <section id="diagnosticsInfo">
+          <h2>Build diagnostics &amp; checksums</h2>
+          <pre id="log">Choose a stock firmware file to begin.</pre>
+        </section>
+        <section id="rollbackInfo">
+          <h2>Return to stock</h2>
+          <ol>
+            <li>
+              Keep an off-card backup and your original official v3.26 HEX.
+            </li>
+            <li>
+              Put only that stock HEX at the card root and follow the module’s
+              normal update procedure.
+            </li>
+            <li>
+              Stock firmware plays native mono notes. Saving patterns from stock
+              firmware removes embedded chord and CC data, so retain your
+              backup.
+            </li>
+          </ol>
+        </section>
+        <section id="legalDetails">
+          <h2>Unofficial firmware. Use at your own risk.</h2>
+          <p>
+            This project is not affiliated with, endorsed by, or supported by
+            Endorphin.es in any way. The tools and patches are provided as-is,
+            without warranty. To the fullest extent permitted by law, authors
+            and contributors accept no responsibility for device damage, lost
+            data, failed updates, or other problems arising from their use.
+          </p>
+          <p>
+            Do not contact Endorphin.es for support with these tools or modified
+            firmware. Use this project’s issue tracker. Ground Control is a
+            product of Endorphin.es.
+          </p>
+        </section>
+      </dialog>
     </section>
     <section id="viewEditor" hidden>
-      <div class="muted" style="padding: 9px 16px; background: #30291b">
+      <div class="muted editor-notice">
         Unofficial tools, used at your own risk. Back up your card. No
         affiliation with Endorphin.es;
         <a
@@ -631,18 +265,18 @@
         href="https://github.com/andrewdesena/ground-control-patcher"
         target="_blank"
         rel="noopener"
-        >Repository & README</a
-      ><a href="docs/reference/guide.html">Installation guide</a
-      ><a href="docs/reference/editor.html">Editor guide</a
-      ><a href="docs/reference/quick-card-letter.pdf">Printable quick card</a
-      ><span>Unofficial. Not affiliated with or endorsed by Endorphin.es.</span
-      ><span>Ground Control is a product of Endorphin.es.</span
+        >Repository &amp; README</a
+      ><a href="docs/reference/guide.html" target="_blank">Installation guide</a
+      ><a href="docs/reference/editor.html" target="_blank">Editor guide</a
       ><a
-        href="https://github.com/andrewdesena/ground-control-patcher"
+        href="https://github.com/andrewdesena/ground-control-patcher/issues"
         target="_blank"
         rel="noopener"
-        >Source & issues</a
-      ><span>MIT-licensed tooling</span>
+        >Support</a
+      ><span
+        >Unofficial · Not affiliated with Endorphin.es · MIT-licensed
+        tooling</span
+      >
     </footer>
     <script src="assets/release.js"></script>
     <script src="assets/firmware-core.js"></script>

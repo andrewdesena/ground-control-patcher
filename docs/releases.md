@@ -1,6 +1,6 @@
 # Features and release notes
 
-Updated 18 November 2026. [Firmware tool](../index.html) · [Pattern editor](../index.html#editor) · [Repository and support](https://github.com/andrewdesena/ground-control-patcher)
+Updated 19 November 2026. [Firmware tool](../index.html) · [Pattern editor](../index.html#editor) · [Repository and support](https://github.com/andrewdesena/ground-control-patcher)
 
 ## Status matters
 
@@ -34,6 +34,9 @@ Use 0.x while the complete v1 experience is being built. Preview **0.9.0** maps 
 - Double-click insertion/removal, B for draw/erase, clipboard and keyboard editing.
 - Undo/redo groups a whole gesture into one edit.
 - Velocity lane, selection inspector and relative velocity adjustment.
+- Compact desktop patcher workflow with release details and diagnostics in overlay panels.
+- Editor controls and lanes fit the browser height; only the piano roll and project tree scroll on desktop.
+- Expanded piano roll with browser fullscreen where supported, Escape to exit and retained pitch position.
 - Zoom, fit controls, timeline scrolling, browser sound preview and loop controls.
 - Binary pattern I/O, exact-path navigation, independent document state and browser recovery.
 - Sidebar tree navigation and confirmed pattern/project deletion, including connected-card file removal.
